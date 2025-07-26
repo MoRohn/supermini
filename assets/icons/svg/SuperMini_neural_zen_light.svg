@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Light background with subtle radial gradient -->
+    <radialGradient id="lightBackground" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Darker green gradient for zen circle -->
+    <linearGradient id="zenCircleDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00aa55;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Muted blue for connections -->
+    <linearGradient id="neuralBlueDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.7" />
+    </linearGradient>
+    
+    <!-- Subtle shadow effect for zen circle -->
+    <filter id="lightShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+    
+    <!-- Light glow for neural connections -->
+    <filter id="lightGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Light background circle -->
+  <circle cx="512" cy="512" r="512" fill="url(#lightBackground)"/>
+  
+  <!-- Neural connections radiating from center -->
+  <g transform="translate(512,512)" stroke="url(#neuralBlueDark)" stroke-width="2" fill="none" filter="url(#lightGlow)">
+    <!-- Primary cardinal directions -->
+    <line x1="0" y1="-170" x2="0" y2="-290" opacity="0.8"/>
+    <line x1="170" y1="0" x2="290" y2="0" opacity="0.8"/>
+    <line x1="0" y1="170" x2="0" y2="290" opacity="0.8"/>
+    <line x1="-170" y1="0" x2="-290" y2="0" opacity="0.8"/>
+    
+    <!-- Secondary diagonal directions -->
+    <line x1="120" y1="-120" x2="205" y2="-205" opacity="0.6"/>
+    <line x1="120" y1="120" x2="205" y2="205" opacity="0.6"/>
+    <line x1="-120" y1="120" x2="-205" y2="205" opacity="0.6"/>
+    <line x1="-120" y1="-120" x2="-205" y2="-205" opacity="0.6"/>
+    
+    <!-- Neural connection nodes at endpoints -->
+    <circle cx="0" cy="-290" r="4" fill="#00aa55" opacity="0.7"/>
+    <circle cx="290" cy="0" r="4" fill="#00aa55" opacity="0.7"/>
+    <circle cx="0" cy="290" r="4" fill="#00aa55" opacity="0.7"/>
+    <circle cx="-290" cy="0" r="4" fill="#00aa55" opacity="0.7"/>
+    <circle cx="205" cy="-205" r="3" fill="#2563eb" opacity="0.5"/>
+    <circle cx="205" cy="205" r="3" fill="#2563eb" opacity="0.5"/>
+    <circle cx="-205" cy="205" r="3" fill="#2563eb" opacity="0.5"/>
+    <circle cx="-205" cy="-205" r="3" fill="#2563eb" opacity="0.5"/>
+  </g>
+  
+  <!-- Central Zen Circle (Enso) -->
+  <g transform="translate(512,512)">
+    <!-- Main zen circle with subtle gap -->
+    <path d="M -170,0 A 170,170 0 1,1 150,60" 
+          stroke="url(#zenCircleDark)" 
+          stroke-width="12" 
+          fill="none" 
+          stroke-linecap="round"
+          filter="url(#lightShadow)"
+          opacity="0.95"/>
+    
+    <!-- Inner energy ring for depth -->
+    <circle cx="0" cy="0" r="145" 
+            stroke="url(#zenCircleDark)" 
+            stroke-width="2" 
+            fill="none" 
+            opacity="0.25"/>
+    
+    <!-- Zen center point -->
+    <circle cx="0" cy="0" r="8" fill="url(#zenCircleDark)" opacity="0.6"/>
+  </g>
+  
+  <!-- Golden ratio proportional markers (very subtle) -->
+  <g transform="translate(512,512)" opacity="0.05">
+    <circle cx="0" cy="0" r="274" stroke="#00aa55" stroke-width="0.5" fill="none"/>
+    <circle cx="0" cy="0" r="105" stroke="#00aa55" stroke-width="0.5" fill="none"/>
+  </g>
+</svg>

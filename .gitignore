@@ -1,0 +1,260 @@
+# SuperMini .gitignore
+# Comprehensive exclusion patterns for Python/PyQt6 desktop application
+
+# === SECURITY: API Keys and Sensitive Data ===
+*.key
+*.secret
+*.env
+.env.*
+api_keys.txt
+config/secrets.json
+credentials.json
+.claude_api_key
+.anthropic_key
+.ollama_config
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# === PyInstaller ===
+*.manifest
+*.spec
+
+# === Virtual Environments ===
+venv/
+ENV/
+env/
+.venv
+.ENV
+.env
+pip-log.txt
+pip-delete-this-directory.txt
+
+# === PyQt6/Qt ===
+*.qrc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+ui_*.py
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+*.o
+*.obj
+
+# === macOS Application Bundles ===
+*.app/
+*.dmg
+*.pkg
+build/
+dist/
+create_dmg_temp/
+
+# === macOS System Files ===
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# === Linux ===
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# === Windows ===
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# === IDE and Editors ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+.spyderproject
+.spyproject
+.ropeproject
+
+# === Jupyter Notebook ===
+.ipynb_checkpoints
+
+# === Testing ===
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# === Documentation ===
+docs/_build/
+.readthedocs.yml
+
+# === Databases ===
+*.db
+*.sqlite3
+*.sqlite
+db.sqlite3
+instance/
+.webassets-cache
+
+# === Logs ===
+*.log
+logs/
+*.out
+pip-log.txt
+
+# === Temporary Files ===
+*.tmp
+*.temp
+.tmp/
+.temp/
+*_temp/
+*_tmp/
+
+# === Backup Files ===
+*.bak
+*.backup
+*.orig
+*.rej
+
+# === SuperMini Specific ===
+# Generated output directories
+~/SuperMini_Output/
+SuperMini_Output/
+output/
+generated/
+
+# Memory and cache directories
+data/memory/
+.cache/
+cache/
+
+# Collaboration data
+data/collaboration/
+
+# Icon generation artifacts
+icons_generated/
+*.icns
+*.ico
+
+# Build artifacts
+*.sh.log
+build_release.log
+deployment.log
+
+# Test files
+test_*.log
+regression_results/
+
+# Autonomous enhancement artifacts
+autonomous_logs/
+enhancement_history/
+backup_*/
+
+# Application-specific configs
+settings.json
+user_preferences.json
+window_geometry.json
+
+# === Archive Files ===
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+*.rar
+
+# === Compiled Extensions ===
+*.dll
+*.dylib
+*.pyd
+*.so
+*.lib
+*.a
+
+# === Node.js (if any web components) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === C/C++ (if any native extensions) ===
+*.o
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+
+# === Keep these important files ===
+!requirements.txt
+!setup.py
+!pyproject.toml
+!README.md
+!LICENSE
+!CHANGELOG.md
+!CONTRIBUTING.md
+!.github/

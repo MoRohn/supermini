@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Simplified background for smaller size -->
+    <radialGradient id="neuralBg128" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#0f0f23;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f0f23;stop-opacity:0.8" />
+    </radialGradient>
+    
+    <!-- Electric green for zen circle -->
+    <linearGradient id="zenGrad128" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#33ffaa;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Neural blue -->
+    <linearGradient id="neuralBlue128" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a9eff;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#6bb8ff;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <!-- Minimal glow for small size -->
+    <filter id="smallGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <circle cx="64" cy="64" r="64" fill="url(#neuralBg128)"/>
+  
+  <!-- Simplified neural connections (4 primary directions only) -->
+  <g transform="translate(64,64)" stroke="url(#neuralBlue128)" stroke-width="1" fill="none">
+    <line x1="0" y1="-21" x2="0" y2="-36" opacity="0.8"/>  <!-- North -->
+    <line x1="21" y1="0" x2="36" y2="0" opacity="0.8"/>    <!-- East -->
+    <line x1="0" y1="21" x2="0" y2="36" opacity="0.8"/>     <!-- South -->
+    <line x1="-21" y1="0" x2="-36" y2="0" opacity="0.8"/>   <!-- West -->
+    
+    <!-- Connection nodes -->
+    <circle cx="0" cy="-36" r="1.5" fill="#00ff88" opacity="0.7"/>
+    <circle cx="36" cy="0" r="1.5" fill="#00ff88" opacity="0.7"/>
+    <circle cx="0" cy="36" r="1.5" fill="#00ff88" opacity="0.7"/>
+    <circle cx="-36" cy="0" r="1.5" fill="#00ff88" opacity="0.7"/>
+  </g>
+  
+  <!-- Central Zen Circle (simplified) -->
+  <g transform="translate(64,64)">
+    <path d="M -21,0 A 21,21 0 1,1 18.5,7.5" 
+          stroke="url(#zenGrad128)" 
+          stroke-width="1.5" 
+          fill="none" 
+          stroke-linecap="round"
+          filter="url(#smallGlow)"
+          opacity="0.95"/>
+    
+    <!-- Center point -->
+    <circle cx="0" cy="0" r="1" fill="url(#zenGrad128)" opacity="0.6"/>
+  </g>
+</svg>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Neural Zen Circle Gradients -->
+    <radialGradient id="backgroundGradient" cx="0.5" cy="0.5" r="0.8">
+      <stop offset="0%" stop-color="#0f0f23"/>
+      <stop offset="70%" stop-color="rgba(15,15,35,0.8)"/>
+      <stop offset="100%" stop-color="rgba(15,15,35,0.4)"/>
+    </radialGradient>
+    
+    <linearGradient id="zenCircleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ff88"/>
+      <stop offset="50%" stop-color="#33ffaa"/>
+      <stop offset="100%" stop-color="#00ff88"/>
+    </linearGradient>
+    
+    <linearGradient id="neuralLineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a9eff"/>
+      <stop offset="100%" stop-color="#6bb8ff"/>
+    </linearGradient>
+    
+    <!-- Zen Circle Glow Filter -->
+    <filter id="zenGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Neural Line Glow Filter -->
+    <filter id="neuralGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Deep Neural Dark Background -->
+  <rect width="1024" height="1024" fill="url(#backgroundGradient)"/>
+  
+  <!-- Neural Connection Lines (8 directions) -->
+  <g stroke="url(#neuralLineGradient)" stroke-width="3" fill="none" filter="url(#neuralGlow)" opacity="0.8">
+    <!-- Primary Directions (N, E, S, W) -->
+    <line x1="512" y1="512" x2="512" y2="200" stroke-linecap="round"/>
+    <line x1="512" y1="512" x2="824" y2="512" stroke-linecap="round"/>
+    <line x1="512" y1="512" x2="512" y2="824" stroke-linecap="round"/>
+    <line x1="512" y1="512" x2="200" y2="512" stroke-linecap="round"/>
+    
+    <!-- Secondary Directions (NE, SE, SW, NW) -->
+    <line x1="512" y1="512" x2="733" y2="291" stroke-linecap="round"/>
+    <line x1="512" y1="512" x2="733" y2="733" stroke-linecap="round"/>
+    <line x1="512" y1="512" x2="291" y2="733" stroke-linecap="round"/>
+    <line x1="512" y1="512" x2="291" y2="291" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Connection Nodes at line endpoints -->
+  <g fill="url(#neuralLineGradient)" filter="url(#neuralGlow)">
+    <!-- Primary Direction Nodes -->
+    <circle cx="512" cy="200" r="6"/>
+    <circle cx="824" cy="512" r="6"/>
+    <circle cx="512" cy="824" r="6"/>
+    <circle cx="200" cy="512" r="6"/>
+    
+    <!-- Secondary Direction Nodes -->
+    <circle cx="733" cy="291" r="4"/>
+    <circle cx="733" cy="733" r="4"/>
+    <circle cx="291" cy="733" r="4"/>
+    <circle cx="291" cy="291" r="4"/>
+  </g>
+  
+  <!-- Central Zen Enso Circle -->
+  <g filter="url(#zenGlow)">
+    <!-- Main circle path with zen opening -->
+    <path d="M 512 342 
+             A 170 170 0 1 1 
+             490 494"
+          stroke="url(#zenCircleGradient)" 
+          stroke-width="12" 
+          fill="none" 
+          stroke-linecap="round"/>
+    
+    <!-- Inner highlight circle -->
+    <path d="M 512 362 
+             A 150 150 0 1 1 
+             498 488"
+          stroke="rgba(255,255,255,0.3)" 
+          stroke-width="2" 
+          fill="none" 
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Zen Circle Core (subtle inner glow) -->
+  <circle cx="512" cy="512" r="140" fill="none" stroke="rgba(0,255,136,0.1)" stroke-width="1"/>
+  <circle cx="512" cy="512" r="120" fill="none" stroke="rgba(0,255,136,0.05)" stroke-width="1"/>
+</svg>
