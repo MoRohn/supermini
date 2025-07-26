@@ -1,146 +1,63 @@
 # Pull Request
 
 ## Description
-
-Brief description of the changes in this PR.
+<!-- Provide a clear and concise description of your changes -->
 
 ## Type of Change
-
-Please delete options that are not relevant.
-
+<!-- Mark the relevant option with an "x" -->
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Documentation update
-- [ ] Performance improvement
 - [ ] Code refactoring
-- [ ] Test improvements
+- [ ] Performance improvement
+- [ ] Test coverage improvement
 
 ## Related Issues
-
-- Closes #(issue number)
-- Relates to #(issue number)
+<!-- Link to related issues using keywords like "Fixes #123" or "Closes #456" -->
+- Fixes #
+- Related to #
 
 ## Changes Made
-
-### Summary
-- List the main changes made in this PR
-- Include any new features, fixes, or improvements
-- Mention any dependencies added or removed
-
-### Technical Details
-- Describe any architectural changes
-- Explain complex implementation decisions
-- Note any potential side effects
+<!-- List the specific changes you made -->
+- 
+- 
+- 
 
 ## Testing
-
-### Test Environment
-- [ ] macOS
-- [ ] Linux
-- [ ] Windows
-- [ ] Python 3.9
-- [ ] Python 3.10
-- [ ] Python 3.11
-
-### Test Cases
+<!-- Describe the tests you ran and how they passed -->
+- [ ] Tested locally with Python 3.9+
+- [ ] Tested on macOS
+- [ ] Tested on Linux
+- [ ] Tested on Windows
 - [ ] All existing tests pass
-- [ ] New tests added for new functionality
+- [ ] Added new tests for changes
 - [ ] Manual testing completed
-- [ ] Edge cases considered and tested
-
-### Test Instructions
-Provide step-by-step instructions for testing this PR:
-
-1. 
-2. 
-3. 
 
 ## Screenshots (if applicable)
-
-Add screenshots or screen recordings to help demonstrate the changes.
-
-## Performance Impact
-
-- [ ] No performance impact expected
-- [ ] Minor performance improvement
-- [ ] Significant performance improvement
-- [ ] Potential performance regression (explain below)
-
-If there's a performance impact, please describe:
-
-## Breaking Changes
-
-- [ ] No breaking changes
-- [ ] Breaking changes (list below)
-
-If there are breaking changes, describe:
-- What breaks
-- Migration path for users
-- Timeline for deprecation (if applicable)
-
-## Documentation
-
-- [ ] No documentation changes needed
-- [ ] Documentation updated in this PR
-- [ ] Documentation update needed in separate PR
-- [ ] README.md updated
-- [ ] CHANGELOG.md updated
-- [ ] Code comments added/updated
-
-## Security Considerations
-
-- [ ] No security implications
-- [ ] Security review completed
-- [ ] Security concerns noted below
-
-If there are security considerations, describe:
+<!-- Add screenshots to help explain your changes -->
 
 ## Checklist
-
-### Code Quality
-- [ ] Code follows the style guidelines
-- [ ] Self-review of the code completed
-- [ ] Code is commented, particularly in hard-to-understand areas
-- [ ] Type hints added where appropriate
-- [ ] Error handling implemented
-
-### Testing
-- [ ] Tests pass locally
-- [ ] New tests added for new functionality
-- [ ] Tests cover edge cases
-- [ ] Manual testing completed
-
-### Documentation
-- [ ] Documentation updated where necessary
-- [ ] Code changes are documented
-- [ ] API changes documented
-
-### Compliance
-- [ ] Changes are backward compatible (or breaking changes documented)
-- [ ] No sensitive information exposed
-- [ ] Dependencies properly declared
-- [ ] License compliance maintained
+<!-- Mark completed items with an "x" -->
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published
 
 ## Additional Notes
+<!-- Add any additional information that reviewers should know -->
 
-Add any additional notes, concerns, or context for reviewers.
+## Breaking Changes
+<!-- If this is a breaking change, describe what users need to do to adapt -->
 
-## Review Requests
-
-Tag specific people for review if needed:
-- @reviewer1 - for technical review
-- @reviewer2 - for UI/UX review
-
----
-
-**For Maintainers:**
-
-### Review Checklist
-- [ ] Code quality acceptable
-- [ ] Tests adequate
-- [ ] Documentation sufficient
-- [ ] No security concerns
-- [ ] Performance acceptable
-- [ ] Breaking changes properly handled
-- [ ] CI/CD pipeline passes
+## Code Review Checklist for Reviewers
+- [ ] Code is clean and well-documented
+- [ ] Changes are covered by tests
+- [ ] No security vulnerabilities introduced
+- [ ] Performance impact is acceptable
+- [ ] Breaking changes are properly documented
+- [ ] All CI checks pass

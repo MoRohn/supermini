@@ -1,146 +1,79 @@
 name: Feature Request
-description: Suggest a new feature or enhancement for SuperMini
+description: Suggest an idea for SuperMini
 title: "[Feature]: "
-labels: ["enhancement", "needs-discussion"]
+labels: ["enhancement", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
-
+        Thanks for suggesting a feature! We love hearing from our community.
+        
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the problem is.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: false
+      
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: A clear and concise description of any alternative solutions or features you've considered.
+    validations:
+      required: false
+      
   - type: dropdown
     id: category
     attributes:
       label: Feature Category
       description: What category does this feature fall into?
       options:
-        - User Interface / UX
-        - AI Model Integration
+        - AI/ML Integration
+        - User Interface
         - Task Processing
-        - Performance / Optimization
-        - Security / Privacy
+        - Memory System
+        - Autonomous Features
+        - Performance
         - Documentation
-        - Developer Experience
-        - Platform Support
         - Other
     validations:
       required: true
-
+      
   - type: dropdown
     id: priority
     attributes:
-      label: Priority Level
+      label: Priority
       description: How important is this feature to you?
       options:
-        - Low - Nice to have
-        - Medium - Would be helpful
-        - High - Important for my workflow
-        - Critical - Blocking my usage
+        - Low (nice to have)
+        - Medium (would be helpful)
+        - High (needed for my workflow)
+        - Critical (blocking my usage)
     validations:
       required: true
-
-  - type: textarea
-    id: problem
-    attributes:
-      label: Problem Description
-      description: What problem does this feature solve? What's the current limitation?
-      placeholder: |
-        Describe the problem or limitation you're experiencing...
-        Example: "Currently, SuperMini can't process video files, which limits my multimedia workflows"
-    validations:
-      required: true
-
-  - type: textarea
-    id: solution
-    attributes:
-      label: Proposed Solution
-      description: Describe the solution you'd like to see implemented
-      placeholder: |
-        Describe your ideal solution...
-        Example: "Add video processing capabilities with support for MP4, AVI, and MOV formats"
-    validations:
-      required: true
-
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternative Solutions
-      description: Describe any alternative solutions or workarounds you've considered
-      placeholder: |
-        Have you considered any alternatives?
-        Example: "I could use external video processing tools, but integration would be much better"
-
-  - type: textarea
-    id: use-cases
-    attributes:
-      label: Use Cases
-      description: Provide specific examples of how this feature would be used
-      placeholder: |
-        Example use cases:
-        1. Process security camera footage to extract key frames
-        2. Analyze video content for accessibility compliance
-        3. Create video summaries for long recordings
-
-  - type: textarea
-    id: technical-details
-    attributes:
-      label: Technical Considerations
-      description: Any technical details, requirements, or constraints to consider?
-      placeholder: |
-        Technical considerations:
-        - Performance requirements
-        - Dependencies needed
-        - Platform-specific considerations
-        - Integration points
-
-  - type: dropdown
-    id: complexity
-    attributes:
-      label: Implementation Complexity
-      description: How complex do you think this feature would be to implement?
-      options:
-        - Simple - Small change or addition
-        - Medium - Moderate effort required
-        - Complex - Significant development effort
-        - Major - Requires substantial architectural changes
-        - Unknown - Not sure about complexity
-
-  - type: textarea
-    id: mockups
-    attributes:
-      label: Mockups / Examples
-      description: If applicable, add mockups, screenshots, or examples
-      placeholder: Drag and drop images here or provide links to examples
-
-  - type: checkboxes
-    id: contribution
-    attributes:
-      label: Contribution
-      description: Are you interested in helping implement this feature?
-      options:
-        - label: I would be willing to contribute code for this feature
-        - label: I would be willing to test this feature
-        - label: I would be willing to help with documentation
-        - label: I would be willing to provide feedback during development
-
+      
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional Context
-      description: Add any other context, links, or references about the feature request
-      placeholder: Any additional information that might be helpful...
-
+      label: Additional context
+      description: Add any other context, screenshots, or examples about the feature request here.
+      
   - type: checkboxes
-    id: checklist
+    id: terms
     attributes:
-      label: Pre-submission Checklist
-      description: Please confirm the following before submitting
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/MoRohn/supermini/blob/main/CONTRIBUTING.md#code-of-conduct)
       options:
-        - label: I have searched existing issues to ensure this feature hasn't been requested before
-          required: true
-        - label: I have checked the roadmap to see if this feature is already planned
-          required: true
-        - label: I have provided clear use cases and examples
-          required: true
-        - label: I understand this is a request and not a guarantee of implementation
+        - label: I agree to follow this project's Code of Conduct
           required: true
