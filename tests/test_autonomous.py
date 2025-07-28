@@ -17,7 +17,7 @@ def test_autonomous_imports():
     print("Testing autonomous imports...")
     
     try:
-        from autonomous_agent import (
+        from src.autonomous.autonomous_agent import (
             AutonomousAgent, 
             AutonomousWorkflowManager, 
             AutonomousTask,
@@ -34,7 +34,7 @@ def test_safety_manager():
     print("\nTesting safety manager...")
     
     try:
-        from autonomous_agent import SafetyManager
+        from src.autonomous.autonomous_agent import SafetyManager
         
         safety = SafetyManager()
         
@@ -64,7 +64,7 @@ def test_autonomous_task_creation():
     print("\nTesting autonomous task creation...")
     
     try:
-        from autonomous_agent import AutonomousTask
+        from src.autonomous.autonomous_agent import AutonomousTask
         
         task = AutonomousTask(
             task_id="test_001",
@@ -90,7 +90,7 @@ def test_autonomous_agent_init():
     print("\nTesting autonomous agent initialization...")
     
     try:
-        from autonomous_agent import AutonomousAgent
+        from src.autonomous.autonomous_agent import AutonomousAgent
         
         config = {
             "model": "gpt-4-vision-preview",
@@ -130,7 +130,7 @@ def test_aimm_integration():
         print("   Testing autonomous integration in main module...")
         
         # Test that our autonomous classes are available
-        from autonomous_agent import AutonomousAgent
+        from src.autonomous.autonomous_agent import AutonomousAgent
         print("   ✅ AutonomousAgent can be imported by main module")
         
         # Test configuration compatibility
@@ -156,7 +156,7 @@ def test_workflow_manager():
     print("\nTesting workflow manager...")
     
     try:
-        from autonomous_agent import AutonomousAgent, AutonomousWorkflowManager, AutonomousTask
+        from src.autonomous.autonomous_agent import AutonomousAgent, AutonomousWorkflowManager, AutonomousTask
         
         config = {"model": "test", "api_key": "test"}
         agent = AutonomousAgent(config)

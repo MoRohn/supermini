@@ -1,0 +1,13 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load and analyze the data
+df = pd.read_csv('data.csv')
+print(f"Dataset shape: {df.shape}")
+print(f"Summary statistics:\n{df.describe()}")
+
+# Create visualization
+plt.figure(figsize=(10, 6))
+df.plot()
+plt.title('Data Analysis Results')
+plt.savefig('analysis_results.png')

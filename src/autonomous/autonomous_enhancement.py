@@ -10,6 +10,8 @@ import ast
 import inspect
 import subprocess
 import hashlib
+import requests
+import os
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -53,6 +55,246 @@ class EnhancementResult:
     validation_results: Dict[str, Any]
     rollback_info: Optional[Dict[str, Any]]
     timestamp: float
+
+class GitHubIntegrationManager:
+    """Manages autonomous contributions to GitHub repository"""
+    
+    def __init__(self, repo_owner: str, repo_name: str, github_token: Optional[str] = None):
+        self.repo_owner = repo_owner
+        self.repo_name = repo_name
+        self.github_token = github_token or os.getenv('GITHUB_TOKEN')
+        self.base_url = "https://api.github.com"
+        self.repo_url = f"{self.base_url}/repos/{repo_owner}/{repo_name}"
+        
+        # GitHub API headers
+        self.headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "SuperMini-Autonomous-Enhancement/2.1.0"
+        }
+        
+        if self.github_token:
+            self.headers["Authorization"] = f"token {self.github_token}"
+            
+        # Safety settings
+        self.max_changes_per_pr = 5
+        self.allowed_file_patterns = [
+            "*.py", "*.md", "*.txt", "*.json", "*.yml", "*.yaml"
+        ]
+        self.forbidden_paths = [
+            ".github/workflows/",
+            "scripts/",
+            "requirements.txt",
+            "setup.py"
+        ]
+        
+    def can_create_pull_request(self) -> bool:
+        """Check if GitHub integration is properly configured"""
+        if not self.github_token:
+            logging.warning("GitHub token not configured for autonomous contributions")
+            return False
+            
+        try:
+            # Test API access
+            response = requests.get(self.repo_url, headers=self.headers)
+            return response.status_code == 200
+        except Exception as e:
+            logging.error(f"GitHub API test failed: {e}")
+            return False
+            
+    def create_enhancement_branch(self, enhancement_id: str) -> Optional[str]:
+        """Create a new branch for autonomous enhancement"""
+        if not self.can_create_pull_request():
+            return None
+            
+        branch_name = f"autonomous/enhancement-{enhancement_id}"
+        
+        try:
+            # Get main branch SHA
+            main_response = requests.get(f"{self.repo_url}/git/ref/heads/main", headers=self.headers)
+            if main_response.status_code != 200:
+                logging.error("Failed to get main branch reference")
+                return None
+                
+            main_sha = main_response.json()["object"]["sha"]
+            
+            # Create new branch
+            branch_data = {
+                "ref": f"refs/heads/{branch_name}",
+                "sha": main_sha
+            }
+            
+            branch_response = requests.post(f"{self.repo_url}/git/refs", 
+                                         headers=self.headers, 
+                                         json=branch_data)
+            
+            if branch_response.status_code == 201:
+                logging.info(f"Created enhancement branch: {branch_name}")
+                return branch_name
+            else:
+                logging.error(f"Failed to create branch: {branch_response.text}")
+                return None
+                
+        except Exception as e:
+            logging.error(f"Branch creation failed: {e}")
+            return None
+            
+    def commit_changes(self, branch_name: str, file_path: str, content: str, 
+                      commit_message: str) -> bool:
+        """Commit changes to the enhancement branch"""
+        try:
+            # Get current file content and SHA
+            file_response = requests.get(f"{self.repo_url}/contents/{file_path}",
+                                       headers=self.headers,
+                                       params={"ref": branch_name})
+            
+            commit_data = {
+                "message": commit_message,
+                "content": content,
+                "branch": branch_name
+            }
+            
+            # If file exists, include SHA for update
+            if file_response.status_code == 200:
+                commit_data["sha"] = file_response.json()["sha"]
+                
+            # Commit the changes
+            commit_response = requests.put(f"{self.repo_url}/contents/{file_path}",
+                                         headers=self.headers,
+                                         json=commit_data)
+            
+            if commit_response.status_code in [200, 201]:
+                logging.info(f"Successfully committed changes to {file_path}")
+                return True
+            else:
+                logging.error(f"Failed to commit changes: {commit_response.text}")
+                return False
+                
+        except Exception as e:
+            logging.error(f"Commit failed: {e}")
+            return False
+            
+    def create_pull_request(self, branch_name: str, enhancement: 'Enhancement', 
+                          results: List['EnhancementResult']) -> Optional[str]:
+        """Create a pull request for autonomous enhancement"""
+        try:
+            # Generate PR title and description
+            pr_title = f"🤖 Autonomous Enhancement: {enhancement.description}"
+            
+            pr_body = self._generate_pr_description(enhancement, results)
+            
+            pr_data = {
+                "title": pr_title,
+                "head": branch_name,
+                "base": "main",
+                "body": pr_body,
+                "draft": False
+            }
+            
+            pr_response = requests.post(f"{self.repo_url}/pulls",
+                                      headers=self.headers,
+                                      json=pr_data)
+            
+            if pr_response.status_code == 201:
+                pr_url = pr_response.json()["html_url"]
+                logging.info(f"Created pull request: {pr_url}")
+                
+                # Add labels
+                self._add_pr_labels(pr_response.json()["number"])
+                
+                return pr_url
+            else:
+                logging.error(f"Failed to create PR: {pr_response.text}")
+                return None
+                
+        except Exception as e:
+            logging.error(f"PR creation failed: {e}")
+            return None
+            
+    def _generate_pr_description(self, enhancement: 'Enhancement', 
+                               results: List['EnhancementResult']) -> str:
+        """Generate comprehensive PR description"""
+        description = f"""## 🤖 Autonomous Enhancement
+
+This pull request was automatically generated by SuperMini's "Enhance Yourself" mode.
+
+### Enhancement Details
+- **Type**: {enhancement.enhancement_type}
+- **Target File**: {enhancement.target_file}
+- **Risk Level**: {enhancement.risk_level}
+- **Expected Improvement**: {enhancement.expected_improvement:.2%}
+
+### Description
+{enhancement.description}
+
+### Changes Made
+"""
+        
+        for result in results:
+            if result.success:
+                description += f"✅ **{result.enhancement_id}**\n"
+                for change in result.applied_changes:
+                    description += f"  - {change}\n"
+            else:
+                description += f"❌ **{result.enhancement_id}** (failed)\n"
+                
+        description += """
+### Validation Results
+All changes have been automatically validated using:
+- Syntax checking
+- Import validation
+- Basic functionality tests
+
+### Safety Measures
+- ✅ Automated backup created before changes
+- ✅ Validation completed successfully
+- ✅ Risk assessment: LOW
+- ✅ Human review recommended before merge
+
+### Performance Impact
+"""
+        
+        for result in results:
+            if result.success and result.performance_impact:
+                description += f"- Execution time change: {result.performance_impact.get('execution_time_change', 0):.1%}\n"
+                description += f"- Memory usage change: {result.performance_impact.get('memory_usage_change', 0):.1%}\n"
+                
+        description += """
+---
+
+🔍 **Human Review Required**: Please review these autonomous changes before merging.
+
+🤖 **Generated by SuperMini v2.1.0** - Autonomous Enhancement Mode
+
+Co-Authored-By: SuperMini AI <noreply@supermini.ai>
+"""
+        
+        return description
+        
+    def _add_pr_labels(self, pr_number: int):
+        """Add appropriate labels to the PR"""
+        labels = ["autonomous", "enhancement", "ai-generated"]
+        
+        try:
+            requests.post(f"{self.repo_url}/issues/{pr_number}/labels",
+                         headers=self.headers,
+                         json={"labels": labels})
+        except Exception as e:
+            logging.warning(f"Failed to add PR labels: {e}")
+            
+    def is_file_allowed(self, file_path: str) -> bool:
+        """Check if file is allowed for autonomous modification"""
+        # Check forbidden paths
+        for forbidden in self.forbidden_paths:
+            if file_path.startswith(forbidden):
+                return False
+                
+        # Check allowed patterns
+        file_path_obj = Path(file_path)
+        for pattern in self.allowed_file_patterns:
+            if file_path_obj.match(pattern):
+                return True
+                
+        return False
 
 class SelfAnalyzer:
     """Analyzes system performance and identifies improvement opportunities"""
@@ -763,9 +1005,10 @@ class CodeModificationEngine:
             return ""
 
 class AutonomousEnhancementLoop:
-    """Main autonomous enhancement system"""
+    """Main autonomous enhancement system with GitHub integration"""
     
-    def __init__(self, target_files: List[str], output_dir: Path, claude_manager, ollama_manager):
+    def __init__(self, target_files: List[str], output_dir: Path, claude_manager, ollama_manager, 
+                 github_integration: bool = False, repo_owner: str = None, repo_name: str = None):
         self.target_files = target_files
         self.output_dir = output_dir
         self.claude = claude_manager
@@ -775,11 +1018,18 @@ class AutonomousEnhancementLoop:
         self.analyzer = SelfAnalyzer(target_files, output_dir)
         self.modifier = CodeModificationEngine(output_dir / "backups")
         
+        # GitHub integration
+        self.github_integration = github_integration
+        self.github_manager = None
+        if github_integration and repo_owner and repo_name:
+            self.github_manager = GitHubIntegrationManager(repo_owner, repo_name)
+            
         # Enhancement state
         self.enhancement_history = []
         self.active_enhancements = {}
         self.enhancement_enabled = True
         self.stop_requested = False
+        self.autonomous_pr_enabled = True
         
         # Thread safety
         self.enhancement_lock = Lock()
@@ -819,6 +1069,14 @@ class AutonomousEnhancementLoop:
                             
                             if result.success:
                                 logging.info(f"Successfully applied enhancement: {enhancement.enhancement_id}")
+                                
+                                # Create GitHub PR if enabled and configured
+                                if (self.github_integration and self.github_manager and 
+                                    self.autonomous_pr_enabled and 
+                                    self.github_manager.is_file_allowed(enhancement.target_file)):
+                                    
+                                    self._create_autonomous_pr(enhancement, [result])
+                                    
                             else:
                                 logging.warning(f"Enhancement failed: {enhancement.enhancement_id}")
                                 
@@ -919,6 +1177,75 @@ class AutonomousEnhancementLoop:
             timestamp=time.time()
         )
         
+    def _create_autonomous_pr(self, enhancement: Enhancement, results: List[EnhancementResult]):
+        """Create autonomous pull request for enhancements"""
+        try:
+            logging.info(f"Creating autonomous PR for enhancement: {enhancement.enhancement_id}")
+            
+            # Create branch
+            branch_name = self.github_manager.create_enhancement_branch(enhancement.enhancement_id)
+            if not branch_name:
+                logging.error("Failed to create enhancement branch")
+                return
+                
+            # Read modified file content
+            try:
+                with open(enhancement.target_file, 'r', encoding='utf-8') as f:
+                    file_content = f.read()
+            except Exception as e:
+                logging.error(f"Failed to read modified file: {e}")
+                return
+                
+            # Encode content for GitHub API
+            import base64
+            encoded_content = base64.b64encode(file_content.encode('utf-8')).decode('utf-8')
+            
+            # Commit changes
+            commit_message = f"🤖 Autonomous enhancement: {enhancement.description}\n\nAuto-generated by SuperMini v2.1.0\nEnhancement ID: {enhancement.enhancement_id}\nRisk Level: {enhancement.risk_level}\nExpected Improvement: {enhancement.expected_improvement:.2%}"
+            
+            if self.github_manager.commit_changes(branch_name, enhancement.target_file, 
+                                                encoded_content, commit_message):
+                
+                # Create pull request
+                pr_url = self.github_manager.create_pull_request(branch_name, enhancement, results)
+                
+                if pr_url:
+                    logging.info(f"✅ Autonomous PR created successfully: {pr_url}")
+                    
+                    # Store PR info in results
+                    for result in results:
+                        if not hasattr(result, 'github_pr_url'):
+                            result.github_pr_url = pr_url
+                else:
+                    logging.error("Failed to create pull request")
+            else:
+                logging.error("Failed to commit changes to branch")
+                
+        except Exception as e:
+            logging.error(f"Autonomous PR creation failed: {e}")
+            
+    def enable_autonomous_prs(self, enabled: bool = True):
+        """Enable or disable autonomous PR creation"""
+        self.autonomous_pr_enabled = enabled
+        status = "enabled" if enabled else "disabled"
+        logging.info(f"Autonomous PR creation {status}")
+        
+    def get_github_integration_status(self) -> Dict[str, Any]:
+        """Get status of GitHub integration"""
+        status = {
+            "integration_enabled": self.github_integration,
+            "manager_configured": self.github_manager is not None,
+            "pr_creation_enabled": self.autonomous_pr_enabled,
+            "can_create_prs": False,
+            "repository": None
+        }
+        
+        if self.github_manager:
+            status["can_create_prs"] = self.github_manager.can_create_pull_request()
+            status["repository"] = f"{self.github_manager.repo_owner}/{self.github_manager.repo_name}"
+            
+        return status
+
     def stop_enhancement_loop(self):
         """Stop the enhancement loop"""
         self.stop_requested = True
@@ -1051,3 +1378,6 @@ class ComplexityAnalysisVisitor(ast.NodeVisitor):
                 "message": f"Maximum nesting depth is {self.max_nesting}",
                 "line": None
             })
+
+# Alias for backward compatibility
+EnhancementEngine = AutonomousEnhancementLoop

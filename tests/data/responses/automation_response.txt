@@ -1,0 +1,6 @@
+#!/bin/bash
+# Automation script for testing
+echo "Starting automation task..."
+mkdir -p ~/test_output
+echo "Task completed successfully" > ~/test_output/result.txt
+echo "Automation completed."

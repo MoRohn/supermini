@@ -990,7 +990,8 @@ Expanded Analysis:
 class LearningEngine:
     """Engine for processing learning outcomes and insights"""
     
-    def __init__(self):
+    def __init__(self, executor=None):
+        self.executor = executor
         self.learning_data: List[Dict[str, Any]] = []
         self.patterns: Dict[str, Any] = {}
         self.insights: List[Dict[str, Any]] = []

@@ -16,7 +16,7 @@ def test_enhanced_task_completion_logging():
     print("📊 Testing Enhanced Task Completion Logging...")
     
     try:
-        from activity_monitor import ActivityLogger, ActivityType, ActivityLevel
+        from src.utils.activity_monitor import ActivityLogger, ActivityType, ActivityLevel
         from pathlib import Path
         
         # Create test logger
@@ -195,7 +195,7 @@ def test_performance_stats_analysis():
     print("\n📈 Testing Performance Stats Analysis...")
     
     try:
-        from activity_monitor import ActivityLogger, ActivityType, ActivityLevel
+        from src.utils.activity_monitor import ActivityLogger, ActivityType, ActivityLevel
         from pathlib import Path
         
         # Create test logger

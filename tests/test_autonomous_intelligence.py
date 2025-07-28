@@ -7,10 +7,10 @@ Validates temperature optimization, continuation logic, and prompt selection
 import sys
 import os
 
-# Add the current directory to Python path to import modules
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the parent directory to Python path to import modules  
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from task_intelligence import TaskIntelligence, ResponseAnalyzer
+from src.core.task_intelligence import TaskIntelligence, ResponseAnalyzer
 
 
 def test_temperature_optimization():

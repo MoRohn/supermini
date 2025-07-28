@@ -15,19 +15,19 @@ import logging
 
 # Import the enhanced components
 try:
-    from autonomous_orchestrator import (
+    from src.autonomous.autonomous_orchestrator import (
         AutonomousOrchestrator, AutonomousMode, AutonomousTask, 
         TaskState, AdaptationType, AutonomousContext
     )
-    from enhanced_task_execution import (
+    from src.core.enhanced_task_execution import (
         EnhancedTaskExecutor, ExecutionMode, TaskExecutionConfig,
         ExecutionResult, ExecutionPlan
     )
-    from enhanced_safety_framework import (
+    from src.autonomous.enhanced_safety_framework import (
         SafetyMonitor, UserControlInterface, SafetyLevel,
         SafetyViolationType, create_comprehensive_safety_framework
     )
-    from aimm_autonomous_integration import (
+    from src.integration.aimm_autonomous_integration import (
         EnhancedTaskProcessor, integrate_autonomous_capabilities
     )
     ENHANCED_COMPONENTS_AVAILABLE = True

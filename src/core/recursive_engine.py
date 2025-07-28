@@ -117,7 +117,7 @@ class ExecutionPlan:
 
 # Import enhanced components
 try:
-    from dynamic_planning_components import (
+    from src.utils.dynamic_planning_components import (
         PlanPerformanceMonitor, ContextTracker, AdaptationEngine,
         PlanPerformanceMetrics
     )
@@ -817,4 +817,7 @@ class DynamicPlanner:
             subtasks=subtasks,
             execution_order=[task.id for task in subtasks]
         )
+
+# Main alias for backwards compatibility  
+RecursiveEngine = RecursiveTaskEngine
 

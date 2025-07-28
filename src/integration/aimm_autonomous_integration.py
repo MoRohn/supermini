@@ -12,11 +12,11 @@ from pathlib import Path
 
 # Import enhanced components
 try:
-    from autonomous_orchestrator import AutonomousOrchestrator, AutonomousMode, AutonomousContext
-    from enhanced_task_execution import EnhancedTaskExecutor, ExecutionMode, TaskExecutionConfig
-    from enhanced_safety_framework import SafetyMonitor, UserControlInterface
-    from recursive_engine import SmartTaskDecomposer
-    from dynamic_planning_components import PlanPerformanceMonitor, ContextTracker
+    from src.autonomous.autonomous_orchestrator import AutonomousOrchestrator, AutonomousMode, AutonomousContext
+    from src.core.enhanced_task_execution import EnhancedTaskExecutor, ExecutionMode, TaskExecutionConfig
+    from src.autonomous.enhanced_safety_framework import SafetyMonitor, UserControlInterface
+    from src.core.recursive_engine import SmartTaskDecomposer
+    from src.utils.dynamic_planning_components import PlanPerformanceMonitor, ContextTracker
     ENHANCED_AUTONOMOUS_AVAILABLE = True
     logging.info("Enhanced autonomous components loaded successfully")
 except ImportError as e:
@@ -235,7 +235,7 @@ class EnhancedTaskProcessor:
         
         try:
             # Use enhanced mode manager to get recommendations
-            from enhanced_task_execution import EnhancedModeManager
+            from src.core.enhanced_task_execution import EnhancedModeManager
             mode_manager = EnhancedModeManager(self.enhanced_executor)
             recommendations = mode_manager.get_mode_recommendations(prompt, task_type)
             

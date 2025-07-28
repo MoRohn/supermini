@@ -15,27 +15,50 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 import base64
 
-# Import enhanced activity monitoring
-try:
-    from activity_monitor import (
-        get_activity_logger, ActivityType, ActivityLevel,
-        log_activity as log_activity_event
-    )
-    ACTIVITY_MONITORING_AVAILABLE = True
-except ImportError:
-    ACTIVITY_MONITORING_AVAILABLE = False
-    # Fallback functions
-    def get_activity_logger(*args, **kwargs):
-        return None
-    def log_activity_event(*args, **kwargs):
+# Enhanced activity monitoring (delayed import to prevent hanging)
+ACTIVITY_MONITORING_AVAILABLE = False
+
+# Define fallback classes first
+class ActivityType:
+    USER_INTERACTION = "user_interaction"
+    SYSTEM_EVENT = "system_event"
+    AUTONOMOUS_ACTION = "autonomous_action"
+    SAFETY_CHECK = "safety_check"
+    AI_QUERY = "ai_query"
+    AI_RESPONSE = "ai_response"
+    FILE_OPERATION = "file_operation"
+    SCREENSHOT = "screenshot"
+    ERROR_EVENT = "error_event"
+    PERFORMANCE_METRIC = "performance_metric"
+    TASK_START = "task_start"
+    TASK_END = "task_end"
+
+class ActivityLevel:
+    TRACE = "TRACE"
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+# Fallback functions
+def get_activity_logger(*args, **kwargs):
+    return None
+def log_activity_event(*args, **kwargs):
         pass
+
+# Note: Real activity monitoring import is disabled to prevent hanging
+# Activity monitoring will be available through the main application
 
 try:
     from gui_agents.s2.agents.agent_s import AgentS2
     from gui_agents.s2.agents.grounding import OSWorldACI
     GUI_AGENTS_AVAILABLE = True
-except ImportError:
-    logging.warning("gui-agents not available. Install with 'pip install gui-agents'")
+except (ImportError, ValueError) as e:
+    if "OPENAI_API_KEY" in str(e):
+        logging.warning("OpenAI API key required for autonomous features. Set OPENAI_API_KEY environment variable.")
+    else:
+        logging.warning("gui-agents not available. Install with 'pip install gui-agents'")
     GUI_AGENTS_AVAILABLE = False
 
 @dataclass

@@ -153,7 +153,7 @@ def test_activity_logging():
     print("\n📝 Testing Stop Action Logging...")
     
     try:
-        from activity_monitor import get_activity_logger, ActivityType, ActivityLevel
+        from src.utils.activity_monitor import get_activity_logger, ActivityType, ActivityLevel
         
         logger = get_activity_logger()
         initial_events = len(logger.events)

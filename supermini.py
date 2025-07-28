@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 # Import task intelligence for autonomous decision-making
-from task_intelligence import TaskIntelligence, ResponseAnalyzer
+from src.core.task_intelligence import TaskIntelligence, ResponseAnalyzer
 
 # Third-party imports
 try:
@@ -44,14 +44,29 @@ except ImportError:
     print("Error: 'psutil' is required. Install it with 'pip install psutil'")
     sys.exit(1)
 
+# Professional dashboard imports
+try:
+    import matplotlib
+    matplotlib.use('qtagg')  # Use PyQt6 backend for proper integration
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.figure import Figure
+    import matplotlib.dates as mdates
+    from datetime import datetime, timedelta
+    import numpy as np
+    MATPLOTLIB_AVAILABLE = True
+except ImportError as e:
+    MATPLOTLIB_AVAILABLE = False
+    logging.warning(f"matplotlib not available - dashboard will have limited functionality: {e}")
+
 try:
     from PyQt6.QtWidgets import (
         QApplication, QMainWindow, QLineEdit, QPushButton, QVBoxLayout,
-        QHBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QCheckBox,
+        QHBoxLayout, QGridLayout, QWidget, QLabel, QFileDialog, QMessageBox, QCheckBox,
         QProgressBar, QDialog, QTextBrowser, QFormLayout, QComboBox, QTextEdit,
-        QSplitter, QTabWidget, QSlider, QSpinBox, QGroupBox
+        QSplitter, QTabWidget, QSlider, QSpinBox, QGroupBox, QScrollArea, QSizePolicy
     )
-    from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer, QSettings, QPropertyAnimation, QEasingCurve
+    from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer, QSettings, QPropertyAnimation, QEasingCurve, QPointF
     from PyQt6.QtGui import QPixmap, QFont, QIcon, QPainter, QPen, QBrush, QLinearGradient, QColor
 except ImportError:
     print("Error: 'PyQt6' is required. Install it with 'pip install PyQt6'")
@@ -73,7 +88,7 @@ except ImportError:
 
 # Autonomous agent imports
 try:
-    from autonomous_agent import AutonomousAgent, AutonomousWorkflowManager, AutonomousTask
+    from src.autonomous.autonomous_agent import AutonomousAgent, AutonomousWorkflowManager, AutonomousTask
     AUTONOMOUS_AVAILABLE = True
 except ImportError:
     print("Warning: Autonomous agent not available. Install gui-agents for full functionality.")
@@ -81,7 +96,7 @@ except ImportError:
 
 # Enhanced activity monitoring imports
 try:
-    from activity_monitor import (
+    from src.utils.activity_monitor import (
         get_activity_logger, ActivityMonitorWidget, 
         ActivityType, ActivityLevel, log_activity
     )
@@ -132,6 +147,106 @@ def get_random_status_message() -> str:
     ]
     return random.choice(status_messages)
 
+# Modern Icon System
+class ModernIcons:
+    """Modern minimalistic icon system using clean Unicode symbols for professional appearance"""
+    
+    # Application icons - ultra-clean and minimalistic
+    APP = {
+        'logo': '◆',
+        'menu': '≡',
+        'close': '×',
+        'minimize': '−',
+        'maximize': '□',
+        'settings': '◦',
+        'theme': '◗',
+        'info': 'i',
+        'help': '?',
+        'refresh': '↻'
+    }
+    
+    # Task type icons - clean geometric shapes
+    TASKS = {
+        'task': '□',
+        'code': '<>',
+        'multimedia': '▣',
+        'rag': '▤',
+        'automation': '⟳',
+        'analytics': '▦',
+        'auto_detect': '◉'
+    }
+    
+    # Action icons - minimal and intuitive
+    ACTIONS = {
+        'play': '▷',
+        'pause': '⏸',
+        'stop': '◼',
+        'upload': '↑',
+        'download': '↓',
+        'attach': '◎',
+        'delete': '×',
+        'edit': '✎',
+        'save': '◊',
+        'copy': '▣',
+        'share': '↗',
+        'expand': '⤢',
+        'collapse': '⤡'
+    }
+    
+    # Status icons - clear monochromatic feedback
+    STATUS = {
+        'success': '✓',
+        'error': '✗',
+        'warning': '⚠',
+        'info': 'i',
+        'loading': '◐',
+        'processing': '◑',
+        'idle': '○',
+        'active': '●'
+    }
+    
+    # Navigation icons - geometric and clean
+    NAVIGATION = {
+        'back': '‹',
+        'forward': '›',
+        'up': '▲',
+        'down': '▼',
+        'home': '⌂',
+        'search': '○',
+        'filter': '▦',
+        'sort': '⟷'
+    }
+    
+    @classmethod
+    def get_icon(cls, category: str, name: str) -> str:
+        """Get an icon from a specific category"""
+        categories = {
+            'app': cls.APP,
+            'tasks': cls.TASKS,
+            'actions': cls.ACTIONS,
+            'status': cls.STATUS,
+            'nav': cls.NAVIGATION
+        }
+        return categories.get(category, {}).get(name, '○')
+    
+    @classmethod
+    def get_task_icon(cls, task_type: str) -> str:
+        """Get the appropriate icon for a task type with fallback"""
+        task_mapping = {
+            'code': cls.TASKS['code'],
+            'multimedia': cls.TASKS['multimedia'],
+            'rag': cls.TASKS['rag'],
+            'automation': cls.TASKS['automation'],
+            'analytics': cls.TASKS['analytics'],
+            'auto_detect': cls.TASKS['auto_detect']
+        }
+        return task_mapping.get(task_type, cls.TASKS['task'])
+    
+    @classmethod
+    def task_icon(cls, task_type: str) -> str:
+        """Get icon for task type"""
+        return cls.TASKS.get(task_type.lower(), cls.TASKS['auto_detect'])
+
 # Modern Design System
 class ModernTheme:
     """Modern design system with consistent colors, typography, and spacing"""
@@ -139,6 +254,16 @@ class ModernTheme:
     # DPI and scaling awareness
     _scale_factor = None
     _base_font_size = None
+    
+    # Theme system
+    _current_theme = 'dark'  # 'dark' or 'light'
+    _mobile_breakpoint = 768
+    _tablet_breakpoint = 1024
+    
+    # Screen size categories
+    SCREEN_MOBILE = 'mobile'
+    SCREEN_TABLET = 'tablet'
+    SCREEN_DESKTOP = 'desktop'
     
     @classmethod
     def initialize_scaling(cls, app: QApplication):
@@ -165,6 +290,81 @@ class ModernTheme:
             f"  Screen Resolution: {screen_geometry.width()}x{screen_geometry.height()}\n"
             f"  Available Area: {available_geometry.width()}x{available_geometry.height()}"
         )
+    
+    @classmethod
+    def set_theme(cls, theme: str):
+        """Set the current theme (dark or light)"""
+        if theme in ['dark', 'light']:
+            cls._current_theme = theme
+            logging.info(f"Theme changed to: {theme}")
+    
+    @classmethod
+    def get_current_theme(cls) -> str:
+        """Get the current theme"""
+        return cls._current_theme
+    
+    @classmethod
+    def get_screen_category(cls, width: int) -> str:
+        """Get screen category based on width"""
+        if width < cls._mobile_breakpoint:
+            return cls.SCREEN_MOBILE
+        elif width < cls._tablet_breakpoint:
+            return cls.SCREEN_TABLET
+        else:
+            return cls.SCREEN_DESKTOP
+    
+    @classmethod
+    def is_mobile(cls, width: int) -> bool:
+        """Check if screen size is mobile"""
+        return width < cls._mobile_breakpoint
+    
+    @classmethod
+    def is_tablet(cls, width: int) -> bool:
+        """Check if screen size is tablet"""
+        return cls._mobile_breakpoint <= width < cls._tablet_breakpoint
+    
+    @classmethod
+    def get_responsive_spacing(cls, screen_category: str, size_key: str) -> str:
+        """Get responsive spacing based on screen size"""
+        base_spacing = {
+            'xs': 2, 'sm': 4, 'md': 6, 'lg': 8,
+            'xl': 12, 'xxl': 16, 'xxxl': 20
+        }
+        
+        # Scale based on screen size
+        multiplier = {
+            cls.SCREEN_MOBILE: 0.8,
+            cls.SCREEN_TABLET: 1.0,
+            cls.SCREEN_DESKTOP: 1.2
+        }
+        
+        base_value = base_spacing.get(size_key, 6)
+        scaled_value = int(base_value * multiplier.get(screen_category, 1.0))
+        return f"{cls.scale_value(scaled_value)}px"
+    
+    @classmethod
+    def get_responsive_font_size(cls, screen_category: str, size_key: str) -> str:
+        """Get responsive font size based on screen size with enhanced scaling"""
+        base_sizes = {
+            'xs': 9, 'sm': 10, 'base': 11, 'lg': 12,
+            'xl': 14, 'xxl': 16, 'title': 18, 'heading': 22, 'display': 28
+        }
+        
+        # Enhanced responsive scaling with better mobile optimization
+        multiplier = {
+            cls.SCREEN_MOBILE: 0.85,    # Slightly smaller for mobile screens
+            cls.SCREEN_TABLET: 0.95,    # Optimized for tablet reading
+            cls.SCREEN_DESKTOP: 1.0     # Standard desktop sizing
+        }
+        
+        base_size = base_sizes.get(size_key, 11)
+        if cls._base_font_size:
+            scale_factor = base_size / 11
+            scaled_size = int(cls._base_font_size * scale_factor * multiplier.get(screen_category, 1.0))
+            return f"{max(scaled_size, 9)}pt"  # Minimum readable size
+        else:
+            scaled_size = int(base_size * multiplier.get(screen_category, 1.0))
+            return f"{max(scaled_size, 9)}pt"  # Minimum readable size
     
     @classmethod
     def scale_value(cls, value: int) -> int:
@@ -199,68 +399,669 @@ class ModernTheme:
         scaled = cls.scale_value(base_spacing.get(size_key, 6))
         return f"{scaled}px"
     
-    # Color Palette - Neural Network Dashboard with Zen Minimalism
-    COLORS = {
-        # Neural AI primary colors
-        'primary': '#00ff88',        # Electric green (neural active)
-        'primary_hover': '#00cc6a',  # Darker green
-        'primary_light': '#33ffaa',  # Lighter green
-        'primary_dark': '#00aa55',   # Deep green
+    # Minimalistic Color Palettes - Dark and Light themes
+    DARK_COLORS = {
+        # Primary colors - WCAG AA compliant blue palette
+        'primary': '#3B82F6',        # Enhanced blue for better contrast
+        'primary_hover': '#2563EB',  # Darker blue on hover
+        'primary_light': '#60A5FA',  # Lighter accessible blue
+        'primary_dark': '#1E40AF',   # Deep blue with high contrast
         
-        # Neural secondary colors
-        'secondary': '#4a9eff',      # Neural blue (data flow)
-        'secondary_hover': '#3d7acc', # Darker blue
-        'accent': '#ff6b35',         # Cyberpunk orange (alerts)
-        'accent_soft': '#ff8f6b',    # Softer orange
+        # Secondary colors - accessible grays
+        'secondary': '#9CA3AF',      # Better contrast gray
+        'secondary_hover': '#6B7280', # Enhanced hover state
+        'accent': '#EF4444',         # High contrast red
+        'accent_soft': '#F87171',    # Accessible soft red
         
-        # Neural background colors - dark theme with subtle gradients
-        'bg_primary': '#0f0f23',     # Deep neural dark
-        'bg_secondary': '#1a1a2e',   # Neural medium
-        'bg_tertiary': '#16213e',    # Neural lighter
-        'bg_hover': '#1e2749',       # Hover state
-        'bg_panel': '#141428',       # Panel background
+        # Background colors - refined dark theme
+        'bg_primary': '#0F0F0F',     # Deep black with subtle warmth
+        'bg_secondary': '#1F1F23',   # Enhanced dark secondary
+        'bg_tertiary': '#27272A',    # Improved tertiary background
+        'bg_hover': '#3F3F46',       # Higher contrast hover
+        'bg_panel': '#09090B',       # Panel background with depth
         
-        # Zen-inspired neutral backgrounds for breathing space
-        'bg_zen': '#0d0d1f',         # Ultra-deep for zen focus
-        'bg_card': '#181833',        # Card backgrounds
-        'bg_input': '#1c1c3a',       # Input field backgrounds
+        # Card and input backgrounds - enhanced contrast
+        'bg_card': '#18181B',        # Better card contrast
+        'bg_input': '#27272A',       # Improved input visibility
         
-        # Text colors - high contrast with zen readability
-        'text_primary': '#ffffff',   # Pure white for highest contrast
-        'text_secondary': '#b0b7c3', # Muted gray for secondary text
-        'text_muted': '#8a91a0',     # Softer gray for less important text
-        'text_disabled': '#64748b',  # Disabled state
-        'text_neural': '#00ff88',    # Neural green for AI-related text
-        'text_zen': '#e2e8f0',      # Zen-inspired softer white
+        # Text colors - WCAG AA compliant
+        'text_primary': '#FAFAFA',   # Softer white for reduced eye strain
+        'text_secondary': '#E4E4E7', # High contrast secondary text
+        'text_muted': '#A1A1AA',     # Better contrast muted text
+        'text_disabled': '#52525B',  # Improved disabled state visibility
+        'text_accent': '#60A5FA',    # Accessible accent text
+        'text_inverse': '#FFFFFF',   # White text for dark backgrounds
         
-        # Status colors with neural aesthetics
-        'success': '#00ff88',        # Neural green for success
-        'success_bg': '#0a1f0f',     # Dark green background
-        'warning': '#ffb347',        # Warm orange for warnings
-        'warning_bg': '#2d1810',     # Dark orange background
-        'error': '#ff6b6b',          # Soft red for errors
-        'error_bg': '#2d1010',       # Dark red background
-        'info': '#4a9eff',           # Neural blue for info
-        'info_bg': '#0f1828',        # Dark blue background
+        # Status colors - WCAG compliant
+        'success': '#22C55E',        # High contrast green
+        'success_bg': '#14532D',     # Enhanced success background
+        'warning': '#F59E0B',        # Better contrast orange
+        'warning_bg': '#451A03',     # Improved warning background
+        'error': '#EF4444',          # High contrast red
+        'error_bg': '#7F1D1D',       # Enhanced error background
+        'info': '#3B82F6',           # Consistent info blue
+        'info_bg': '#1E3A8A',        # Better info background
         
-        # Border colors with neural glow effects
-        'border': '#2a3441',         # Subtle borders
-        'border_light': '#3a4651',   # Lighter borders
-        'border_focus': '#00ff88',   # Neural green focus
-        'border_neural': '#4a9eff',  # Neural blue borders
-        'border_zen': '#1e2749',     # Zen-inspired subtle borders
+        # Border colors - improved visibility
+        'border': '#3F3F46',         # Higher contrast borders
+        'border_light': '#52525B',   # More visible light borders
+        'border_input': '#52525B',   # Enhanced input borders
+        'border_focus': '#3B82F6',   # Consistent focus state
         
-        # Glow and effects
-        'glow_neural': 'rgba(0, 255, 136, 0.3)',    # Neural green glow
-        'glow_data': 'rgba(74, 158, 255, 0.3)',     # Data blue glow
-        'glow_soft': 'rgba(255, 255, 255, 0.1)',    # Soft white glow
+        # Enhanced shadows and effects
+        'shadow_sm': 'rgba(0, 0, 0, 0.4)',
+        'shadow_md': 'rgba(0, 0, 0, 0.5)',
+        'shadow_lg': 'rgba(0, 0, 0, 0.6)',
+        'glow': 'rgba(59, 130, 246, 0.35)',
+        'glow_soft': 'rgba(59, 130, 246, 0.15)',
+        'glassmorphism': 'rgba(255, 255, 255, 0.08)',
+        
+        # Zen dashboard colors
+        'bg_zen': '#1A1A1A',         # Zen dashboard background
+        'text_zen': '#3B82F6',       # Zen dashboard text/metrics
+        'text_neural': '#9CA3AF'     # Neural network text
     }
     
-    # Typography
+    LIGHT_COLORS = {
+        # Primary colors - WCAG AA compliant blue palette
+        'primary': '#1D4ED8',        # Enhanced blue for better light mode contrast
+        'primary_hover': '#1E40AF',  # Darker blue on hover
+        'primary_light': '#3B82F6',  # Lighter accessible blue
+        'primary_dark': '#1E3A8A',   # Deep blue with high contrast
+        
+        # Secondary colors - accessible grays
+        'secondary': '#6B7280',      # Better contrast gray
+        'secondary_hover': '#4B5563', # Enhanced hover state
+        'accent': '#DC2626',         # High contrast red
+        'accent_soft': '#EF4444',    # Accessible soft red
+        
+        # Background colors - refined light theme
+        'bg_primary': '#FFFFFF',     # Pure white
+        'bg_secondary': '#F8FAFC',   # Enhanced light secondary
+        'bg_tertiary': '#F1F5F9',    # Improved tertiary background
+        'bg_hover': '#E2E8F0',       # Higher contrast hover
+        'bg_panel': '#FDFDFD',       # Panel background with depth
+        
+        # Card and input backgrounds - enhanced contrast
+        'bg_card': '#FFFFFF',        # Clean card backgrounds
+        'bg_input': '#F8FAFC',       # Improved input visibility
+        
+        # Text colors - WCAG AA compliant
+        'text_primary': '#0F172A',   # Deep black for maximum contrast
+        'text_secondary': '#334155', # High contrast secondary text
+        'text_muted': '#64748B',     # Better contrast muted text
+        'text_disabled': '#CBD5E1',  # Improved disabled state visibility
+        'text_accent': '#1D4ED8',    # Accessible accent text
+        'text_inverse': '#FFFFFF',   # White text for dark backgrounds
+        
+        # Status colors - WCAG compliant
+        'success': '#059669',        # High contrast green
+        'success_bg': '#ECFDF5',     # Enhanced success background
+        'warning': '#D97706',        # Better contrast orange
+        'warning_bg': '#FFFBEB',     # Improved warning background
+        'error': '#DC2626',          # High contrast red
+        'error_bg': '#FEF2F2',       # Enhanced error background
+        'info': '#1D4ED8',           # Consistent info blue
+        'info_bg': '#EFF6FF',        # Better info background
+        
+        # Border colors - improved visibility
+        'border': '#CBD5E1',         # Higher contrast borders
+        'border_light': '#E2E8F0',   # More visible light borders
+        'border_input': '#CBD5E1',   # Enhanced input borders
+        'border_focus': '#1D4ED8',   # Consistent focus state
+        
+        # Enhanced shadows and effects
+        'shadow_sm': 'rgba(0, 0, 0, 0.08)',
+        'shadow_md': 'rgba(0, 0, 0, 0.12)',
+        'shadow_lg': 'rgba(0, 0, 0, 0.18)',
+        'glow': 'rgba(29, 78, 216, 0.25)',
+        'glow_soft': 'rgba(29, 78, 216, 0.08)',
+        'glassmorphism': 'rgba(0, 0, 0, 0.03)',
+        
+        # Zen dashboard colors
+        'bg_zen': '#F8FAFC',         # Zen dashboard background (light)
+        'text_zen': '#1D4ED8',       # Zen dashboard text/metrics (light)
+        'text_neural': '#64748B'     # Neural network text (light)
+    }
+    
+    @classmethod
+    def get_colors(cls) -> dict:
+        """Get colors for current theme"""
+        return cls.DARK_COLORS if cls._current_theme == 'dark' else cls.LIGHT_COLORS
+    
+    # Legacy COLORS property for backwards compatibility
+    @classmethod
+    def COLORS(cls):
+        return cls.get_colors()
+    
+    # Enhanced utility methods for modern styling
+    @classmethod
+    def get_card_style(cls, elevated: bool = False, floating: bool = False) -> str:
+        """Get modern card styling with floating panel effects"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
+        
+        if floating:
+            shadow = shadows['floating']
+        elif elevated:
+            shadow = shadows['lg']
+        else:
+            shadow = shadows['card']
+        
+        return f"""
+            background-color: {colors['bg_card']};
+            border: 1px solid {colors['border']};
+            border-radius: {cls.get_border_radius('lg')};
+            box-shadow: {shadow};
+            transition: all {cls.TRANSITIONS['normal']};
+        """
+    
+    @classmethod
+    def get_modern_panel_style(cls, type: str = 'default') -> str:
+        """Get modern panel styling with depth and polish"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
+        
+        panel_configs = {
+            'default': {
+                'bg': colors['bg_card'],
+                'border': colors['border'],
+                'shadow': shadows['card']
+            },
+            'elevated': {
+                'bg': colors['bg_card'],
+                'border': colors['border_light'],
+                'shadow': shadows['floating']
+            },
+            'glass': {
+                'bg': colors['glassmorphism'],
+                'border': colors['border_light'],
+                'shadow': shadows['glow_soft']
+            }
+        }
+        
+        config = panel_configs.get(type, panel_configs['default'])
+        
+        return f"""
+            background-color: {config['bg']};
+            border: 1px solid {config['border']};
+            border-radius: {cls.get_border_radius('lg')};
+            box-shadow: {config['shadow']};
+            transition: all {cls.TRANSITIONS['spring']};
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        """
+    
+    @classmethod
+    def get_micro_interactions_style(cls) -> str:
+        """Get micro-interactions and smooth transitions for enhanced UX"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
+        
+        return f"""
+        /* Enhanced Micro-Interactions */
+        * {{
+            transition: all {cls.TRANSITIONS['fast']} ease-out;
+        }}
+        
+        /* Button hover and click animations */
+        QPushButton {{
+            transition: all {cls.TRANSITIONS['fast']}, 
+                       transform {cls.TRANSITIONS['instant']},
+                       box-shadow {cls.TRANSITIONS['normal']};
+        }}
+        
+        QPushButton:hover {{
+            animation: button-hover {cls.TRANSITIONS['normal']} ease-out;
+        }}
+        
+        QPushButton:pressed {{
+            animation: button-press {cls.TRANSITIONS['instant']} ease-out;
+        }}
+        
+        /* Input field focus animations */
+        QLineEdit, QTextEdit, QComboBox {{
+            transition: all {cls.TRANSITIONS['normal']},
+                       border-color {cls.TRANSITIONS['fast']},
+                       box-shadow {cls.TRANSITIONS['normal']};
+        }}
+        
+        QLineEdit:focus, QTextEdit:focus, QComboBox:focus {{
+            animation: input-focus {cls.TRANSITIONS['normal']} ease-out;
+        }}
+        
+        /* Tab switching animations */
+        QTabBar::tab {{
+            transition: all {cls.TRANSITIONS['normal']},
+                       transform {cls.TRANSITIONS['fast']},
+                       background-color {cls.TRANSITIONS['normal']};
+        }}
+        
+        QTabWidget::pane {{
+            transition: all {cls.TRANSITIONS['smooth']};
+        }}
+        
+        /* Progress bar animations */
+        QProgressBar {{
+            transition: all {cls.TRANSITIONS['normal']};
+        }}
+        
+        QProgressBar::chunk {{
+            transition: width {cls.TRANSITIONS['smooth']};
+        }}
+        
+        /* Checkbox and radio animations */
+        QCheckBox::indicator {{
+            transition: all {cls.TRANSITIONS['fast']};
+        }}
+        
+        QCheckBox::indicator:checked {{
+            animation: checkbox-check {cls.TRANSITIONS['bounce']} ease-out;
+        }}
+        
+        QRadioButton::indicator {{
+            transition: all {cls.TRANSITIONS['fast']};
+        }}
+        
+        QRadioButton::indicator:checked {{
+            animation: radio-select {cls.TRANSITIONS['spring']} ease-out;
+        }}
+        
+        /* Slider animations */
+        QSlider::handle {{
+            transition: all {cls.TRANSITIONS['fast']};
+        }}
+        
+        QSlider::handle:hover {{
+            animation: slider-hover {cls.TRANSITIONS['normal']} ease-out;
+        }}
+        
+        /* Group box hover effects */
+        QGroupBox {{
+            transition: all {cls.TRANSITIONS['normal']},
+                       transform {cls.TRANSITIONS['fast']},
+                       box-shadow {cls.TRANSITIONS['smooth']};
+        }}
+        
+        /* Scroll area smooth scrolling */
+        QScrollArea {{
+            transition: all {cls.TRANSITIONS['smooth']};
+        }}
+        
+        QScrollBar {{
+            transition: all {cls.TRANSITIONS['normal']};
+        }}
+        
+        QScrollBar::handle {{
+            transition: all {cls.TRANSITIONS['fast']};
+        }}
+        
+        /* Menu and tooltip animations */
+        QMenu {{
+            transition: all {cls.TRANSITIONS['fast']};
+            animation: menu-appear {cls.TRANSITIONS['spring']} ease-out;
+        }}
+        
+        QToolTip {{
+            transition: all {cls.TRANSITIONS['normal']};
+            animation: tooltip-fade {cls.TRANSITIONS['normal']} ease-out;
+        }}
+        """
+    
+    @classmethod
+    def get_accessibility_style(cls) -> str:
+        """Get WCAG 2.1 AA compliant accessibility styles"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
+        
+        return f"""
+        /* WCAG 2.1 AA Accessibility Compliance */
+        
+        /* High contrast focus indicators */
+        *:focus {{
+            outline: {cls.scale_value(2)}px solid {colors['border_focus']};
+            outline-offset: {cls.scale_value(2)}px;
+            transition: outline {cls.TRANSITIONS['fast']};
+        }}
+        
+        /* Enhanced button focus for keyboard navigation */
+        QPushButton:focus {{
+            outline: {cls.scale_value(3)}px solid {colors['border_focus']};
+            outline-offset: {cls.scale_value(3)}px;
+            background-color: {colors['bg_hover']};
+            box-shadow: {shadows['glow']};
+        }}
+        
+        /* Input field accessibility */
+        QLineEdit:focus, QTextEdit:focus, QComboBox:focus {{
+            border: {cls.scale_value(2)}px solid {colors['border_focus']};
+            outline: {cls.scale_value(2)}px solid {colors['border_focus']};
+            outline-offset: {cls.scale_value(1)}px;
+            background-color: {colors['bg_input']};
+        }}
+        
+        /* Enhanced checkbox and radio accessibility */
+        QCheckBox:focus::indicator, QRadioButton:focus::indicator {{
+            outline: {cls.scale_value(2)}px solid {colors['border_focus']};
+            outline-offset: {cls.scale_value(2)}px;
+        }}
+        
+        QCheckBox::indicator:checked {{
+            background-color: {colors['primary']};
+            border: {cls.scale_value(2)}px solid {colors['primary']};
+        }}
+        
+        QRadioButton::indicator:checked {{
+            background-color: {colors['primary']};
+            border: {cls.scale_value(3)}px solid {colors['primary']};
+        }}
+        
+        /* Tab accessibility */
+        QTabBar::tab:focus {{
+            outline: {cls.scale_value(2)}px solid {colors['border_focus']};
+            outline-offset: {cls.scale_value(2)}px;
+            background-color: {colors['bg_hover']};
+        }}
+        
+        /* Slider accessibility */
+        QSlider:focus {{
+            outline: {cls.scale_value(2)}px solid {colors['border_focus']};
+            outline-offset: {cls.scale_value(2)}px;
+        }}
+        
+        QSlider::handle:focus {{
+            background-color: {colors['primary']};
+            border: {cls.scale_value(3)}px solid {colors['border_focus']};
+            outline: {cls.scale_value(2)}px solid {colors['border_focus']};
+        }}
+        
+        /* Progress bar accessibility */
+        QProgressBar {{
+            border: {cls.scale_value(1)}px solid {colors['border']};
+            background-color: {colors['bg_input']};
+            color: {colors['text_primary']};
+            font-weight: 500;
+        }}
+        
+        QProgressBar::chunk {{
+            background-color: {colors['primary']};
+            border-radius: {cls.get_border_radius('sm')};
+        }}
+        
+        /* Menu accessibility */
+        QMenu {{
+            border: {cls.scale_value(1)}px solid {colors['border']};
+            background-color: {colors['bg_card']};
+            color: {colors['text_primary']};
+            selection-background-color: {colors['primary']};
+            selection-color: {colors['text_primary']};
+        }}
+        
+        QMenu::item:selected {{
+            background-color: {colors['primary']};
+            color: {colors['text_primary']};
+            outline: {cls.scale_value(1)}px solid {colors['border_focus']};
+        }}
+        
+        /* Status and error text accessibility */
+        .status-success {{
+            color: {colors['success']};
+            background-color: {colors['success_bg']};
+            padding: {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('md')};
+            border: {cls.scale_value(1)}px solid {colors['success']};
+        }}
+        
+        .status-error {{
+            color: {colors['error']};
+            background-color: {colors['error_bg']};
+            padding: {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('md')};
+            border: {cls.scale_value(1)}px solid {colors['error']};
+        }}
+        
+        .status-warning {{
+            color: {colors['warning']};
+            background-color: {colors['warning_bg']};
+            padding: {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('md')};
+            border: {cls.scale_value(1)}px solid {colors['warning']};
+        }}
+        
+        .status-info {{
+            color: {colors['info']};
+            background-color: {colors['info_bg']};
+            padding: {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('md')};
+            border: {cls.scale_value(1)}px solid {colors['info']};
+        }}
+        
+        /* Disabled state accessibility */
+        *:disabled {{
+            opacity: 0.6;
+            cursor: not-allowed;
+        }}
+        
+        QPushButton:disabled {{
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_disabled']};
+            border-color: {colors['border']};
+            box-shadow: none;
+        }}
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {{
+            * {{
+                border-width: {cls.scale_value(2)}px !important;
+            }}
+            
+            QPushButton {{
+                border-width: {cls.scale_value(2)}px !important;
+                font-weight: 600 !important;
+            }}
+            
+            QTabBar::tab {{
+                border-width: {cls.scale_value(2)}px !important;
+                font-weight: 600 !important;
+            }}
+        }}
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {{
+            * {{
+                animation: none !important;
+                transition: none !important;
+            }}
+        }}
+        """
+    
+    @classmethod
+    def get_adaptive_typography_style(cls) -> str:
+        """Get adaptive typography styles that scale based on screen size"""
+        app = QApplication.instance()
+        if app:
+            screen = app.primaryScreen()
+            screen_width = screen.availableGeometry().width()
+            screen_category = cls.get_screen_category(screen_width)
+        else:
+            screen_category = cls.SCREEN_DESKTOP
+        
+        colors = cls.get_colors()
+        
+        # Dynamic font sizes based on screen category
+        heading_size = cls.get_responsive_font_size(screen_category, 'heading')
+        title_size = cls.get_responsive_font_size(screen_category, 'title')
+        large_size = cls.get_responsive_font_size(screen_category, 'xl')
+        base_size = cls.get_responsive_font_size(screen_category, 'base')
+        small_size = cls.get_responsive_font_size(screen_category, 'sm')
+        
+        return f"""
+        /* Adaptive Typography System */
+        .heading {{
+            font-size: {heading_size};
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            color: {colors['text_primary']};
+        }}
+        
+        .title {{
+            font-size: {title_size};
+            font-weight: 600;
+            line-height: 1.3;
+            letter-spacing: -0.01em;
+            color: {colors['text_primary']};
+        }}
+        
+        .large {{
+            font-size: {large_size};
+            font-weight: 500;
+            line-height: 1.4;
+            color: {colors['text_primary']};
+        }}
+        
+        .body {{
+            font-size: {base_size};
+            font-weight: 400;
+            line-height: 1.6;
+            color: {colors['text_primary']};
+        }}
+        
+        .small {{
+            font-size: {small_size};
+            font-weight: 400;
+            line-height: 1.5;
+            color: {colors['text_secondary']};
+        }}
+        
+        /* Responsive text scaling for QLabel */
+        QLabel[class="heading"] {{
+            font-size: {heading_size};
+            font-weight: 700;
+            color: {colors['text_primary']};
+        }}
+        
+        QLabel[class="title"] {{
+            font-size: {title_size};
+            font-weight: 600;
+            color: {colors['text_primary']};
+        }}
+        
+        QLabel[class="body"] {{
+            font-size: {base_size};
+            font-weight: 400;
+            color: {colors['text_primary']};
+        }}
+        
+        QLabel[class="small"] {{
+            font-size: {small_size};
+            font-weight: 400;
+            color: {colors['text_secondary']};
+        }}
+        """
+    
+    @classmethod
+    def get_mobile_touch_style(cls) -> str:
+        """Enhanced mobile touch optimization styles"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
+        return f"""
+        /* Enhanced touch targets for mobile */
+        QWidget {{
+            touch-action: manipulation;
+        }}
+        
+        /* Larger touch targets for small controls */
+        QCheckBox::indicator {{
+            width: {cls.scale_value(20)}px;
+            height: {cls.scale_value(20)}px;
+            border-radius: {cls.get_border_radius('sm')};
+        }}
+        
+        QRadioButton::indicator {{
+            width: {cls.scale_value(20)}px;
+            height: {cls.scale_value(20)}px;
+            border-radius: 50%;
+        }}
+        
+        /* Enhanced scroll bar for touch */
+        QScrollBar:vertical {{
+            background: {colors['bg_secondary']};
+            width: {cls.scale_value(12)}px;
+            border-radius: {cls.scale_value(6)}px;
+            margin: {cls.scale_value(2)}px;
+        }}
+        
+        QScrollBar::handle:vertical {{
+            background: {colors['secondary']};
+            min-height: {cls.scale_value(30)}px;
+            border-radius: {cls.scale_value(5)}px;
+            margin: {cls.scale_value(1)}px;
+        }}
+        
+        QScrollBar::handle:vertical:hover {{
+            background: {colors['secondary_hover']};
+        }}
+        
+        /* Touch-friendly splitter */
+        QSplitter::handle {{
+            background-color: {colors['border']};
+            width: {cls.scale_value(6)}px;
+            height: {cls.scale_value(6)}px;
+            border-radius: {cls.scale_value(3)}px;
+        }}
+        
+        QSplitter::handle:hover {{
+            background-color: {colors['border_focus']};
+        }}
+        """
+    
+    @classmethod
+    def get_glassmorphism_style(cls) -> str:
+        """Get glassmorphism effect styling"""
+        colors = cls.get_colors()
+        return f"""
+            background: {colors['glassmorphism']};
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid {colors['border_light']};
+            border-radius: {cls.get_border_radius('lg')};
+        """
+    
+    @classmethod
+    def toggle_theme(cls):
+        """Toggle between dark and light themes"""
+        cls._current_theme = 'light' if cls._current_theme == 'dark' else 'dark'
+        logging.info(f"Theme toggled to: {cls._current_theme}")
+        return cls._current_theme
+    
+    # Enhanced Typography System
     FONTS = {
-        'primary': "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        'mono': "'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', monospace",
-        'ui': "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        'primary': "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        'text': "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        'mono': "'SF Mono', 'JetBrains Mono', 'Fira Code', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace",
+        'ui': "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        'display': "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    }
+    
+    # Font weights for better hierarchy
+    FONT_WEIGHTS = {
+        'light': '300',
+        'regular': '400',
+        'medium': '500',
+        'semibold': '600',
+        'bold': '700'
+    }
+    
+    # Enhanced Transitions and Animations with micro-interactions
+    TRANSITIONS = {
+        'instant': '50ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        'fast': '150ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        'normal': '200ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        'slow': '300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        'spring': '300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'bounce': '400ms cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        'smooth': '250ms cubic-bezier(0.23, 1, 0.32, 1)'
     }
     
     # Dynamic sizing methods replace static dictionaries
@@ -273,43 +1074,63 @@ class ModernTheme:
         scaled = cls.scale_value(base_radius.get(size_key, 4))
         return f"{scaled}px"
     
-    # Shadows (remain the same as they use relative units)
-    SHADOWS = {
-        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-    }
+    # Enhanced Shadow System
+    @classmethod
+    def get_shadows(cls) -> dict:
+        """Get modern floating panel shadows with depth"""
+        if cls._current_theme == 'dark':
+            return {
+                'sm': '0 1px 3px 0 rgba(0, 0, 0, 0.4)',
+                'md': '0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3)',
+                'lg': '0 12px 24px -4px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4)',
+                'xl': '0 24px 48px -8px rgba(0, 0, 0, 0.7), 0 8px 24px -4px rgba(0, 0, 0, 0.5)',
+                'floating': '0 8px 32px -4px rgba(0, 0, 0, 0.6), 0 4px 16px -2px rgba(0, 0, 0, 0.4)',
+                'card': '0 2px 8px -1px rgba(0, 0, 0, 0.4), 0 1px 4px -1px rgba(0, 0, 0, 0.2)',
+                'inner': 'inset 0 2px 6px 0 rgba(0, 0, 0, 0.3)',
+                'glow': '0 0 24px rgba(59, 130, 246, 0.35)',
+                'glow_soft': '0 0 16px rgba(59, 130, 246, 0.2)'
+            }
+        else:
+            return {
+                'sm': '0 1px 3px 0 rgba(0, 0, 0, 0.08)',
+                'md': '0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.08)',
+                'lg': '0 12px 24px -4px rgba(0, 0, 0, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.1)',
+                'xl': '0 24px 48px -8px rgba(0, 0, 0, 0.18), 0 8px 24px -4px rgba(0, 0, 0, 0.12)',
+                'floating': '0 8px 32px -4px rgba(0, 0, 0, 0.12), 0 4px 16px -2px rgba(0, 0, 0, 0.08)',
+                'card': '0 2px 8px -1px rgba(0, 0, 0, 0.1), 0 1px 4px -1px rgba(0, 0, 0, 0.06)',
+                'inner': 'inset 0 2px 6px 0 rgba(0, 0, 0, 0.05)',
+                'glow': '0 0 24px rgba(29, 78, 216, 0.25)',
+                'glow_soft': '0 0 16px rgba(29, 78, 216, 0.15)'
+            }
+    
+    # Legacy SHADOWS property for backwards compatibility
+    @classmethod
+    def SHADOWS(cls):
+        return cls.get_shadows()
     
     @classmethod
     def get_main_window_style(cls) -> str:
-        """Neural-zen main window styling with gradients and breathing space"""
+        """Modern minimalistic main window styling with clean backgrounds"""
+        colors = cls.get_colors()
         return f"""
         QMainWindow {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['bg_primary']}, 
-                stop:0.7 {cls.COLORS['bg_zen']}, 
-                stop:1 {cls.COLORS['bg_secondary']});
-            color: {cls.COLORS['text_primary']};
+            background-color: {colors['bg_primary']};
+            color: {colors['text_primary']};
             font-family: {cls.FONTS['ui']};
             font-size: {cls.get_font_size('base')};
             line-height: 1.6;
         }}
         
         QMainWindow::separator {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['border_neural']}, 
-                stop:1 {cls.COLORS['border_zen']});
+            background-color: {colors['border']};
             width: {cls.scale_value(1)}px;
             height: {cls.scale_value(1)}px;
         }}
         
         QStatusBar {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 {cls.COLORS['bg_panel']}, 
-                stop:1 {cls.COLORS['bg_secondary']});
-            color: {cls.COLORS['text_zen']};
-            border-top: {cls.scale_value(1)}px solid {cls.COLORS['border_neural']};
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_secondary']};
+            border-top: {cls.scale_value(1)}px solid {colors['border']};
             padding: {cls.get_spacing('md')} {cls.get_spacing('lg')};
             font-size: {cls.get_font_size('sm')};
             font-weight: 400;
@@ -324,9 +1145,10 @@ class ModernTheme:
     @classmethod
     def get_splitter_style(cls) -> str:
         """Splitter styling"""
+        colors = cls.get_colors()
         return f"""
         QSplitter::handle {{
-            background-color: {cls.COLORS['border']};
+            background-color: {colors['border']};
             border: none;
         }}
         
@@ -341,212 +1163,232 @@ class ModernTheme:
         }}
         
         QSplitter::handle:hover {{
-            background-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
         }}
         """
     
     @classmethod
     def get_group_box_style(cls) -> str:
-        """Neural-zen group box styling with subtle glow effects"""
+        """Modern floating panel group box styling"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
         return f"""
         QGroupBox {{
             font-weight: 500;
             font-size: {cls.get_font_size('lg')};
-            color: {cls.COLORS['text_zen']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border_zen']};
-            border-radius: {cls.get_border_radius('xl')};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
+            border-radius: {cls.get_border_radius('lg')};
             margin-top: {cls.get_spacing('lg')};
             padding-top: {cls.get_spacing('xl')};
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['bg_card']}, 
-                stop:1 {cls.COLORS['bg_panel']});
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            background-color: {colors['bg_card']};
+            box-shadow: {shadows['card']};
+            transition: all {cls.TRANSITIONS['normal']};
         }}
         
         QGroupBox:hover {{
-            border-color: {cls.COLORS['border_neural']};
-            box-shadow: 0 6px 25px {cls.COLORS['glow_soft']};
+            border-color: {colors['border_focus']};
+            box-shadow: {shadows['floating']};
+            transform: translateY(-2px);
         }}
         
         QGroupBox::title {{
             subcontrol-origin: margin;
             left: {cls.get_spacing('lg')};
             padding: {cls.get_spacing('sm')} {cls.get_spacing('md')};
-            color: {cls.COLORS['text_neural']};
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 rgba(0, 255, 136, 0.1), 
-                stop:1 rgba(0, 255, 136, 0.05));
+            color: {colors['text_accent']};
+            background-color: {colors['bg_primary']};
             border-radius: {cls.get_border_radius('md')};
             font-weight: 600;
-            letter-spacing: 0.5px;
-        }}
-        
-        /* Neural-themed specific group boxes */
-        QGroupBox[neural-theme="true"] {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['bg_card']}, 
-                stop:0.5 {cls.COLORS['bg_panel']}, 
-                stop:1 {cls.COLORS['bg_zen']});
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border_neural']};
-            box-shadow: 0 0 15px {cls.COLORS['glow_data']};
+            letter-spacing: 0.3px;
+            box-shadow: {shadows['sm']};
         }}
         """
     
     @classmethod
     def get_button_style(cls) -> str:
-        """Neural-zen button styling with glow effects and smooth interactions"""
-        min_height = cls.scale_value(36)
+        """Enhanced modern button styling with micro-interactions and touch optimization"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
+        # Mobile-optimized button height (minimum 44px for touch targets)
+        min_height = cls.scale_value(44)
+        
         return f"""
         QPushButton {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['bg_card']}, 
-                stop:1 {cls.COLORS['bg_panel']});
-            color: {cls.COLORS['text_zen']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border_zen']};
+            background-color: {colors['bg_card']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('lg')};
-            padding: {cls.get_spacing('md')} {cls.get_spacing('xl')};
-            font-size: {cls.get_font_size('sm')};
-            font-weight: 500;
+            padding: {cls.get_spacing('lg')} {cls.get_spacing('xl')};
+            font-size: {cls.get_font_size('base')};
+            font-weight: {cls.FONT_WEIGHTS['medium']};
             min-height: {min_height}px;
-            min-width: {cls.scale_value(80)}px;
+            min-width: {cls.scale_value(120)}px;
             font-family: {cls.FONTS['ui']};
             letter-spacing: 0.3px;
+            box-shadow: {shadows['sm']};
+            transition: all {cls.TRANSITIONS['fast']};
+            touch-action: manipulation;
         }}
         
         QPushButton:hover {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['bg_tertiary']}, 
-                stop:1 {cls.COLORS['bg_hover']});
-            border-color: {cls.COLORS['border_neural']};
-            box-shadow: 0 4px 15px {cls.COLORS['glow_soft']};
-            color: {cls.COLORS['text_primary']};
+            background-color: {colors['bg_hover']};
+            border-color: {colors['border_focus']};
+            color: {colors['text_primary']};
+            box-shadow: {shadows['md']};
+            transform: translateY(-1px);
         }}
         
         QPushButton:pressed {{
-            background: {cls.COLORS['bg_hover']};
-            transform: translateY(1px);
+            background-color: {colors['bg_hover']};
+            box-shadow: {shadows['inner']};
+            transform: translateY(0px);
+        }}
+        
+        QPushButton:focus {{
+            outline: 2px solid {colors['border_focus']};
+            outline-offset: 2px;
         }}
         
         QPushButton:disabled {{
-            background-color: {cls.COLORS['bg_panel']};
-            color: {cls.COLORS['text_disabled']};
-            border-color: {cls.COLORS['border']};
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_disabled']};
+            border-color: {colors['border']};
             box-shadow: none;
+            transform: none;
         }}
         
-        /* Primary neural button variant */
+        /* Primary button variant - enhanced with gradient */
         QPushButton[variant="primary"] {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['primary']}, 
-                stop:1 {cls.COLORS['primary_dark']});
-            color: {cls.COLORS['bg_primary']};
-            border-color: {cls.COLORS['primary']};
-            font-weight: 600;
-            box-shadow: 0 0 20px {cls.COLORS['glow_neural']};
+            background: {colors.get('primary_gradient', colors['primary'])};
+            color: {colors['text_inverse']};
+            border-color: {colors['primary']};
+            font-weight: {cls.FONT_WEIGHTS['semibold']};
+            box-shadow: {shadows['md']};
         }}
         
         QPushButton[variant="primary"]:hover {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['primary_light']}, 
-                stop:1 {cls.COLORS['primary']});
-            box-shadow: 0 0 25px {cls.COLORS['glow_neural']};
-            transform: translateY(-1px);
+            background-color: {colors['primary_hover']};
+            border-color: {colors['primary_hover']};
+            box-shadow: {shadows['lg']}, {colors['glow']};
+            transform: translateY(-2px);
         }}
         
         QPushButton[variant="primary"]:pressed {{
-            background: {cls.COLORS['primary_dark']};
-            transform: translateY(1px);
-            box-shadow: 0 0 15px {cls.COLORS['glow_neural']};
+            background-color: {colors['primary_dark']};
+            box-shadow: {shadows['inner']};
+            transform: translateY(0px);
         }}
         
-        /* Secondary neural button variant */
+        QPushButton[variant="primary"]:disabled {{
+            background: {colors['bg_secondary']};
+            color: {colors['text_disabled']};
+            box-shadow: none;
+        }}
+        
+        /* Secondary button variant - refined */
         QPushButton[variant="secondary"] {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['secondary']}, 
-                stop:1 {cls.COLORS['secondary_hover']});
-            color: {cls.COLORS['text_primary']};
-            border-color: {cls.COLORS['secondary']};
-            font-weight: 600;
-            box-shadow: 0 0 15px {cls.COLORS['glow_data']};
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_primary']};
+            border-color: {colors['border_light']};
+            font-weight: {cls.FONT_WEIGHTS['medium']};
         }}
         
         QPushButton[variant="secondary"]:hover {{
-            box-shadow: 0 0 20px {cls.COLORS['glow_data']};
-            transform: translateY(-1px);
+            background-color: {colors['bg_hover']};
+            border-color: {colors['border_focus']};
+            box-shadow: {shadows['md']};
         }}
         
-        /* Success neural button variant */
+        /* Success button variant - enhanced */
         QPushButton[variant="success"] {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['success']}, 
-                stop:1 {cls.COLORS['primary_dark']});
-            color: {cls.COLORS['bg_primary']};
-            border-color: {cls.COLORS['success']};
-            font-weight: 600;
-            box-shadow: 0 0 15px {cls.COLORS['glow_neural']};
+            background-color: {colors['success']};
+            color: {colors['text_inverse']};
+            border-color: {colors['success']};
+            font-weight: {cls.FONT_WEIGHTS['semibold']};
+            box-shadow: {shadows['md']};
         }}
         
         QPushButton[variant="success"]:hover {{
-            box-shadow: 0 0 20px {cls.COLORS['glow_neural']};
+            background-color: {colors['success']};
+            opacity: 0.9;
+            box-shadow: {shadows['lg']};
             transform: translateY(-1px);
         }}
         
-        /* Danger button variant */
+        /* Danger button variant - enhanced */
         QPushButton[variant="danger"] {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 {cls.COLORS['error']}, 
-                stop:1 #dc2626);
-            color: {cls.COLORS['text_primary']};
-            border-color: {cls.COLORS['error']};
-            font-weight: 600;
-            box-shadow: 0 0 15px rgba(255, 107, 107, 0.3);
+            background-color: {colors['error']};
+            color: {colors['text_inverse']};
+            border-color: {colors['error']};
+            font-weight: {cls.FONT_WEIGHTS['semibold']};
+            box-shadow: {shadows['md']};
         }}
         
         QPushButton[variant="danger"]:hover {{
-            box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+            background-color: {colors['accent_soft']};
+            border-color: {colors['accent_soft']};
+            box-shadow: {shadows['lg']};
             transform: translateY(-1px);
+        }}
+        
+        /* Ghost button variant - minimalistic */
+        QPushButton[variant="ghost"] {{
+            background-color: transparent;
+            color: {colors['text_accent']};
+            border: {cls.scale_value(1)}px solid transparent;
+            box-shadow: none;
+        }}
+        
+        QPushButton[variant="ghost"]:hover {{
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_primary']};
+            box-shadow: {shadows['sm']};
+        }}
+        
+        /* Icon button variant - compact */
+        QPushButton[variant="icon"] {{
+            min-width: {min_height}px;
+            max-width: {min_height}px;
+            padding: {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('md')};
         }}
         """
     
     @classmethod
     def get_input_style(cls) -> str:
-        """Input field styling"""
-        min_height = cls.scale_value(24)
+        """Modern mobile-friendly input field styling"""
+        colors = cls.get_colors()
+        # Mobile-optimized input height (minimum 44px for touch targets)
+        min_height = cls.scale_value(44)
         return f"""
         QLineEdit, QTextEdit, QComboBox {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['bg_input']}, 
-                stop:1 {cls.COLORS['bg_card']});
-            color: {cls.COLORS['text_zen']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border_zen']};
+            background-color: {colors['bg_input']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border_input']};
             border-radius: {cls.get_border_radius('lg')};
             padding: {cls.get_spacing('md')} {cls.get_spacing('lg')};
             font-size: {cls.get_font_size('base')};
             font-family: {cls.FONTS['ui']};
-            selection-background-color: {cls.COLORS['primary']};
-            selection-color: {cls.COLORS['bg_primary']};
+            selection-background-color: {colors['primary']};
+            selection-color: #FFFFFF;
             min-height: {min_height}px;
             line-height: 1.5;
         }}
         
         QLineEdit:focus, QTextEdit:focus, QComboBox:focus {{
-            border-color: {cls.COLORS['border_focus']};
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['bg_card']}, 
-                stop:1 {cls.COLORS['bg_input']});
-            box-shadow: 0 0 15px {cls.COLORS['glow_neural']};
+            border-color: {colors['border_focus']};
+            background-color: {colors['bg_input']};
             outline: none;
         }}
         
         QLineEdit:hover, QTextEdit:hover, QComboBox:hover {{
-            border-color: {cls.COLORS['border_neural']};
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {cls.COLORS['bg_card']}, 
-                stop:1 {cls.COLORS['bg_input']});
+            border-color: {colors['border_focus']};
+            background-color: {colors['bg_input']};
         }}
         
         QLineEdit::placeholder, QTextEdit::placeholder {{
-            color: {cls.COLORS['text_muted']};
+            color: {colors['text_muted']};
             font-style: italic;
         }}
         
@@ -560,14 +1402,14 @@ class ModernTheme:
             image: none;
             border-left: {cls.scale_value(4)}px solid transparent;
             border-right: {cls.scale_value(4)}px solid transparent;
-            border-top: {cls.scale_value(4)}px solid {cls.COLORS['text_muted']};
+            border-top: {cls.scale_value(4)}px solid {colors['text_muted']};
             margin-right: {cls.get_spacing('sm')};
         }}
         
         QComboBox QAbstractItemView {{
-            background-color: {cls.COLORS['bg_secondary']};
-            color: {cls.COLORS['text_primary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_card']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('md')};
             padding: {cls.get_spacing('xs')};
         }}
@@ -578,106 +1420,133 @@ class ModernTheme:
         }}
         
         QComboBox QAbstractItemView::item:selected {{
-            background-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
             color: white;
         }}
         """
     
     @classmethod
     def get_checkbox_style(cls) -> str:
-        """Checkbox styling"""
-        indicator_size = cls.scale_value(14)
+        """Modern mobile-friendly checkbox styling"""
+        colors = cls.get_colors()
+        # Mobile-optimized checkbox size (minimum 20px for touch targets)
+        indicator_size = cls.scale_value(20)
         return f"""
         QCheckBox {{
-            color: {cls.COLORS['text_primary']};
-            font-size: {cls.get_font_size('sm')};
-            spacing: {cls.get_spacing('sm')};
+            color: {colors['text_primary']};
+            font-size: {cls.get_font_size('base')};
+            spacing: {cls.get_spacing('md')};
+            padding: {cls.get_spacing('xs')};
         }}
         
         QCheckBox::indicator {{
             width: {indicator_size}px;
             height: {indicator_size}px;
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            border: {cls.scale_value(2)}px solid {colors['border_input']};
             border-radius: {cls.get_border_radius('sm')};
-            background-color: {cls.COLORS['bg_primary']};
+            background-color: {colors['bg_input']};
         }}
         
         QCheckBox::indicator:hover {{
-            border-color: {cls.COLORS['border_light']};
+            border-color: {colors['border_focus']};
         }}
         
         QCheckBox::indicator:checked {{
-            background-color: {cls.COLORS['primary']};
-            border-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
+            border-color: {colors['primary']};
         }}
         
         QCheckBox::indicator:checked:hover {{
-            background-color: {cls.COLORS['primary_hover']};
-            border-color: {cls.COLORS['primary_hover']};
+            background-color: {colors['primary_hover']};
+            border-color: {colors['primary_hover']};
         }}
         
         QCheckBox::indicator:disabled {{
-            background-color: {cls.COLORS['bg_secondary']};
-            border-color: {cls.COLORS['border']};
+            background-color: {colors['bg_secondary']};
+            border-color: {colors['border']};
         }}
         """
     
     @classmethod
     def get_tab_style(cls) -> str:
-        """Tab widget styling"""
+        """Modern tab widget styling with enhanced visual indicators"""
+        colors = cls.get_colors()
+        shadows = cls.get_shadows()
         return f"""
         QTabWidget::pane {{
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('lg')};
-            background-color: {cls.COLORS['bg_secondary']};
+            background-color: {colors['bg_card']};
             padding: {cls.get_spacing('md')};
+            box-shadow: {shadows['card']};
+        }}
+        
+        QTabBar {{
+            background-color: transparent;
+            border: none;
         }}
         
         QTabBar::tab {{
-            background-color: {cls.COLORS['bg_tertiary']};
-            color: {cls.COLORS['text_secondary']};
-            padding: {cls.get_spacing('sm')} {cls.get_spacing('lg')};
-            margin-right: {cls.scale_value(2)}px;
-            border-top-left-radius: {cls.get_border_radius('md')};
-            border-top-right-radius: {cls.get_border_radius('md')};
-            font-size: {cls.get_font_size('sm')};
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_secondary']};
+            padding: {cls.get_spacing('md')} {cls.get_spacing('xl')};
+            margin-right: {cls.scale_value(4)}px;
+            margin-bottom: {cls.scale_value(2)}px;
+            border-radius: {cls.get_border_radius('lg')};
+            font-size: {cls.get_font_size('base')};
             font-weight: 500;
-            min-width: {cls.scale_value(60)}px;
+            min-width: {cls.scale_value(100)}px;
+            min-height: {cls.scale_value(44)}px;
+            border: {cls.scale_value(1)}px solid {colors['border']};
+            transition: all {cls.TRANSITIONS['normal']};
+            position: relative;
         }}
         
         QTabBar::tab:selected {{
-            background-color: {cls.COLORS['primary']};
-            color: white;
+            background-color: {colors['primary']};
+            color: {colors['text_primary']};
+            border-color: {colors['primary']};
+            box-shadow: {shadows['glow_soft']};
+            transform: translateY(-2px);
+            font-weight: 600;
         }}
         
         QTabBar::tab:hover:!selected {{
-            background-color: {cls.COLORS['bg_hover']};
-            color: {cls.COLORS['text_primary']};
+            background-color: {colors['bg_hover']};
+            color: {colors['text_primary']};
+            border-color: {colors['border_focus']};
+            box-shadow: {shadows['sm']};
+            transform: translateY(-1px);
         }}
         
         QTabBar::tab:first {{
             margin-left: 0;
         }}
+        
+        QTabBar::tab:pressed {{
+            transform: translateY(0px);
+        }}
         """
     
     @classmethod
     def get_progress_bar_style(cls) -> str:
-        """Progress bar styling"""
-        height = cls.scale_value(18)
+        """Modern progress bar styling"""
+        colors = cls.get_colors()
+        height = cls.scale_value(20)
         return f"""
         QProgressBar {{
-            background-color: {cls.COLORS['bg_secondary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_input']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('md')};
             text-align: center;
-            color: {cls.COLORS['text_primary']};
+            color: {colors['text_primary']};
             font-size: {cls.get_font_size('sm')};
             font-weight: 500;
             height: {height}px;
         }}
         
         QProgressBar::chunk {{
-            background-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
             border-radius: {cls.get_border_radius('sm')};
             margin: {cls.scale_value(1)}px;
         }}
@@ -685,20 +1554,21 @@ class ModernTheme:
     
     @classmethod
     def get_slider_style(cls) -> str:
-        """Slider styling"""
-        groove_height = cls.scale_value(3)
-        handle_size = cls.scale_value(14)
-        handle_margin = cls.scale_value(-6)
+        """Modern mobile-friendly slider styling"""
+        colors = cls.get_colors()
+        groove_height = cls.scale_value(4)
+        handle_size = cls.scale_value(20)  # Larger for touch
+        handle_margin = cls.scale_value(-8)
         return f"""
         QSlider::groove:horizontal {{
-            background-color: {cls.COLORS['bg_tertiary']};
+            background-color: {colors['bg_input']};
             height: {groove_height}px;
             border-radius: {groove_height//2}px;
         }}
         
         QSlider::handle:horizontal {{
-            background-color: {cls.COLORS['primary']};
-            border: {cls.scale_value(2)}px solid {cls.COLORS['primary']};
+            background-color: {colors['primary']};
+            border: {cls.scale_value(2)}px solid {colors['primary']};
             width: {handle_size}px;
             height: {handle_size}px;
             border-radius: {handle_size//2}px;
@@ -706,12 +1576,12 @@ class ModernTheme:
         }}
         
         QSlider::handle:horizontal:hover {{
-            background-color: {cls.COLORS['primary_hover']};
-            border-color: {cls.COLORS['primary_hover']};
+            background-color: {colors['primary_hover']};
+            border-color: {colors['primary_hover']};
         }}
         
         QSlider::sub-page:horizontal {{
-            background-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
             border-radius: {groove_height//2}px;
         }}
         """
@@ -719,14 +1589,15 @@ class ModernTheme:
     @classmethod
     def get_enhanced_spinbox_style(cls) -> str:
         """Enhanced SpinBox styling with better touch targets and accessibility"""
+        colors = cls.get_colors()
         button_width = cls.scale_value(24)  # Increased from 18 for better touch
         arrow_size = cls.scale_value(4)     # Increased from 3 for better visibility
         min_height = cls.scale_value(36)    # Increased minimum height for touch accessibility
         return f"""
         QSpinBox {{
-            background-color: {cls.COLORS['bg_primary']};
-            color: {cls.COLORS['text_primary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_primary']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('md')};
             padding: {cls.get_spacing('sm')} {cls.get_spacing('lg')};
             font-size: {cls.get_font_size('base')};
@@ -735,83 +1606,84 @@ class ModernTheme:
         }}
         
         QSpinBox:focus {{
-            border-color: {cls.COLORS['border_focus']};
-            background-color: {cls.COLORS['bg_secondary']};
-            box-shadow: 0 0 0 {cls.scale_value(2)}px {cls.COLORS['primary']}40;
+            border-color: {colors['border_focus']};
+            background-color: {colors['bg_secondary']};
+            box-shadow: 0 0 0 {cls.scale_value(2)}px {colors['primary']}40;
         }}
         
         QSpinBox:hover {{
-            border-color: {cls.COLORS['border_light']};
-            background-color: {cls.COLORS['bg_secondary']};
+            border-color: {colors['border_light']};
+            background-color: {colors['bg_secondary']};
         }}
         
         QSpinBox::up-button, QSpinBox::down-button {{
-            background-color: {cls.COLORS['bg_tertiary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_tertiary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             width: {button_width}px;
             border-radius: {cls.get_border_radius('sm')};
             margin: {cls.scale_value(2)}px;
         }}
         
         QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
-            background-color: {cls.COLORS['primary']};
-            border-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
+            border-color: {colors['primary']};
         }}
         
         QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {{
-            background-color: {cls.COLORS['primary_dark']};
-            border-color: {cls.COLORS['primary_dark']};
+            background-color: {colors['primary_dark']};
+            border-color: {colors['primary_dark']};
         }}
         
         QSpinBox::up-arrow {{
             image: none;
             border-left: {arrow_size}px solid transparent;
             border-right: {arrow_size}px solid transparent;
-            border-bottom: {arrow_size}px solid {cls.COLORS['text_muted']};
+            border-bottom: {arrow_size}px solid {colors['text_muted']};
         }}
         
         QSpinBox::down-arrow {{
             image: none;
             border-left: {arrow_size}px solid transparent;
             border-right: {arrow_size}px solid transparent;
-            border-top: {arrow_size}px solid {cls.COLORS['text_muted']};
+            border-top: {arrow_size}px solid {colors['text_muted']};
         }}
         
         QSpinBox::up-button:hover QSpinBox::up-arrow {{
-            border-bottom-color: {cls.COLORS['text_primary']};
+            border-bottom-color: {colors['text_primary']};
         }}
         
         QSpinBox::down-button:hover QSpinBox::down-arrow {{
-            border-top-color: {cls.COLORS['text_primary']};
+            border-top-color: {colors['text_primary']};
         }}
         """
     
     @classmethod
     def get_enhanced_text_edit_style(cls) -> str:
         """Enhanced QTextEdit styling with better focus states and validation"""
+        colors = cls.get_colors()
         min_height = cls.scale_value(120)
         return f"""
         QTextEdit {{
-            background-color: {cls.COLORS['bg_primary']};
-            color: {cls.COLORS['text_primary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_primary']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('lg')};
             padding: {cls.get_spacing('md')};
             font-size: {cls.get_font_size('base')};
             min-height: {min_height}px;
             line-height: 1.4;
-            selection-background-color: {cls.COLORS['primary']};
-            selection-color: {cls.COLORS['text_primary']};
+            selection-background-color: {colors['primary']};
+            selection-color: {colors['text_primary']};
         }}
         
         QTextEdit:focus {{
-            border-color: {cls.COLORS['border_focus']};
-            background-color: {cls.COLORS['bg_secondary']};
-            box-shadow: 0 0 0 {cls.scale_value(2)}px {cls.COLORS['primary']}40;
+            border-color: {colors['border_focus']};
+            background-color: {colors['bg_secondary']};
+            box-shadow: 0 0 0 {cls.scale_value(2)}px {colors['primary']}40;
         }}
         
         QTextEdit:hover {{
-            border-color: {cls.COLORS['border_light']};
+            border-color: {colors['border_light']};
         }}
         
         QTextEdit[role="input"] {{
@@ -819,25 +1691,26 @@ class ModernTheme:
         }}
         
         QTextEdit[validation="error"] {{
-            border-color: {cls.COLORS['error']};
-            background-color: {cls.COLORS['error_bg']};
+            border-color: {colors['error']};
+            background-color: {colors['error_bg']};
         }}
         
         QTextEdit[validation="success"] {{
-            border-color: {cls.COLORS['success']};
+            border-color: {colors['success']};
         }}
         """
     
     @classmethod
     def get_enhanced_combo_box_style(cls) -> str:
         """Enhanced QComboBox styling with better accessibility"""
+        colors = cls.get_colors()
         min_height = cls.scale_value(36)
         arrow_size = cls.scale_value(6)
         return f"""
         QComboBox {{
-            background-color: {cls.COLORS['bg_primary']};
-            color: {cls.COLORS['text_primary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_primary']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('md')};
             padding: {cls.get_spacing('sm')} {cls.get_spacing('lg')};
             font-size: {cls.get_font_size('base')};
@@ -846,14 +1719,14 @@ class ModernTheme:
         }}
         
         QComboBox:focus {{
-            border-color: {cls.COLORS['border_focus']};
-            background-color: {cls.COLORS['bg_secondary']};
-            box-shadow: 0 0 0 {cls.scale_value(2)}px {cls.COLORS['primary']}40;
+            border-color: {colors['border_focus']};
+            background-color: {colors['bg_secondary']};
+            box-shadow: 0 0 0 {cls.scale_value(2)}px {colors['primary']}40;
         }}
         
         QComboBox:hover {{
-            border-color: {cls.COLORS['border_light']};
-            background-color: {cls.COLORS['bg_secondary']};
+            border-color: {colors['border_light']};
+            background-color: {colors['bg_secondary']};
         }}
         
         QComboBox::drop-down {{
@@ -861,32 +1734,32 @@ class ModernTheme:
             width: {cls.scale_value(30)}px;
             border-top-right-radius: {cls.get_border_radius('md')};
             border-bottom-right-radius: {cls.get_border_radius('md')};
-            background-color: {cls.COLORS['bg_tertiary']};
+            background-color: {colors['bg_tertiary']};
         }}
         
         QComboBox::drop-down:hover {{
-            background-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
         }}
         
         QComboBox::down-arrow {{
             image: none;
             border-left: {arrow_size}px solid transparent;
             border-right: {arrow_size}px solid transparent;
-            border-top: {arrow_size}px solid {cls.COLORS['text_muted']};
+            border-top: {arrow_size}px solid {colors['text_muted']};
         }}
         
         QComboBox::down-arrow:hover {{
-            border-top-color: {cls.COLORS['text_primary']};
+            border-top-color: {colors['text_primary']};
         }}
         
         QComboBox QAbstractItemView {{
-            background-color: {cls.COLORS['bg_secondary']};
-            color: {cls.COLORS['text_primary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('md')};
             padding: {cls.get_spacing('xs')};
-            selection-background-color: {cls.COLORS['primary']};
-            selection-color: {cls.COLORS['text_primary']};
+            selection-background-color: {colors['primary']};
+            selection-color: {colors['text_primary']};
         }}
         
         QComboBox QAbstractItemView::item {{
@@ -896,17 +1769,18 @@ class ModernTheme:
         }}
         
         QComboBox QAbstractItemView::item:hover {{
-            background-color: {cls.COLORS['bg_hover']};
+            background-color: {colors['bg_hover']};
         }}
         """
     
     @classmethod
     def get_enhanced_checkbox_style(cls) -> str:
         """Enhanced checkbox styling with better accessibility"""
+        colors = cls.get_colors()
         indicator_size = cls.scale_value(18)  # Increased from 14 for better touch
         return f"""
         QCheckBox {{
-            color: {cls.COLORS['text_primary']};
+            color: {colors['text_primary']};
             font-size: {cls.get_font_size('base')};
             spacing: {cls.get_spacing('md')};
             font-weight: 500;
@@ -914,32 +1788,32 @@ class ModernTheme:
         }}
         
         QCheckBox:focus {{
-            outline: {cls.scale_value(2)}px solid {cls.COLORS['primary']};
+            outline: {cls.scale_value(2)}px solid {colors['primary']};
             outline-offset: {cls.scale_value(2)}px;
         }}
         
         QCheckBox::indicator {{
             width: {indicator_size}px;
             height: {indicator_size}px;
-            border: {cls.scale_value(2)}px solid {cls.COLORS['border']};
+            border: {cls.scale_value(2)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('sm')};
-            background-color: {cls.COLORS['bg_primary']};
+            background-color: {colors['bg_primary']};
         }}
         
         QCheckBox::indicator:hover {{
-            border-color: {cls.COLORS['primary']};
-            background-color: {cls.COLORS['bg_secondary']};
+            border-color: {colors['primary']};
+            background-color: {colors['bg_secondary']};
         }}
         
         QCheckBox::indicator:checked {{
-            background-color: {cls.COLORS['primary']};
-            border-color: {cls.COLORS['primary']};
+            background-color: {colors['primary']};
+            border-color: {colors['primary']};
             image: none;
         }}
         
         QCheckBox::indicator:checked:hover {{
-            background-color: {cls.COLORS['primary_hover']};
-            border-color: {cls.COLORS['primary_hover']};
+            background-color: {colors['primary_hover']};
+            border-color: {colors['primary_hover']};
         }}
         
         QCheckBox::indicator:checked {{
@@ -952,36 +1826,37 @@ class ModernTheme:
     @classmethod
     def get_validation_feedback_style(cls) -> str:
         """Styling for validation feedback messages"""
+        colors = cls.get_colors()
         return f"""
         QLabel[role="validation-error"] {{
-            color: {cls.COLORS['error']};
+            color: {colors['error']};
             font-size: {cls.get_font_size('sm')};
             font-weight: 500;
             padding: {cls.get_spacing('xs')} {cls.get_spacing('md')};
-            background-color: {cls.COLORS['error_bg']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['error']};
+            background-color: {colors['error_bg']};
+            border: {cls.scale_value(1)}px solid {colors['error']};
             border-radius: {cls.get_border_radius('md')};
             margin-top: {cls.get_spacing('xs')};
         }}
         
         QLabel[role="validation-success"] {{
-            color: {cls.COLORS['success']};
+            color: {colors['success']};
             font-size: {cls.get_font_size('sm')};
             font-weight: 500;
             padding: {cls.get_spacing('xs')} {cls.get_spacing('md')};
-            background-color: {cls.COLORS['success_bg']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['success']};
+            background-color: {colors['success_bg']};
+            border: {cls.scale_value(1)}px solid {colors['success']};
             border-radius: {cls.get_border_radius('md')};
             margin-top: {cls.get_spacing('xs')};
         }}
         
         QLabel[role="validation-info"] {{
-            color: {cls.COLORS['info']};
+            color: {colors['info']};
             font-size: {cls.get_font_size('sm')};
             font-weight: 500;
             padding: {cls.get_spacing('xs')} {cls.get_spacing('md')};
-            background-color: {cls.COLORS['info_bg']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['info']};
+            background-color: {colors['info_bg']};
+            border: {cls.scale_value(1)}px solid {colors['info']};
             border-radius: {cls.get_border_radius('md')};
             margin-top: {cls.get_spacing('xs')};
         }}
@@ -990,26 +1865,27 @@ class ModernTheme:
     @classmethod
     def get_text_browser_style(cls) -> str:
         """Text browser styling"""
+        colors = cls.get_colors()
         return f"""
         QTextBrowser {{
-            background-color: {cls.COLORS['bg_primary']};
-            color: {cls.COLORS['text_primary']};
-            border: {cls.scale_value(1)}px solid {cls.COLORS['border']};
+            background-color: {colors['bg_primary']};
+            color: {colors['text_primary']};
+            border: {cls.scale_value(1)}px solid {colors['border']};
             border-radius: {cls.get_border_radius('lg')};
             padding: {cls.get_spacing('lg')};
             font-family: {cls.FONTS['mono']};
             font-size: {cls.get_font_size('sm')};
             line-height: 1.5;
-            selection-background-color: {cls.COLORS['primary']};
+            selection-background-color: {colors['primary']};
         }}
         
         QTextBrowser a {{
-            color: {cls.COLORS['primary_light']};
+            color: {colors['primary_light']};
             text-decoration: none;
         }}
         
         QTextBrowser a:hover {{
-            color: {cls.COLORS['primary']};
+            color: {colors['primary']};
             text-decoration: underline;
         }}
         """
@@ -1017,38 +1893,159 @@ class ModernTheme:
     @classmethod
     def get_label_style(cls) -> str:
         """Label styling"""
+        colors = cls.get_colors()
         return f"""
         QLabel {{
-            color: {cls.COLORS['text_primary']};
+            color: {colors['text_primary']};
             font-size: {cls.get_font_size('sm')};
         }}
         
         QLabel[role="heading"] {{
             font-size: {cls.get_font_size('lg')};
             font-weight: 600;
-            color: {cls.COLORS['text_primary']};
+            color: {colors['text_primary']};
         }}
         
         QLabel[role="caption"] {{
-            color: {cls.COLORS['text_muted']};
+            color: {colors['text_muted']};
             font-size: {cls.get_font_size('xs')};
         }}
         
         QLabel[role="error"] {{
-            color: {cls.COLORS['error']};
+            color: {colors['error']};
             font-weight: 500;
         }}
         
         QLabel[role="success"] {{
-            color: {cls.COLORS['success']};
+            color: {colors['success']};
             font-weight: 500;
         }}
         
         QLabel[role="warning"] {{
-            color: {cls.COLORS['warning']};
+            color: {colors['warning']};
             font-weight: 500;
         }}
         """
+
+    @classmethod
+    def create_clean_settings_section(cls, title: str, parent=None) -> QWidget:
+        """Creates a clean settings section with title label + content container structure"""
+        colors = cls.get_colors()
+        section = QWidget(parent)
+        layout = QVBoxLayout(section)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(cls.scale_value(8))
+        
+        # Title label
+        title_label = QLabel(title)
+        title_label.setFont(QFont("SF Pro Text", int(cls.get_font_size('lg').replace('pt', ''))))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {colors['text_primary']};
+                font-weight: 600;
+                margin-bottom: {cls.get_spacing('sm')};
+            }}
+        """)
+        
+        # Content container
+        content_widget = QWidget()
+        content_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {colors['bg_card']};
+                border-radius: {cls.scale_value(8)}px;
+                padding: {cls.get_spacing('md')};
+            }}
+        """)
+        
+        layout.addWidget(title_label)
+        layout.addWidget(content_widget)
+        
+        return section
+
+    @classmethod
+    def create_compact_checkbox(cls, text: str, tooltip: str = None) -> QCheckBox:
+        """Custom styling with hover states and proper sizing"""
+        colors = cls.get_colors()
+        checkbox = QCheckBox(text)
+        if tooltip:
+            checkbox.setToolTip(tooltip)
+        
+        checkbox.setStyleSheet(f"""
+            QCheckBox {{
+                color: {colors['text_secondary']};
+                font-size: {cls.get_font_size('base')};
+                spacing: {cls.scale_value(8)}px;
+                padding: {cls.get_spacing('xs')};
+            }}
+            QCheckBox:hover {{
+                color: {colors['text_primary']};
+                background-color: {colors['bg_hover']};
+                border-radius: {cls.scale_value(4)}px;
+            }}
+            QCheckBox::indicator {{
+                width: {cls.scale_value(16)}px;
+                height: {cls.scale_value(16)}px;
+                border: 2px solid {colors['border_input']};
+                border-radius: {cls.scale_value(3)}px;
+                background-color: {colors['bg_input']};
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {colors['primary']};
+                border-color: {colors['primary']};
+            }}
+            QCheckBox::indicator:checked:hover {{
+                background-color: {colors['primary_hover']};
+            }}
+        """)
+        return checkbox
+
+    @classmethod
+    def create_time_interval_control(cls) -> dict:
+        """Modern spinbox styling with custom arrows"""
+        colors = cls.get_colors()
+        spinbox = QSpinBox()
+        spinbox.setRange(1, 3600)
+        spinbox.setValue(30)
+        spinbox.setSuffix(" sec")
+        
+        spinbox.setStyleSheet(f"""
+            QSpinBox {{
+                background-color: {colors['bg_input']};
+                border: 2px solid {colors['border_input']};
+                border-radius: {cls.scale_value(6)}px;
+                padding: {cls.get_spacing('sm')};
+                font-size: {cls.get_font_size('base')};
+                color: {colors['text_primary']};
+                min-width: {cls.scale_value(100)}px;
+            }}
+            QSpinBox:focus {{
+                border-color: {colors['primary']};
+                background-color: {colors['bg_secondary']};
+            }}
+            QSpinBox::up-button, QSpinBox::down-button {{
+                background-color: {colors['bg_panel']};
+                border: 1px solid {colors['border_input']};
+                width: {cls.scale_value(18)}px;
+            }}
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+                background-color: {colors['primary']};
+            }}
+        """)
+        
+        # Container with label
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(cls.scale_value(8))
+        
+        label = QLabel("Interval:")
+        label.setStyleSheet(f"color: {colors['text_secondary']}; font-size: {cls.get_font_size('base')};")
+        
+        layout.addWidget(label)
+        layout.addWidget(spinbox)
+        layout.addStretch()
+        
+        return {"widget": container, "spinbox": spinbox}
 
 # Task types
 TASK_TYPES = ["code", "multimedia", "rag", "automation", "analytics"]
@@ -1119,21 +2116,24 @@ class NeuralMetricsWidget(QWidget):
         rect = self.rect()
         
         # Background gradient
-        gradient = QLinearGradient(rect.topLeft(), rect.bottomLeft())
-        gradient.setColorAt(0, QColor(ModernTheme.COLORS['bg_card']))
-        gradient.setColorAt(1, QColor(ModernTheme.COLORS['bg_panel']))
+        gradient = QLinearGradient(QPointF(rect.topLeft()), QPointF(rect.bottomLeft()))
+        gradient.setColorAt(0, QColor(ModernTheme.get_colors()['bg_card']))
+        gradient.setColorAt(1, QColor(ModernTheme.get_colors()['bg_panel']))
         painter.fillRect(rect, QBrush(gradient))
         
         # Draw metrics if we have data
         if len(self.cpu_data) > 1:
             self.draw_metric_line(painter, self.cpu_data, 
-                                QColor(ModernTheme.COLORS['primary']), 
+                                QColor(ModernTheme.get_colors()['primary']), 
                                 "CPU", rect.adjusted(10, 10, -10, -40))
         
         if len(self.memory_data) > 1:
             self.draw_metric_line(painter, self.memory_data,
-                                QColor(ModernTheme.COLORS['secondary']),
+                                QColor(ModernTheme.get_colors()['secondary']),
                                 "Memory", rect.adjusted(10, 40, -10, -10))
+        
+        # Properly end the painter
+        painter.end()
     
     def draw_metric_line(self, painter, data, color, label, rect):
         """Draw a single metric line with neural glow effect"""
@@ -1151,15 +2151,15 @@ class NeuralMetricsWidget(QWidget):
         
         # Draw the line
         for i in range(len(data) - 1):
-            x1 = rect.x() + i * step_x
-            y1 = rect.bottom() - (data[i] / 100.0) * height
-            x2 = rect.x() + (i + 1) * step_x
-            y2 = rect.bottom() - (data[i + 1] / 100.0) * height
+            x1 = int(rect.x() + i * step_x)
+            y1 = int(rect.bottom() - (data[i] / 100.0) * height)
+            x2 = int(rect.x() + (i + 1) * step_x)
+            y2 = int(rect.bottom() - (data[i + 1] / 100.0) * height)
             
             painter.drawLine(x1, y1, x2, y2)
         
         # Draw label
-        painter.setPen(QPen(QColor(ModernTheme.COLORS['text_zen']), 1))
+        painter.setPen(QPen(QColor(ModernTheme.get_colors()['text_zen']), 1))
         current_value = data[-1] if data else 0
         painter.drawText(rect.x() + 5, rect.y() + 15, f"{label}: {current_value:.1f}%")
 
@@ -1222,7 +2222,7 @@ class NeuralNetworkWidget(QWidget):
         rect = self.rect()
         
         # Background
-        painter.fillRect(rect, QColor(ModernTheme.COLORS['bg_zen']))
+        painter.fillRect(rect, QColor(ModernTheme.get_colors()['bg_zen']))
         
         # Draw connections first
         self.draw_connections(painter)
@@ -1231,8 +2231,11 @@ class NeuralNetworkWidget(QWidget):
         self.draw_nodes(painter)
         
         # Draw title
-        painter.setPen(QPen(QColor(ModernTheme.COLORS['text_neural']), 1))
+        painter.setPen(QPen(QColor(ModernTheme.get_colors()['text_neural']), 1))
         painter.drawText(10, 20, "🧠 Neural Processing")
+        
+        # Properly end the painter
+        painter.end()
     
     def draw_connections(self, painter):
         """Draw neural connections with activity-based opacity"""
@@ -1246,7 +2249,7 @@ class NeuralNetworkWidget(QWidget):
                     avg_activity = (node1['activity'] + node2['activity']) / 2
                     alpha = int(50 + avg_activity * 150)
                     
-                    color = QColor(ModernTheme.COLORS['border_neural'])
+                    color = QColor(ModernTheme.get_colors()['border_neural'])
                     color.setAlpha(alpha)
                     
                     pen = QPen(color, 1)
@@ -1262,11 +2265,11 @@ class NeuralNetworkWidget(QWidget):
                 
                 if node['activity'] > 0.1:
                     # Active node - neural green
-                    color = QColor(ModernTheme.COLORS['primary'])
+                    color = QColor(ModernTheme.get_colors()['primary'])
                     color.setAlpha(intensity)
                 else:
                     # Inactive node - subtle gray
-                    color = QColor(ModernTheme.COLORS['border_zen'])
+                    color = QColor(ModernTheme.get_colors()['border_zen'])
                 
                 # Draw node with glow effect
                 painter.setBrush(QBrush(color))
@@ -1445,11 +2448,43 @@ Solution: {solution[:500]}"""
         except Exception as e:
             logging.error(f"Failed to retrieve enhancement patterns: {e}")
             return []
+    
+    def add_memory(self, memory_data: Dict[str, Any]) -> bool:
+        """Add arbitrary memory data to the collection"""
+        if not self.collection:
+            return False
+        
+        try:
+            memory_id = f"memory_{int(time.time() * 1000000)}"
+            content = memory_data.get('content', '')
+            metadata = memory_data.get('metadata', {})
+            
+            # Ensure metadata is a valid dict
+            if not isinstance(metadata, dict):
+                metadata = {'source': 'add_memory', 'timestamp': time.time()}
+            
+            # Add timestamp if not present
+            if 'timestamp' not in metadata:
+                metadata['timestamp'] = time.time()
+            
+            self.collection.add(
+                documents=[str(content)],
+                metadatas=[metadata],
+                ids=[memory_id]
+            )
+            
+            logging.info(f"Added memory to collection: {memory_id}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Failed to add memory: {e}")
+            return False
 
 class OllamaManager:
     """Manages Ollama local AI model interactions"""
-    def __init__(self, config: AIConfig, task_processor: Optional['TaskProcessor'] = None):
+    def __init__(self, config: AIConfig, monitor: Optional['SystemMonitor'] = None, task_processor: Optional['TaskProcessor'] = None):
         self.config = config
+        self.monitor = monitor
         self.task_processor = task_processor
         self.base_url = config.ollama_url
         self.model = config.ollama_model
@@ -1477,6 +2512,7 @@ class OllamaManager:
             return False
     
     def query(self, prompt: str) -> Optional[str]:
+        start_time = time.time()
         try:
             response = SafeRequests.post(
                 f"{self.base_url}/api/generate",
@@ -1492,10 +2528,30 @@ class OllamaManager:
             )
             if response and response.status_code == 200:
                 result = response.json()
-                return result.get("response", "")
+                response_text = result.get("response", "")
+                
+                # Calculate response time and tokens
+                response_time = time.time() - start_time
+                input_tokens = len(prompt.split())
+                output_tokens = len(response_text.split())
+                total_tokens = input_tokens + output_tokens
+                
+                # Update monitoring stats
+                if self.monitor:
+                    self.monitor.update_stats('total_prompts')
+                    self.monitor.update_stats('ollama_prompts')
+                    self.monitor.update_stats('total_tokens', total_tokens)
+                    
+                    # Log AI task metrics for dashboard
+                    if hasattr(self.monitor, 'log_ai_task'):
+                        self.monitor.log_ai_task(total_tokens, response_time)
+                
+                return response_text
             return None
         except Exception as e:
             logging.error(f"Ollama query failed: {e}")
+            if self.monitor:
+                self.monitor.update_stats('errors')
             return None
 
 
@@ -1518,6 +2574,7 @@ class ClaudeManager:
         if not self.client:
             return None
         
+        start_time = time.time()
         try:
             messages = [{"role": "user", "content": prompt}]
             if system_prompt:
@@ -1538,11 +2595,23 @@ class ClaudeManager:
                 messages=messages
             )
             
+            # Calculate response time
+            response_time = time.time() - start_time
+            
+            # Calculate tokens used (input + output)
+            input_tokens = len(prompt.split()) + len(system.split())
+            output_tokens = len(response.content[0].text.split())
+            total_tokens = input_tokens + output_tokens
+            
             # Update monitoring stats
             if self.monitor:
                 self.monitor.update_stats('total_prompts')
                 self.monitor.update_stats('claude_prompts')
-                self.monitor.update_stats('total_tokens', len(prompt.split()) + len(response.content[0].text.split()))
+                self.monitor.update_stats('total_tokens', total_tokens)
+                
+                # Log AI task metrics for dashboard
+                if hasattr(self.monitor, 'log_ai_task'):
+                    self.monitor.log_ai_task(total_tokens, response_time)
             
             return response.content[0].text
         except AnthropicError as e:
@@ -1554,6 +2623,8 @@ class ClaudeManager:
     def query_with_image(self, prompt: str, image_path: str) -> Optional[str]:
         if not self.client:
             return None
+        
+        start_time = time.time()
         try:
             with open(image_path, "rb")  as f:
                 image_data = base64.b64encode(f.read()).decode()
@@ -1576,6 +2647,23 @@ class ClaudeManager:
                 max_tokens=self.config.max_tokens,
                 messages=[message]
             )
+            
+            # Calculate response time and tokens
+            response_time = time.time() - start_time
+            input_tokens = len(prompt.split()) + 200  # Estimate tokens for image
+            output_tokens = len(response.content[0].text.split())
+            total_tokens = input_tokens + output_tokens
+            
+            # Update monitoring stats
+            if self.monitor:
+                self.monitor.update_stats('total_prompts')
+                self.monitor.update_stats('claude_prompts')
+                self.monitor.update_stats('total_tokens', total_tokens)
+                
+                # Log AI task metrics for dashboard
+                if hasattr(self.monitor, 'log_ai_task'):
+                    self.monitor.log_ai_task(total_tokens, response_time)
+            
             return response.content[0].text
         except Exception as e:
             logging.error(f"Claude image query failed: {e}")
@@ -2233,10 +3321,15 @@ class EnhancementQualityAssessment:
 
 class TaskProcessor:
     """Core task processing engine with autonomous capabilities"""
-    def __init__(self, config: AIConfig, memory: MemoryManager, output_dir: Path):
+    def __init__(self, config: AIConfig, memory: MemoryManager, output_dir: Path, monitor: Optional['SystemMonitor'] = None):
         self.config = config
         self.memory = memory
         self.output_dir = output_dir
+        self.monitor = monitor
+        
+        # Create essential output directories
+        self._create_output_directories()
+        
         # Initialize with self reference for task-specific prompts (will be set after initialization)
         self.claude = None
         self.ollama = None
@@ -2251,15 +3344,38 @@ class TaskProcessor:
         self.task_intelligence = TaskIntelligence()
         self.response_analyzer = ResponseAnalyzer()
         
-        # Initialize AI managers with self reference for task-specific prompts
-        self.claude = ClaudeManager(config, task_processor=self)
-        self.ollama = OllamaManager(config, task_processor=self)
+        # Initialize AI managers with monitor and self reference for task-specific prompts
+        self.claude = ClaudeManager(config, monitor=monitor, task_processor=self)
+        self.ollama = OllamaManager(config, monitor=monitor, task_processor=self)
         
         # Initialize autonomous agent if available
         self.autonomous_agent = None
         self.workflow_manager = None
         if AUTONOMOUS_AVAILABLE:
             self.setup_autonomous_capabilities()
+    
+    def _create_output_directories(self):
+        """Create essential output directories"""
+        try:
+            # Create main output directory
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Create data directory for memory and other data
+            data_dir = self.output_dir / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Create logs directory
+            logs_dir = self.output_dir / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Create autonomous directory for autonomous mode outputs
+            autonomous_dir = self.output_dir / "autonomous"
+            autonomous_dir.mkdir(parents=True, exist_ok=True)
+            
+            logging.debug(f"Created output directories in {self.output_dir}")
+            
+        except Exception as e:
+            logging.error(f"Failed to create output directories: {e}")
     
     def request_stop(self):
         """Request immediate stop of all operations"""
@@ -2833,6 +3949,11 @@ Please provide:
         # Update files generated stats
         if result.success and hasattr(self, 'monitor') and self.monitor:
             self.monitor.update_stats('files_generated', len(result.generated_files))
+            self.monitor.update_stats('tasks_completed')
+            
+            # Log task completion metrics for dashboard
+            if hasattr(self.monitor, 'log_task_completed'):
+                self.monitor.log_task_completed(total_execution_time, task_type)
 
         # Log task completion with enhanced details
         total_execution_time = time.time() - start_time
@@ -4306,7 +5427,7 @@ class SettingsDialog(QDialog):
         settings_tabs.addTab(memory_tab, "🧠 Memory")
         
         # System Tab
-        system_tab = self.create_system_tab()
+        system_tab = self.create_system_settings_tab()
         settings_tabs.addTab(system_tab, "💻 System")
         
         main_layout.addWidget(settings_tabs)
@@ -4565,7 +5686,7 @@ class SettingsDialog(QDialog):
         export_memory_btn.clicked.connect(self.export_memory)
         export_memory_btn.setToolTip("Export memory data to file")
         
-        clear_memory_btn = QPushButton("🗑️ Clear All Memory")
+        clear_memory_btn = QPushButton(f"{ModernIcons.ACTIONS['delete']} Clear All Memory")
         clear_memory_btn.clicked.connect(self.clear_memory)
         clear_memory_btn.setProperty("variant", "danger")
         clear_memory_btn.setToolTip("Permanently delete all memory data")
@@ -4586,7 +5707,7 @@ class SettingsDialog(QDialog):
         tab.setLayout(layout)
         return tab
     
-    def create_system_tab(self) -> QWidget:
+    def create_system_settings_tab(self) -> QWidget:
         """Create system settings tab"""
         tab = QWidget()
         layout = QVBoxLayout()
@@ -5643,13 +6764,29 @@ class SuperMiniMainWindow(QMainWindow):
                 screen = app.primaryScreen()
                 available_geometry = screen.availableGeometry()
                 
-                # Default size as percentage of screen
-                default_width = min(ModernTheme.scale_value(1200), int(available_geometry.width() * 0.8))
-                default_height = min(ModernTheme.scale_value(800), int(available_geometry.height() * 0.7))
+                # Mobile-first responsive sizing
+                screen_width = available_geometry.width()
+                screen_height = available_geometry.height()
+                screen_category = ModernTheme.get_screen_category(screen_width)
                 
-                # Minimum size scaled with DPI
-                min_width = ModernTheme.scale_value(800)
-                min_height = ModernTheme.scale_value(600)
+                if screen_category == ModernTheme.SCREEN_MOBILE:
+                    # Mobile: Use most of screen space
+                    default_width = min(ModernTheme.scale_value(400), int(screen_width * 0.95))
+                    default_height = min(ModernTheme.scale_value(600), int(screen_height * 0.9))
+                    min_width = ModernTheme.scale_value(320)
+                    min_height = ModernTheme.scale_value(480)
+                elif screen_category == ModernTheme.SCREEN_TABLET:
+                    # Tablet: Comfortable sizing
+                    default_width = min(ModernTheme.scale_value(900), int(screen_width * 0.85))
+                    default_height = min(ModernTheme.scale_value(700), int(screen_height * 0.8))
+                    min_width = ModernTheme.scale_value(600)
+                    min_height = ModernTheme.scale_value(500)
+                else:
+                    # Desktop: Optimal window size
+                    default_width = min(ModernTheme.scale_value(1200), int(screen_width * 0.8))
+                    default_height = min(ModernTheme.scale_value(800), int(screen_height * 0.7))
+                    min_width = ModernTheme.scale_value(800)
+                    min_height = ModernTheme.scale_value(600)
                 
                 self.setGeometry(100, 100, default_width, default_height)
                 self.setMinimumSize(min_width, min_height)
@@ -5661,6 +6798,7 @@ class SuperMiniMainWindow(QMainWindow):
             self.explore_thread = None
             self.enhance_thread = None
             self.task_thread = None
+            self.attached_files = []  # Initialize attached files list
             
             logging.info("Setting up directories")
             self.setup_directories()
@@ -5674,6 +6812,9 @@ class SuperMiniMainWindow(QMainWindow):
             logging.info("Setting up UI")
             self.apply_modern_theme()
             self.setup_ui()
+            
+            logging.info("Setting up accessibility")
+            self.setup_accessibility()
             
             logging.info("Setting up monitoring")
             self.setup_monitoring()
@@ -5710,6 +6851,44 @@ class SuperMiniMainWindow(QMainWindow):
             max_tokens=settings.value("max_tokens", 4096, type=int),
             temperature=settings.value("temperature", 70, type=int) / 100.0
         )
+        
+        # Load theme preference
+        saved_theme = settings.value("theme", "dark", type=str)
+        if saved_theme in ['dark', 'light']:
+            ModernTheme.set_theme(saved_theme)
+    
+    def save_config(self):
+        """Save current configuration including theme"""
+        settings = QSettings()
+        settings.setValue("use_claude", self.config.use_claude)
+        settings.setValue("claude_api_key", self.config.claude_api_key)
+        settings.setValue("ollama_url", self.config.ollama_url)
+        settings.setValue("ollama_model", self.config.ollama_model)
+        settings.setValue("max_tokens", self.config.max_tokens)
+        settings.setValue("temperature", int(self.config.temperature * 100))
+        settings.setValue("theme", ModernTheme.get_current_theme())
+    
+    def toggle_theme(self):
+        """Toggle application theme and refresh UI with enhanced feedback"""
+        old_theme = ModernTheme.get_current_theme()
+        new_theme = ModernTheme.toggle_theme()
+        self.save_config()  # Persist theme change
+        self.apply_modern_theme()  # Refresh styles
+        
+        # Update theme toggle button with enhanced visual feedback
+        if hasattr(self, 'theme_toggle_btn'):
+            icon = ModernIcons.APP['theme']
+            target_mode = 'Light' if new_theme == 'dark' else 'Dark'
+            self.theme_toggle_btn.setText(f"{icon} Switch to {target_mode} Mode")
+            
+        # Update current theme label if it exists
+        if hasattr(self, 'current_theme_label'):
+            self.current_theme_label.setText(f"Current: {new_theme.title()} Mode")
+        
+        # Enhanced status bar message with icon
+        status_icon = "🌙" if new_theme == "dark" else "☀️"
+        self.statusBar().showMessage(f"{status_icon} Theme switched to {new_theme} mode", 3000)
+        logging.info(f"Application theme toggled from {old_theme} to {new_theme}")
     
     def apply_modern_theme(self):
         """Apply the modern theme to the application"""
@@ -5733,7 +6912,11 @@ class SuperMiniMainWindow(QMainWindow):
             ModernTheme.get_progress_bar_style(),
             ModernTheme.get_slider_style(),
             ModernTheme.get_text_browser_style(),
-            ModernTheme.get_label_style()
+            ModernTheme.get_label_style(),
+            ModernTheme.get_accessibility_style(),
+            ModernTheme.get_micro_interactions_style(),
+            ModernTheme.get_adaptive_typography_style(),
+            ModernTheme.get_mobile_touch_style()
         ]
         combined_style = '\n'.join(style_sheets)
         self.setStyleSheet(combined_style)
@@ -5741,7 +6924,9 @@ class SuperMiniMainWindow(QMainWindow):
     
     def setup_processors(self):
         self.memory = MemoryManager(self.data_dir)
-        self.processor = TaskProcessor(self.config, self.memory, self.data_dir)
+        # Pass monitor to TaskProcessor so AI managers can log metrics
+        monitor = getattr(self, 'monitor', None)
+        self.processor = TaskProcessor(self.config, self.memory, self.data_dir, monitor)
         
         # Initialize release automation system
         try:
@@ -5772,47 +6957,56 @@ class SuperMiniMainWindow(QMainWindow):
         main_layout.setSpacing(0)
         
         # Create modern splitter
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setChildrenCollapsible(False)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.setChildrenCollapsible(False)
         
         # Create panels with improved sizing
         left_panel = self.create_control_panel()
         right_panel = self.create_output_panel()
         
-        splitter.addWidget(left_panel)
-        splitter.addWidget(right_panel)
+        self.splitter.addWidget(left_panel)
+        self.splitter.addWidget(right_panel)
         
-        # Intelligent proportion adjustment for different window sizes
+        # Mobile-first responsive proportion adjustment
         window_width = self.width() if hasattr(self, 'width') else 1200
+        screen_category = ModernTheme.get_screen_category(window_width)
         
-        # Dynamic sizing with better breakpoints for responsive design
-        if window_width < 700:
-            # Very small windows: minimal control panel
-            control_width = min(200, int(window_width * 0.35))
-            output_width = max(400, window_width - control_width - 10)
-        elif window_width < 900:
-            # Small windows: compact control panel
-            control_width = min(250, int(window_width * 0.28))
-            output_width = max(500, window_width - control_width - 10)
-        elif window_width < 1200:
-            # Medium windows: balanced sizing
-            control_width = min(300, int(window_width * 0.25))
-            output_width = max(600, window_width - control_width - 10)
+        # Mobile-optimized responsive sizing with proper breakpoints
+        if screen_category == ModernTheme.SCREEN_MOBILE:
+            # Mobile: Stack vertically or use collapsible sidebar
+            control_width = min(ModernTheme.scale_value(280), int(window_width * 0.4))
+            output_width = max(ModernTheme.scale_value(320), window_width - control_width - 10)
+            # For very small screens, consider making control panel collapsible
+            if window_width < ModernTheme.scale_value(600):
+                control_width = min(ModernTheme.scale_value(250), int(window_width * 0.35))
+        elif screen_category == ModernTheme.SCREEN_TABLET:
+            # Tablet: Comfortable split view
+            control_width = min(ModernTheme.scale_value(320), int(window_width * 0.3))
+            output_width = max(ModernTheme.scale_value(480), window_width - control_width - 10)
         else:
-            # Large windows: comfortable sizing
-            control_width = min(350, int(window_width * 0.22))
-            output_width = max(700, window_width - control_width - 10)
+            # Desktop: Optimal proportions for large screens
+            control_width = min(ModernTheme.scale_value(380), int(window_width * 0.25))
+            output_width = max(ModernTheme.scale_value(700), window_width - control_width - 10)
         
-        splitter.setSizes([control_width, output_width])
-        splitter.setStretchFactor(0, 0)  # Control panel doesn't stretch
-        splitter.setStretchFactor(1, 1)  # Output panel stretches
+        self.splitter.setSizes([control_width, output_width])
+        self.splitter.setStretchFactor(0, 0)  # Control panel doesn't stretch
+        self.splitter.setStretchFactor(1, 1)  # Output panel stretches
         
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(self.splitter)
         central_widget.setLayout(main_layout)
         
-        # Enhanced status bar with accessibility
-        self.statusBar().showMessage("🧠 SuperMini Neural Network Active - AI Agent Ready for Neural Processing")
+        # Enhanced status bar with modern styling and accessibility
+        status_icon = ModernIcons.STATUS['active']
+        self.statusBar().showMessage(f"{status_icon} SuperMini AI Assistant Ready - Neural Processing Active")
         self.statusBar().setProperty("role", "status")
+        
+        # Add progress bar to status bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setMaximumWidth(200)
+        self.progress_bar.setStyleSheet(ModernTheme.get_progress_bar_style())
+        self.statusBar().addPermanentWidget(self.progress_bar)
         
         # Set accessibility properties for the main window
         self.setAccessibleName("SuperMini AI Agent")
@@ -5822,7 +7016,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
         # Store splitter reference for dynamic resizing
-        self.main_splitter = splitter
+        self.main_splitter = self.splitter
     
     def create_control_panel(self) -> QWidget:
         """Create a modern, well-organized control panel with responsive sizing"""
@@ -5850,7 +7044,7 @@ class SuperMiniMainWindow(QMainWindow):
         layout.setSpacing(spacing)
         
         # AI Mode Section with responsive spacing
-        mode_group = QGroupBox("🤖 AI Assistant Modes")
+        mode_group = QGroupBox(f"{ModernIcons.APP['logo']} AI Assistant Modes")
         mode_layout = QVBoxLayout()
         # Dynamic margins for mode section
         mode_margin_h = max(12, int(window_width * 0.015))  # Horizontal margin
@@ -5863,14 +7057,18 @@ class SuperMiniMainWindow(QMainWindow):
         
         # Task Me Tab - Completely redesigned
         task_tab = self.create_task_tab()
-        self.mode_tabs.addTab(task_tab, "📋 Task Me")
+        self.mode_tabs.addTab(task_tab, f"{ModernIcons.TASKS['task']} Task Me")
         
         # Other tabs
         explore_tab = self.create_explore_tab()
-        self.mode_tabs.addTab(explore_tab, "🧭 Go Explore")
+        self.mode_tabs.addTab(explore_tab, f"{ModernIcons.NAVIGATION['search']} Go Explore")
         
         enhance_tab = self.create_enhance_tab()
-        self.mode_tabs.addTab(enhance_tab, "⚡ Enhance Yourself")
+        self.mode_tabs.addTab(enhance_tab, f"{ModernIcons.TASKS['automation']} Enhance Yourself")
+        
+        # Settings tab with comprehensive configuration
+        settings_tab = self.create_settings_tab()
+        self.mode_tabs.addTab(settings_tab, f"{ModernIcons.APP['settings']} Settings")
         
         mode_layout.addWidget(self.mode_tabs)
         mode_group.setLayout(mode_layout)
@@ -5878,17 +7076,9 @@ class SuperMiniMainWindow(QMainWindow):
         # System Controls Section
         controls_group = self.create_system_controls()
         
-        # Progress Section
-        progress_group = self.create_progress_section()
-        
-        # System Monitor Section
-        monitor_group = self.create_monitor_section()
-        
         # Add all sections to main layout
         layout.addWidget(mode_group)
         layout.addWidget(controls_group)
-        layout.addWidget(progress_group)
-        layout.addWidget(monitor_group)
         layout.addStretch()
         
         panel.setLayout(layout)
@@ -5902,7 +7092,7 @@ class SuperMiniMainWindow(QMainWindow):
         layout.setSpacing(24)  # Increased spacing for better visual separation
         
         # Task Input Section with enhanced design
-        input_section = QGroupBox("📝 Task Description")
+        input_section = QGroupBox(f"{ModernIcons.ACTIONS['edit']} Task Description")
         input_layout = QVBoxLayout()
         input_layout.setContentsMargins(20, 24, 20, 20)  # Better margins for professional look
         input_layout.setSpacing(12)
@@ -5950,7 +7140,7 @@ class SuperMiniMainWindow(QMainWindow):
         input_section.setLayout(input_layout)
         
         # File Attachments Section with enhanced design
-        files_section = QGroupBox("📎 File Attachments")
+        files_section = QGroupBox(f"{ModernIcons.ACTIONS['attach']} File Attachments")
         files_layout = QVBoxLayout()
         files_layout.setContentsMargins(20, 24, 20, 20)  # Better margins
         files_layout.setSpacing(16)
@@ -5959,14 +7149,14 @@ class SuperMiniMainWindow(QMainWindow):
         file_buttons_layout = QHBoxLayout()
         file_buttons_layout.setSpacing(16)  # Increased spacing for better separation
         
-        self.attach_btn = QPushButton("📎 Attach Files")
+        self.attach_btn = QPushButton(f"{ModernIcons.ACTIONS['attach']} Attach Files")
         self.attach_btn.clicked.connect(self.attach_files)
         self.attach_btn.setMinimumHeight(ModernTheme.scale_value(44))  # Enhanced touch target
         self.attach_btn.setMinimumWidth(ModernTheme.scale_value(140))  # Better button width
         self.attach_btn.setProperty("variant", "secondary")
         self.attach_btn.setToolTip("Add files to be processed or analyzed\nSupported: Images, PDFs, Text files, CSV, Code files")
         
-        self.clear_files_btn = QPushButton("🗑️ Clear All")
+        self.clear_files_btn = QPushButton(f"{ModernIcons.ACTIONS['delete']} Clear All")
         self.clear_files_btn.clicked.connect(self.clear_files)
         self.clear_files_btn.setMinimumHeight(ModernTheme.scale_value(44))  # Enhanced touch target
         self.clear_files_btn.setMinimumWidth(ModernTheme.scale_value(120))  # Better button width
@@ -5994,7 +7184,7 @@ class SuperMiniMainWindow(QMainWindow):
         files_section.setLayout(files_layout)
         
         # Task Configuration Section with enhanced organization
-        config_section = QGroupBox("⚙️ Task Configuration")
+        config_section = QGroupBox(f"{ModernIcons.APP['settings']} Task Configuration")
         config_layout = QVBoxLayout()
         config_layout.setContentsMargins(20, 24, 20, 20)  # Better margins
         config_layout.setSpacing(20)  # Increased spacing for better visual separation
@@ -6148,7 +7338,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.process_btn.setMinimumWidth(ModernTheme.scale_value(160))
         self.process_btn.setToolTip("Start processing the task with AI - analyzes your input and generates results")
         
-        self.stop_task_btn = QPushButton("⏹️ Stop Task")
+        self.stop_task_btn = QPushButton(f"{ModernIcons.ACTIONS['stop']} Stop Task")
         self.stop_task_btn.clicked.connect(self.stop_task)
         self.stop_task_btn.setEnabled(False)
         self.stop_task_btn.setProperty("variant", "danger")
@@ -6181,235 +7371,536 @@ class SuperMiniMainWindow(QMainWindow):
         return tab
     
     def create_explore_tab(self) -> QWidget:
-        """Create the autonomous exploration tab with modern design"""
+        """Create the autonomous exploration tab with enhanced modern design"""
         tab = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(16, 16, 16, 16)  # Increased margins
-        layout.setSpacing(20)  # Increased spacing
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16), 
+                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
+        layout.setSpacing(ModernTheme.scale_value(20))
         
-        # Description section
-        info_section = QGroupBox("About Exploration Mode")
-        info_layout = QVBoxLayout()
-        info_layout.setContentsMargins(16, 20, 16, 16)  # Increased margins
+        # Header Section with icon and title
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(ModernTheme.scale_value(12))
         
-        explore_info = QLabel("""
-        🌟 <b>Autonomous Exploration Mode</b>
-        
-        Let the AI autonomously explore, learn, and create on your system. 
-        No specific task required - just pure curiosity-driven exploration.
-        
-        <b>What it does:</b>
-        • Explores the system and internet
-        • Creates experimental projects
-        • Builds creative solutions
-        • Maintains an exploration journal
-        • Runs continuously until stopped
-        
-        <b>Perfect for:</b>
-        • Discovering new possibilities
-        • Creative experimentation
-        • Autonomous learning
-        • System exploration
+        # Icon and title
+        title_label = QLabel("🧭 Autonomous Exploration")
+        title_label.setFont(QFont("SF Pro Text", int(ModernTheme.get_font_size('heading').replace('pt', ''))))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 600;
+            }}
         """)
-        explore_info.setWordWrap(True)
-        explore_info.setProperty("role", "info")
         
-        info_layout.addWidget(explore_info)
-        info_section.setLayout(info_layout)
+        description_label = QLabel("Let the AI explore, learn, and create autonomously")
+        description_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_muted']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
         
-        # Controls section
-        controls_section = QGroupBox("Exploration Settings")
-        controls_layout = QVBoxLayout()
-        controls_layout.setContentsMargins(16, 20, 16, 16)  # Increased margins
-        controls_layout.setSpacing(16)  # Increased spacing
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        layout.addWidget(header_widget)
+        layout.addWidget(description_label)
         
-        # Interval controls with improved sizing and spacing
-        interval_layout = QHBoxLayout()
-        interval_layout.setSpacing(12)  # Add consistent spacing
-        interval_label = QLabel("Iteration Interval:")
-        interval_label.setMinimumWidth(ModernTheme.scale_value(120))  # Consistent label width
-        interval_layout.addWidget(interval_label)
+        # Settings Section
+        settings_section = ModernTheme.create_clean_settings_section("Exploration Settings")
+        settings_content = settings_section.findChild(QWidget)
+        settings_layout = QVBoxLayout(settings_content)
+        settings_layout.setSpacing(ModernTheme.scale_value(12))
         
-        self.explore_hours = QSpinBox()
-        self.explore_hours.setRange(0, 24)
-        self.explore_hours.setValue(0)
-        self.explore_hours.setMinimumWidth(ModernTheme.scale_value(70))  # Enhanced width
-        self.explore_hours.setMinimumHeight(ModernTheme.scale_value(44))  # Enhanced touch target
-        self.explore_hours.setToolTip("Hours between exploration iterations")
+        # Grid for checkboxes
+        options_grid = QWidget()
+        grid_layout = QGridLayout(options_grid)
+        grid_layout.setSpacing(ModernTheme.scale_value(8))
         
-        self.explore_minutes = QSpinBox()
-        self.explore_minutes.setRange(0, 59)
-        self.explore_minutes.setValue(15)
-        self.explore_minutes.setMinimumWidth(ModernTheme.scale_value(70))  # Enhanced width
-        self.explore_minutes.setMinimumHeight(ModernTheme.scale_value(44))  # Enhanced touch target
-        self.explore_minutes.setToolTip("Minutes between exploration iterations")
+        # Enhanced checkboxes in 2-column grid
+        self.explore_system_cb = ModernTheme.create_compact_checkbox(
+            "System Exploration", "Explore system files and capabilities")
+        self.explore_internet_cb = ModernTheme.create_compact_checkbox(
+            "Internet Research", "Research and learn from web resources")
+        self.create_projects_cb = ModernTheme.create_compact_checkbox(
+            "Creative Projects", "Generate experimental projects and code")
+        self.maintain_journal_cb = ModernTheme.create_compact_checkbox(
+            "Exploration Journal", "Maintain detailed exploration logs")
         
-        interval_layout.addWidget(self.explore_hours)
-        hours_label = QLabel("hours")
-        hours_label.setMinimumWidth(ModernTheme.scale_value(50))  # Consistent spacing
-        interval_layout.addWidget(hours_label)
-        interval_layout.addWidget(self.explore_minutes)
-        minutes_label = QLabel("minutes")
-        minutes_label.setMinimumWidth(ModernTheme.scale_value(60))  # Consistent spacing
-        interval_layout.addWidget(minutes_label)
-        interval_layout.addStretch()
+        # Set default values
+        self.explore_system_cb.setChecked(True)
+        self.explore_internet_cb.setChecked(True)
+        self.create_projects_cb.setChecked(True)
+        self.maintain_journal_cb.setChecked(True)
         
-        controls_layout.addLayout(interval_layout)
-        controls_section.setLayout(controls_layout)
+        # Arrange in 2-column grid
+        grid_layout.addWidget(self.explore_system_cb, 0, 0)
+        grid_layout.addWidget(self.explore_internet_cb, 0, 1)
+        grid_layout.addWidget(self.create_projects_cb, 1, 0)
+        grid_layout.addWidget(self.maintain_journal_cb, 1, 1)
         
-        # Action buttons
-        buttons_section = QGroupBox("Actions")
-        buttons_layout = QVBoxLayout()
-        buttons_layout.setContentsMargins(16, 20, 16, 16)  # Increased margins
-        buttons_layout.setSpacing(16)  # Increased spacing
+        settings_layout.addWidget(options_grid)
         
-        button_row = QHBoxLayout()
-        button_row.setSpacing(12)  # Add spacing between buttons
+        # Time Interval Controls
+        interval_control = ModernTheme.create_time_interval_control()
+        self.explore_interval_spinbox = interval_control["spinbox"]
+        self.explore_interval_spinbox.setRange(5, 3600)  # 5 seconds to 1 hour
+        self.explore_interval_spinbox.setValue(900)  # 15 minutes default
+        self.explore_interval_spinbox.setToolTip("Time between exploration iterations")
+        
+        settings_layout.addWidget(interval_control["widget"])
+        layout.addWidget(settings_section)
+        
+        # Action Buttons Section
+        buttons_section = ModernTheme.create_clean_settings_section("Actions")
+        buttons_content = buttons_section.findChild(QWidget)
+        buttons_layout = QVBoxLayout(buttons_content)
+        buttons_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Button container
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Enhanced action buttons
         self.start_explore_btn = QPushButton("🧭 Start Exploration")
         self.start_explore_btn.clicked.connect(self.start_exploration)
         self.start_explore_btn.setProperty("variant", "primary")
+        self.start_explore_btn.setMinimumHeight(ModernTheme.scale_value(44))
         self.start_explore_btn.setToolTip("Begin autonomous exploration mode")
         
-        self.stop_explore_btn = QPushButton("⏹️ Stop Exploration")
+        self.stop_explore_btn = QPushButton(f"{ModernIcons.ACTIONS['stop']} Stop Exploration")
         self.stop_explore_btn.clicked.connect(self.stop_exploration)
         self.stop_explore_btn.setEnabled(False)
         self.stop_explore_btn.setProperty("variant", "danger")
+        self.stop_explore_btn.setMinimumHeight(ModernTheme.scale_value(44))
         self.stop_explore_btn.setToolTip("Stop exploration mode")
         
-        button_row.addWidget(self.start_explore_btn)
-        button_row.addWidget(self.stop_explore_btn)
+        button_layout.addWidget(self.start_explore_btn)
+        button_layout.addWidget(self.stop_explore_btn)
+        button_layout.addStretch()
         
+        buttons_layout.addWidget(button_container)
+        
+        # Status Display as styled card
         self.exploration_status = QLabel("Ready to explore")
-        self.exploration_status.setProperty("role", "caption")
+        self.exploration_status.setStyleSheet(f"""
+            QLabel {{
+                background-color: {ModernTheme.get_colors()['bg_panel']};
+                border: 1px solid {ModernTheme.get_colors()['border_input']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.get_spacing('md')};
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
         
-        buttons_layout.addLayout(button_row)
         buttons_layout.addWidget(self.exploration_status)
-        buttons_section.setLayout(buttons_layout)
-        
-        # Add all sections
-        layout.addWidget(info_section)
-        layout.addWidget(controls_section)
         layout.addWidget(buttons_section)
+        
+        # Ensure all components are visible
+        buttons_section.show()
+        button_container.show()
+        self.start_explore_btn.show()
+        self.stop_explore_btn.show()
+        self.exploration_status.show()
+        
         layout.addStretch()
         
-        tab.setLayout(layout)
+        # Ensure the tab widget itself is visible
+        tab.show()
+        
         return tab
     
     def create_enhance_tab(self) -> QWidget:
-        """Create the self-enhancement tab with modern design"""
+        """Create the self-enhancement tab with enhanced modern design"""
         tab = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(16, 16, 16, 16)  # Increased margins
-        layout.setSpacing(20)  # Increased spacing
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16), 
+                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
+        layout.setSpacing(ModernTheme.scale_value(20))
         
-        # Description section
-        info_section = QGroupBox("About Enhancement Mode")
-        info_layout = QVBoxLayout()
-        info_layout.setContentsMargins(16, 20, 16, 16)  # Increased margins
+        # Header Section with icon and title
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(ModernTheme.scale_value(12))
         
-        enhance_info = QLabel("""
-        🔧 <b>Self-Enhancement Mode</b>
-        
-        The AI will autonomously enhance its own capabilities by analyzing 
-        its current code and creating improved versions.
-        
-        <b>What it does:</b>
-        • Analyzes current application code
-        • Identifies improvement opportunities
-        • Generates enhanced versions
-        • Creates enhancement journal entries
-        • Saves new versioned files automatically
-        
-        <b>Perfect for:</b>
-        • Continuous self-improvement
-        • Feature development
-        • Bug fixes and optimizations
-        • Evolutionary enhancement
+        # Icon and title
+        title_label = QLabel("⚡ Self-Enhancement")
+        title_label.setFont(QFont("SF Pro Text", int(ModernTheme.get_font_size('heading').replace('pt', ''))))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-weight: 600;
+            }}
         """)
-        enhance_info.setWordWrap(True)
-        enhance_info.setProperty("role", "info")
         
-        info_layout.addWidget(enhance_info)
-        info_section.setLayout(info_layout)
+        description_label = QLabel("AI autonomously improves its own capabilities")
+        description_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_muted']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
         
-        # Controls section
-        controls_section = QGroupBox("Enhancement Settings")
-        controls_layout = QVBoxLayout()
-        controls_layout.setContentsMargins(16, 20, 16, 16)  # Increased margins
-        controls_layout.setSpacing(16)  # Increased spacing
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        layout.addWidget(header_widget)
+        layout.addWidget(description_label)
         
-        # Interval controls with improved sizing and spacing
-        interval_layout = QHBoxLayout()
-        interval_layout.setSpacing(12)  # Add consistent spacing
-        interval_label = QLabel("Iteration Interval:")
-        interval_label.setMinimumWidth(ModernTheme.scale_value(120))  # Consistent label width
-        interval_layout.addWidget(interval_label)
+        # Settings Section
+        settings_section = ModernTheme.create_clean_settings_section("Enhancement Areas")
+        settings_content = settings_section.findChild(QWidget)
+        settings_layout = QVBoxLayout(settings_content)
+        settings_layout.setSpacing(ModernTheme.scale_value(12))
         
-        self.enhance_hours = QSpinBox()
-        self.enhance_hours.setRange(0, 24)
-        self.enhance_hours.setValue(0)
-        self.enhance_hours.setMinimumWidth(ModernTheme.scale_value(70))  # Enhanced width
-        self.enhance_hours.setMinimumHeight(ModernTheme.scale_value(44))  # Enhanced touch target
-        self.enhance_hours.setToolTip("Hours between enhancement iterations")
+        # Grid for checkboxes
+        options_grid = QWidget()
+        grid_layout = QGridLayout(options_grid)
+        grid_layout.setSpacing(ModernTheme.scale_value(8))
         
-        self.enhance_minutes = QSpinBox()
-        self.enhance_minutes.setRange(0, 59)
-        self.enhance_minutes.setValue(15)
-        self.enhance_minutes.setMinimumWidth(ModernTheme.scale_value(70))  # Enhanced width
-        self.enhance_minutes.setMinimumHeight(ModernTheme.scale_value(44))  # Enhanced touch target
-        self.enhance_minutes.setToolTip("Minutes between enhancement iterations")
+        # Enhanced checkboxes in 2-column grid
+        self.enhance_ui_cb = ModernTheme.create_compact_checkbox(
+            "UI Improvements", "Enhance user interface and experience")
+        self.enhance_features_cb = ModernTheme.create_compact_checkbox(
+            "Feature Development", "Add new capabilities and features")
+        self.enhance_performance_cb = ModernTheme.create_compact_checkbox(
+            "Performance Optimization", "Improve speed and efficiency")
+        self.enhance_quality_cb = ModernTheme.create_compact_checkbox(
+            "Code Quality", "Refactor and improve code structure")
         
-        interval_layout.addWidget(self.enhance_hours)
-        hours_label = QLabel("hours")
-        hours_label.setMinimumWidth(ModernTheme.scale_value(50))  # Consistent spacing
-        interval_layout.addWidget(hours_label)
-        interval_layout.addWidget(self.enhance_minutes)
-        minutes_label = QLabel("minutes")
-        minutes_label.setMinimumWidth(ModernTheme.scale_value(60))  # Consistent spacing
-        interval_layout.addWidget(minutes_label)
-        interval_layout.addStretch()
+        # Set default values
+        self.enhance_ui_cb.setChecked(True)
+        self.enhance_features_cb.setChecked(True)
+        self.enhance_performance_cb.setChecked(True)
+        self.enhance_quality_cb.setChecked(True)
         
-        controls_layout.addLayout(interval_layout)
-        controls_section.setLayout(controls_layout)
+        # Arrange in 2-column grid
+        grid_layout.addWidget(self.enhance_ui_cb, 0, 0)
+        grid_layout.addWidget(self.enhance_features_cb, 0, 1)
+        grid_layout.addWidget(self.enhance_performance_cb, 1, 0)
+        grid_layout.addWidget(self.enhance_quality_cb, 1, 1)
         
-        # Action buttons
-        buttons_section = QGroupBox("Actions")
-        buttons_layout = QVBoxLayout()
-        buttons_layout.setContentsMargins(16, 20, 16, 16)  # Increased margins
-        buttons_layout.setSpacing(16)  # Increased spacing
+        settings_layout.addWidget(options_grid)
         
-        button_row = QHBoxLayout()
-        button_row.setSpacing(12)  # Add spacing between buttons
+        # Time Interval Controls with purple accent
+        interval_control = ModernTheme.create_time_interval_control()
+        self.enhance_interval_spinbox = interval_control["spinbox"]
+        self.enhance_interval_spinbox.setRange(30, 7200)  # 30 seconds to 2 hours
+        self.enhance_interval_spinbox.setValue(1800)  # 30 minutes default
+        self.enhance_interval_spinbox.setToolTip("Time between enhancement iterations")
+        
+        # Apply purple accent to enhancement controls
+        self.enhance_interval_spinbox.setStyleSheet(f"""
+            QSpinBox {{
+                background-color: {ModernTheme.get_colors()['bg_input']};
+                border: 2px solid {ModernTheme.get_colors()['border_input']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.get_spacing('sm')};
+                font-size: {ModernTheme.get_font_size('base')};
+                color: {ModernTheme.get_colors()['text_primary']};
+                min-width: {ModernTheme.scale_value(100)}px;
+            }}
+            QSpinBox:focus {{
+                border-color: {ModernTheme.get_colors()['secondary']};
+                background-color: {ModernTheme.get_colors()['bg_secondary']};
+            }}
+            QSpinBox::up-button, QSpinBox::down-button {{
+                background-color: {ModernTheme.get_colors()['bg_panel']};
+                border: 1px solid {ModernTheme.get_colors()['border_input']};
+                width: {ModernTheme.scale_value(18)}px;
+            }}
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+                background-color: {ModernTheme.get_colors()['secondary']};
+            }}
+        """)
+        
+        settings_layout.addWidget(interval_control["widget"])
+        layout.addWidget(settings_section)
+        
+        # Action Buttons Section
+        buttons_section = ModernTheme.create_clean_settings_section("Actions")
+        buttons_content = buttons_section.findChild(QWidget)
+        buttons_layout = QVBoxLayout(buttons_content)
+        buttons_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Button container
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Enhanced action buttons with purple accent
         self.start_enhance_btn = QPushButton("⚡ Start Enhancement")
         self.start_enhance_btn.clicked.connect(self.start_enhancement)
         self.start_enhance_btn.setProperty("variant", "primary")
-        self.start_enhance_btn.setMinimumHeight(ModernTheme.scale_value(44))  # Better button height
+        self.start_enhance_btn.setMinimumHeight(ModernTheme.scale_value(44))
         self.start_enhance_btn.setToolTip("Begin self-enhancement mode")
         
-        self.stop_enhance_btn = QPushButton("⏹️ Stop Enhancement")
+        # Override primary color for enhancement with purple
+        self.start_enhance_btn.setStyleSheet(f"""
+            QPushButton[variant="primary"] {{
+                background-color: {ModernTheme.get_colors()['secondary']};
+                color: white;
+                border: none;
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.get_spacing('md')};
+                font-weight: 600;
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+            QPushButton[variant="primary"]:hover {{
+                background-color: {ModernTheme.get_colors()['secondary_hover']};
+            }}
+        """)
+        
+        self.stop_enhance_btn = QPushButton(f"{ModernIcons.ACTIONS['stop']} Stop Enhancement")
         self.stop_enhance_btn.clicked.connect(self.stop_enhancement)
         self.stop_enhance_btn.setEnabled(False)
         self.stop_enhance_btn.setProperty("variant", "danger")
-        self.stop_enhance_btn.setMinimumHeight(ModernTheme.scale_value(44))  # Better button height
+        self.stop_enhance_btn.setMinimumHeight(ModernTheme.scale_value(44))
         self.stop_enhance_btn.setToolTip("Stop enhancement mode")
         
-        button_row.addWidget(self.start_enhance_btn)
-        button_row.addWidget(self.stop_enhance_btn)
+        button_layout.addWidget(self.start_enhance_btn)
+        button_layout.addWidget(self.stop_enhance_btn)
+        button_layout.addStretch()
         
+        buttons_layout.addWidget(button_container)
+        
+        # Status Display as styled card with purple accent
         self.enhancement_status = QLabel("Ready to enhance")
-        self.enhancement_status.setProperty("role", "caption")
+        self.enhancement_status.setStyleSheet(f"""
+            QLabel {{
+                background-color: {ModernTheme.get_colors()['bg_panel']};
+                border: 1px solid {ModernTheme.get_colors()['secondary']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.get_spacing('md')};
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
         
-        buttons_layout.addLayout(button_row)
         buttons_layout.addWidget(self.enhancement_status)
-        buttons_section.setLayout(buttons_layout)
-        
-        # Add all sections
-        layout.addWidget(info_section)
-        layout.addWidget(controls_section)
         layout.addWidget(buttons_section)
+        
+        # Ensure all components are visible
+        buttons_section.show()
+        button_container.show()
+        self.start_enhance_btn.show()
+        self.stop_enhance_btn.show()
+        self.enhancement_status.show()
+        
         layout.addStretch()
         
-        tab.setLayout(layout)
+        # Ensure the tab widget itself is visible
+        tab.show()
+        
+        return tab
+    
+    def create_settings_tab(self) -> QWidget:
+        """Create comprehensive settings tab with all configuration options"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16), 
+                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
+        layout.setSpacing(ModernTheme.scale_value(20))
+        
+        # Header Section
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        title_label = QLabel("⚙️ Application Settings")
+        title_label.setFont(QFont("SF Pro Text", int(ModernTheme.get_font_size('heading').replace('pt', ''))))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 600;
+            }}
+        """)
+        
+        description_label = QLabel("Configure AI models, generation parameters, and system preferences")
+        description_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_muted']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
+        
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        layout.addWidget(header_widget)
+        layout.addWidget(description_label)
+        
+        # Theme Settings Section
+        theme_section = QGroupBox("🌙 Appearance")
+        theme_layout = QVBoxLayout(theme_section)
+        theme_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Theme toggle
+        theme_toggle_layout = QHBoxLayout()
+        theme_label = QLabel("Theme:")
+        theme_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 500;
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
+        
+        icon = ModernIcons.APP['theme']
+        target_mode = 'Light' if ModernTheme.get_current_theme() == 'dark' else 'Dark'
+        self.theme_toggle_btn = QPushButton(f"{icon} Switch to {target_mode} Mode")
+        self.theme_toggle_btn.setProperty("variant", "secondary")
+        self.theme_toggle_btn.clicked.connect(self.toggle_theme)
+        
+        self.current_theme_label = QLabel(f"Current: {ModernTheme.get_current_theme().title()} Mode")
+        self.current_theme_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_muted']};
+                font-size: {ModernTheme.get_font_size('sm')};
+            }}
+        """)
+        
+        theme_toggle_layout.addWidget(theme_label)
+        theme_toggle_layout.addWidget(self.theme_toggle_btn)
+        theme_toggle_layout.addWidget(self.current_theme_label)
+        theme_toggle_layout.addStretch()
+        
+        theme_layout.addLayout(theme_toggle_layout)
+        layout.addWidget(theme_section)
+        
+        # AI Models Configuration
+        ai_section = ModernTheme.create_clean_settings_section("🤖 AI Models & API Keys")
+        ai_content = ai_section.findChild(QWidget)
+        ai_layout = QVBoxLayout(ai_content)
+        ai_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Claude API settings
+        self.use_claude_cb = ModernTheme.create_compact_checkbox(
+            "Enable Claude API", "Use Claude AI as the primary AI model")
+        self.use_claude_cb.setChecked(True)
+        
+        claude_key_layout = QHBoxLayout()
+        claude_key_label = QLabel("Claude API Key:")
+        claude_key_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']}; font-size: {ModernTheme.get_font_size('base')};")
+        
+        self.claude_key_input = QLineEdit()
+        self.claude_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.claude_key_input.setPlaceholderText("Enter your Claude API key (sk-ant-...)")
+        self.claude_key_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {ModernTheme.get_colors()['bg_input']};
+                border: 2px solid {ModernTheme.get_colors()['border_input']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.get_spacing('sm')};
+                font-size: {ModernTheme.get_font_size('base')};
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+            QLineEdit:focus {{
+                border-color: {ModernTheme.get_colors()['primary']};
+            }}
+        """)
+        
+        claude_key_layout.addWidget(claude_key_label)
+        claude_key_layout.addWidget(self.claude_key_input)
+        
+        # Ollama settings
+        self.use_ollama_cb = ModernTheme.create_compact_checkbox(
+            "Enable Ollama Local Models", "Use local Ollama models as fallback")
+        self.use_ollama_cb.setChecked(True)
+        
+        ai_layout.addWidget(self.use_claude_cb)
+        ai_layout.addLayout(claude_key_layout)
+        ai_layout.addWidget(self.use_ollama_cb)
+        layout.addWidget(ai_section)
+        
+        # Generation Settings
+        gen_section = ModernTheme.create_clean_settings_section("⚡ Generation Parameters")
+        gen_content = gen_section.findChild(QWidget)
+        gen_layout = QVBoxLayout(gen_content)
+        gen_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Temperature and other settings grid
+        params_grid = QWidget()
+        grid_layout = QGridLayout(params_grid)
+        grid_layout.setSpacing(ModernTheme.scale_value(8))
+        
+        # Temperature
+        temp_label = QLabel("Temperature:")
+        temp_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']};")
+        self.temperature_slider = QSlider(Qt.Orientation.Horizontal)
+        self.temperature_slider.setRange(0, 100)
+        self.temperature_slider.setValue(70)
+        self.temperature_slider.setToolTip("Controls randomness in AI responses (0-100)")
+        
+        # Max tokens
+        tokens_label = QLabel("Max Tokens:")
+        tokens_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']};")
+        self.max_tokens_spin = QSpinBox()
+        self.max_tokens_spin.setRange(100, 8000)
+        self.max_tokens_spin.setValue(4000)
+        self.max_tokens_spin.setToolTip("Maximum tokens for AI response")
+        
+        grid_layout.addWidget(temp_label, 0, 0)
+        grid_layout.addWidget(self.temperature_slider, 0, 1)
+        grid_layout.addWidget(tokens_label, 1, 0)
+        grid_layout.addWidget(self.max_tokens_spin, 1, 1)
+        
+        gen_layout.addWidget(params_grid)
+        layout.addWidget(gen_section)
+        
+        # Memory & Context Settings
+        memory_section = ModernTheme.create_clean_settings_section("🧠 Memory & Context")
+        memory_content = memory_section.findChild(QWidget)
+        memory_layout = QVBoxLayout(memory_content)
+        memory_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        self.enable_memory_cb = ModernTheme.create_compact_checkbox(
+            "Enable Context Memory", "Remember conversation history and user preferences")
+        self.enable_memory_cb.setChecked(True)
+        
+        self.auto_save_cb = ModernTheme.create_compact_checkbox(
+            "Auto-save Outputs", "Automatically save generated files to ~/SuperMini_Output/")
+        self.auto_save_cb.setChecked(True)
+        
+        memory_layout.addWidget(self.enable_memory_cb)
+        memory_layout.addWidget(self.auto_save_cb)
+        layout.addWidget(memory_section)
+        
+        # Quick Actions
+        actions_section = ModernTheme.create_clean_settings_section("🔧 Quick Actions")
+        actions_content = actions_section.findChild(QWidget)
+        actions_layout = QVBoxLayout(actions_content)
+        actions_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Action buttons
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        save_settings_btn = QPushButton("💾 Save Settings")
+        save_settings_btn.setProperty("variant", "primary")
+        save_settings_btn.setMinimumHeight(ModernTheme.scale_value(44))
+        save_settings_btn.setToolTip("Save current configuration")
+        
+        reset_settings_btn = QPushButton("🔄 Reset to Defaults")
+        reset_settings_btn.setProperty("variant", "secondary")
+        reset_settings_btn.setMinimumHeight(ModernTheme.scale_value(44))
+        reset_settings_btn.setToolTip("Reset all settings to default values")
+        
+        button_layout.addWidget(save_settings_btn)
+        button_layout.addWidget(reset_settings_btn)
+        button_layout.addStretch()
+        
+        actions_layout.addWidget(button_container)
+        layout.addWidget(actions_section)
+        
+        layout.addStretch()
         return tab
     
     def create_system_controls(self) -> QWidget:
@@ -6426,7 +7917,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.settings_btn.clicked.connect(self.show_settings)
         self.settings_btn.setToolTip("Configure AI models, memory, and application settings")
         
-        self.clear_output_btn = QPushButton("🧹 Clear Output")
+        self.clear_output_btn = QPushButton(f"{ModernIcons.ACTIONS['delete']} Clear Output")
         self.clear_output_btn.clicked.connect(self.clear_output)
         self.clear_output_btn.setToolTip("Clear the results display")
         
@@ -6438,298 +7929,40 @@ class SuperMiniMainWindow(QMainWindow):
         return controls_group
     
     def create_progress_section(self) -> QWidget:
-        """Create progress indicator section"""
+        """Create progress indicator section - DEPRECATED"""
         progress_group = QGroupBox("📊 Progress")
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 20, 16, 16)
         
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setTextVisible(True)
-        
-        layout.addWidget(self.progress_bar)
+        # Progress bar moved to status bar
+        placeholder = QLabel("Progress bar moved to status bar")
+        layout.addWidget(placeholder)
         progress_group.setLayout(layout)
         return progress_group
     
-    def create_monitor_section(self) -> QWidget:
-        """Create neural-zen system monitor section with live visualization"""
-        monitor_group = QGroupBox("🧠 Neural Monitor")
-        monitor_group.setProperty("neural-theme", "true")
-        layout = QVBoxLayout()
+    def validate_task_input(self):
+        """Validate task input and provide real-time feedback"""
+        text = self.task_input.toPlainText()
+        char_count = len(text)
         
-        # Dynamic spacing based on window size
-        window_width = self.width() if hasattr(self, 'width') else 1200
-        margin = max(12, int(window_width * 0.01))
-        spacing = max(8, int(window_width * 0.008))
-        layout.setContentsMargins(margin, margin + 8, margin, margin)
-        layout.setSpacing(spacing)
+        # Update character count
+        self.char_count_label.setText(f"{char_count} characters")
         
-        # Neural network visualization
-        self.neural_network_widget = NeuralNetworkWidget()
-        layout.addWidget(self.neural_network_widget)
-        
-        # Live metrics visualization  
-        self.neural_metrics_widget = NeuralMetricsWidget()
-        layout.addWidget(self.neural_metrics_widget)
-        
-        # AI Status indicators
-        status_layout = QHBoxLayout()
-        status_layout.setSpacing(spacing)
-        
-        # AI Activity indicator
-        self.ai_status_label = QLabel("🤖 AI: Ready")
-        self.ai_status_label.setProperty("role", "status")
-        self.ai_status_label.setStyleSheet(f"""
-            color: {ModernTheme.COLORS['text_neural']};
-            font-weight: 500;
-            padding: {ModernTheme.get_spacing('sm')};
-        """)
-        
-        # Memory status
-        self.memory_status_label = QLabel("🧮 Memory: Active") 
-        self.memory_status_label.setProperty("role", "status")
-        self.memory_status_label.setStyleSheet(f"""
-            color: {ModernTheme.COLORS['text_zen']};
-            font-weight: 400;
-        """)
-        
-        status_layout.addWidget(self.ai_status_label)
-        status_layout.addStretch()
-        status_layout.addWidget(self.memory_status_label)
-        
-        layout.addLayout(status_layout)
-        
-        # Autonomous agent status (if available)
-        if AUTONOMOUS_AVAILABLE:
-            autonomous_layout = QHBoxLayout()
-            autonomous_layout.setSpacing(spacing)
-            
-            self.autonomous_status_label = QLabel("🤖 Agent: Standby")
-            self.autonomous_status_label.setProperty("role", "status")
-            self.autonomous_status_label.setStyleSheet(f"""
-                color: {ModernTheme.COLORS['secondary']};
-                font-weight: 400;
-                font-size: {ModernTheme.get_font_size('sm')};
-            """)
-            
-            autonomous_layout.addWidget(self.autonomous_status_label)
-            autonomous_layout.addStretch()
-            
-            layout.addLayout(autonomous_layout)
-        
-        monitor_group.setLayout(layout)
-        return monitor_group
-    
-    def create_output_panel(self) -> QWidget:
-        """Create a modern output panel with enhanced tabs and styling"""
-        from PyQt6.QtWidgets import QSizePolicy
-        
-        panel = QWidget()
-        # Set size policy for proper expanding behavior
-        panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
-        layout = QVBoxLayout()
-        margin = ModernTheme.scale_value(12)
-        spacing = ModernTheme.scale_value(9)
-        layout.setContentsMargins(margin, margin, margin, margin)
-        layout.setSpacing(spacing)
-        
-        # Header section
-        header_layout = QHBoxLayout()
-        header_label = QLabel("📊 AI Assistant Output")
-        header_label.setProperty("role", "heading")
-        header_layout.addWidget(header_label)
-        header_layout.addStretch()
-        
-        # Clear button for output
-        clear_output_btn = QPushButton("🧹 Clear All")
-        clear_output_btn.clicked.connect(self.clear_output)
-        clear_output_btn.setToolTip("Clear all output and results")
-        header_layout.addWidget(clear_output_btn)
-        
-        layout.addLayout(header_layout)
-        
-        # Enhanced tab widget
-        from PyQt6.QtWidgets import QSizePolicy
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
-        # Add activity monitoring tab first if available
-        if ACTIVITY_MONITORING_AVAILABLE:
-            self.activity_monitor_widget = ActivityMonitorWidget(get_activity_logger())
-            activity_widget = QWidget()
-            activity_layout = self.activity_monitor_widget.create_activity_view()
-            activity_widget.setLayout(activity_layout)
-            self.tab_widget.addTab(activity_widget, "🔍 Activity Monitor")
-        
-        # Enhanced results tab
-        results_widget = self.create_results_tab()
-        self.tab_widget.addTab(results_widget, "📄 Results")
-        
-        # Files tab for generated content
-        files_widget = self.create_files_tab()
-        self.tab_widget.addTab(files_widget, "📁 Generated Files")
-        
-        # System info tab
-        system_widget = self.create_system_tab()
-        self.tab_widget.addTab(system_widget, "💻 System Info")
-        
-        layout.addWidget(self.tab_widget)
-        
-        # Set Activity Monitor as the default tab if available
-        if ACTIVITY_MONITORING_AVAILABLE:
-            self.tab_widget.setCurrentIndex(0)  # Activity Monitor is now first tab
-        
-        panel.setLayout(layout)
-        return panel
-    
-    def create_results_tab(self) -> QWidget:
-        """Create an enhanced results display tab"""
-        widget = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
-        
-        # Results header
-        header_layout = QHBoxLayout()
-        results_label = QLabel("AI Response & Analysis")
-        results_label.setProperty("role", "heading")
-        header_layout.addWidget(results_label)
-        header_layout.addStretch()
-        
-        # Export button
-        export_btn = QPushButton("💾 Export")
-        export_btn.setToolTip("Export results to file")
-        export_btn.clicked.connect(self.export_results)
-        header_layout.addWidget(export_btn)
-        
-        layout.addLayout(header_layout)
-        
-        # Enhanced text browser
-        from PyQt6.QtWidgets import QSizePolicy
-        self.results_text = QTextBrowser()
-        self.results_text.setOpenExternalLinks(True)
-        self.results_text.setPlaceholderText("AI responses and analysis will appear here...")
-        self.results_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.results_text.setMinimumHeight(ModernTheme.scale_value(200))
-        
-        layout.addWidget(self.results_text)
-        widget.setLayout(layout)
-        return widget
-    
-    def create_files_tab(self) -> QWidget:
-        """Create a tab for displaying generated files"""
-        widget = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
-        
-        # Files header
-        header_layout = QHBoxLayout()
-        files_label = QLabel("Generated Files & Outputs")
-        files_label.setProperty("role", "heading")
-        header_layout.addWidget(files_label)
-        header_layout.addStretch()
-        
-        # Open output folder button
-        open_folder_btn = QPushButton("📂 Open Output Folder")
-        open_folder_btn.setToolTip("Open the SuperMini output directory")
-        open_folder_btn.clicked.connect(self.open_output_folder)
-        header_layout.addWidget(open_folder_btn)
-        
-        layout.addLayout(header_layout)
-        
-        # Files list
-        self.files_text = QTextBrowser()
-        self.files_text.setPlaceholderText("Generated files and their locations will be listed here...")
-        
-        layout.addWidget(self.files_text)
-        widget.setLayout(layout)
-        return widget
-    
-    def create_system_tab(self) -> QWidget:
-        """Create a system information tab"""
-        widget = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
-        
-        # System header
-        system_label = QLabel("System Status & Performance")
-        system_label.setProperty("role", "heading")
-        layout.addWidget(system_label)
-        
-        # Enhanced monitor display with responsive sizing
-        self.monitor_display = QTextBrowser()
-        # Consistent sizing with main monitor display
-        app = QApplication.instance()
-        if app:
-            screen = app.primaryScreen()
-            available_height = screen.availableGeometry().height()
-            min_height = max(150, int(available_height * 0.18))  # 18% of screen height, min 150px
-            max_height = max(250, int(available_height * 0.3))   # 30% of screen height, min 250px
+        # Provide validation feedback
+        if char_count == 0:
+            self.task_validation_label.setVisible(False)
+        elif char_count < 10:
+            self.task_validation_label.setText("💡 Add more details for better results")
+            self.task_validation_label.setProperty("role", "info")
+            self.task_validation_label.setVisible(True)
+        elif char_count > 2000:
+            self.task_validation_label.setText("⚠️ Very long descriptions may be truncated")
+            self.task_validation_label.setProperty("role", "warning")
+            self.task_validation_label.setVisible(True)
         else:
-            min_height, max_height = 150, 250  # Fallback values
-        
-        self.monitor_display.setMinimumHeight(ModernTheme.scale_value(min_height))
-        self.monitor_display.setMaximumHeight(ModernTheme.scale_value(max_height))
-        self.monitor_display.setPlaceholderText("System monitoring information will appear here...")
-        
-        layout.addWidget(self.monitor_display)
-        widget.setLayout(layout)
-        return widget
-    
-    def export_results(self):
-        """Export results to a file"""
-        if not hasattr(self, 'results_text') or not self.results_text.toPlainText():
-            QMessageBox.information(self, "Export", "No results to export.")
-            return
-        
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Results", 
-            f"aimm_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            "Text Files (*.txt);;All Files (*)"
-        )
-        
-        if file_path:
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(self.results_text.toPlainText())
-                QMessageBox.information(self, "Export", f"Results exported to {file_path}")
-            except Exception as e:
-                QMessageBox.warning(self, "Export Error", f"Failed to export results: {e}")
-    
-    def open_output_folder(self):
-        """Open the output folder in Finder"""
-        import subprocess
-        try:
-            subprocess.run(['open', str(self.base_dir)], check=True)
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to open output folder: {e}")
-    
-    def setup_monitoring(self):
-        self.monitor = SystemMonitor()
-        self.monitor.update_signal.connect(self.update_monitor_display)
-        self.monitoring_active = False
-        
-        # Start monitoring automatically
-        self.start_monitoring_automatically()
-    
-    def start_monitoring_automatically(self):
-        """Start system monitoring automatically"""
-        try:
-            self.monitor.start()
-            self.monitoring_active = True
-            print("✅ System monitoring started automatically")
-        except Exception as e:
-            print(f"⚠️ Failed to start monitoring automatically: {e}")
-    
-    def show_welcome_if_needed(self):
-        settings = QSettings()
-        if not settings.value("welcome_shown", False, type=bool):
-            dialog = WelcomeDialog(self)
-            dialog.exec()
-            settings.setValue("welcome_shown", True)
+            self.task_validation_label.setText("✅ Good description length")
+            self.task_validation_label.setProperty("role", "success")
+            self.task_validation_label.setVisible(True)
     
     def attach_files(self):
         files, _ = QFileDialog.getOpenFileNames(
@@ -6767,30 +8000,6 @@ class SuperMiniMainWindow(QMainWindow):
         self.file_info_label.setVisible(False)
         self.clear_files_btn.setEnabled(False)
     
-    def validate_task_input(self):
-        """Validate task input and provide real-time feedback"""
-        text = self.task_input.toPlainText()
-        char_count = len(text)
-        
-        # Update character count
-        self.char_count_label.setText(f"{char_count} characters")
-        
-        # Provide validation feedback
-        if char_count == 0:
-            self.task_validation_label.setVisible(False)
-        elif char_count < 10:
-            self.task_validation_label.setText("💡 Add more details for better results")
-            self.task_validation_label.setProperty("role", "info")
-            self.task_validation_label.setVisible(True)
-        elif char_count > 2000:
-            self.task_validation_label.setText("⚠️ Very long descriptions may be truncated")
-            self.task_validation_label.setProperty("role", "warning")
-            self.task_validation_label.setVisible(True)
-        else:
-            self.task_validation_label.setText("✅ Good description length")
-            self.task_validation_label.setProperty("role", "success")
-            self.task_validation_label.setVisible(True)
-    
     def on_task_type_changed(self, task_type):
         """Handle task type selection changes"""
         descriptions = {
@@ -6805,15 +8014,1157 @@ class SuperMiniMainWindow(QMainWindow):
         description = descriptions.get(task_type, descriptions["Auto-detect"])
         self.task_type_description.setText(description)
     
-    # Auto-continue toggling no longer needed - now always intelligently managed
-    # def on_auto_continue_toggled(self, checked):
-    #     """Handle auto-continue checkbox toggle"""
-    #     self.max_continues_spin.setEnabled(checked)
-    #     if not checked:
-    #         self.max_continues_spin.setStyleSheet("color: gray;")
-    #     else:
-    #         self.max_continues_spin.setStyleSheet("")
+    def on_autonomous_mode_toggled(self, checked):
+        """Handle autonomous mode checkbox toggle"""
+        try:
+            if checked:
+                if not AUTONOMOUS_AVAILABLE:
+                    QMessageBox.warning(self, "Autonomous Mode", 
+                                      "Autonomous capabilities not available. Install gui-agents package:\npip install gui-agents>=0.1.2")
+                    self.autonomous_mode_cb.setChecked(False)
+                    return
+                
+                self.show_suggestions_btn.setEnabled(True)
+                self.activity_monitor.log_activity("autonomous_mode", "Autonomous mode enabled", {"enabled": True})
+            else:
+                self.show_suggestions_btn.setEnabled(False)
+                self.activity_monitor.log_activity("autonomous_mode", "Autonomous mode disabled", {"enabled": False})
+        except Exception as e:
+            self.activity_monitor.log_activity("error", f"Error toggling autonomous mode: {str(e)}", {"error": str(e)})
     
+    def show_autonomous_suggestions(self):
+        """Show autonomous action suggestions for current context"""
+        if not AUTONOMOUS_AVAILABLE or not self.processor.autonomous_agent:
+            QMessageBox.information(self, "Info", "Autonomous capabilities not available. Install gui-agents package.")
+            return
+        
+        task_text = self.task_input.toPlainText().strip()
+        files = getattr(self, 'attached_files', [])
+        task_type = None if self.task_type_combo.currentText() == "Auto-detect" else self.task_type_combo.currentText().lower()
+        
+        try:
+            suggestions = self.processor.suggest_autonomous_actions(task_text, files, task_type)
+            
+            if suggestions:
+                suggestions_text = "🤖 **Autonomous Action Suggestions:**\n\n"
+                for i, suggestion in enumerate(suggestions, 1):
+                    suggestions_text += f"{i}. {suggestion}\n"
+                
+                suggestions_text += "\n💡 Enable 'Autonomous Mode' to let the AI execute these actions automatically."
+                
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Autonomous Suggestions")
+                dialog.setGeometry(200, 200, 500, 400)
+                
+                layout = QVBoxLayout()
+                text_browser = QTextBrowser()
+                text_browser.setMarkdown(suggestions_text)
+                layout.addWidget(text_browser)
+                
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.close)
+                layout.addWidget(close_btn)
+                
+                dialog.setLayout(layout)
+                dialog.exec()
+            else:
+                QMessageBox.information(self, "Info", "No autonomous suggestions available for current context.")
+                
+        except Exception as e:
+            logging.error(f"Error getting autonomous suggestions: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to get suggestions: {str(e)}")
+    
+    def stop_task(self):
+        """Stop the current task execution"""
+        if self.task_thread and self.task_thread.isRunning():
+            self.task_thread.stop()
+            if not self.task_thread.wait(2000):
+                self.task_thread.terminate()
+                self.task_thread.wait()
+            
+            self.process_btn.setEnabled(True)
+            self.stop_task_btn.setEnabled(False)
+            self.progress_bar.setVisible(False)
+            self.statusBar().showMessage("Task stopped")
+    
+    def start_exploration(self):
+        """Start autonomous exploration mode"""
+        if not AUTONOMOUS_AVAILABLE:
+            QMessageBox.warning(self, "Exploration Mode", "Autonomous exploration not available.")
+            return
+        
+        # Check interval setting
+        interval = self.explore_interval_spinbox.value()
+        if interval <= 0:
+            QMessageBox.warning(self, "Invalid Interval", "Please set a valid exploration interval.")
+            return
+        
+        self.start_explore_btn.setEnabled(False)
+        self.stop_explore_btn.setEnabled(True)
+        self.exploration_status.setText("🔍 Exploring...")
+        self.statusBar().showMessage("Starting autonomous exploration...")
+        
+        # Create and start exploration thread
+        self.explore_thread = ExploreThread(self.processor, interval)
+        self.explore_thread.progress_signal.connect(self.update_progress)
+        self.explore_thread.result_signal.connect(self.display_explore_result)
+        self.explore_thread.error_signal.connect(self.handle_explore_error)
+        self.explore_thread.finished.connect(self.exploration_finished)
+        self.explore_thread.start()
+    
+    def stop_exploration(self):
+        """Stop autonomous exploration"""
+        if hasattr(self, 'explore_thread') and self.explore_thread and self.explore_thread.isRunning():
+            self.explore_thread.stop()
+            if not self.explore_thread.wait(3000):
+                self.explore_thread.terminate()
+                self.explore_thread.wait()
+        
+        self.start_explore_btn.setEnabled(True)
+        self.stop_explore_btn.setEnabled(False)
+        self.exploration_status.setText("⏹️ Exploration stopped")
+        self.statusBar().showMessage("Exploration stopped")
+    
+    
+    def stop_enhancement(self):
+        """Stop self-enhancement process"""
+        if hasattr(self, 'enhance_thread') and self.enhance_thread and self.enhance_thread.isRunning():
+            self.enhance_thread.stop()
+            if not self.enhance_thread.wait(3000):
+                self.enhance_thread.terminate()
+                self.enhance_thread.wait()
+        
+        self.start_enhance_btn.setEnabled(True)
+        self.stop_enhance_btn.setEnabled(False)
+        self.enhancement_status.setText("⏹️ Enhancement stopped")
+        self.statusBar().showMessage("Enhancement stopped")
+    
+    def process_task(self):
+        task_text = self.task_input.toPlainText().strip()
+        if not task_text:
+            QMessageBox.warning(self, "Warning", "Please enter a task description!")
+            return
+        
+        task_type = None if self.task_type_combo.currentText() == "Auto-detect" else self.task_type_combo.currentText().lower()
+        
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        self.process_btn.setEnabled(False)
+        self.stop_task_btn.setEnabled(True)
+        self.statusBar().showMessage("Processing task...")
+        
+        # Update neural visualization for AI activity
+        if hasattr(self, 'neural_network_widget'):
+            self.neural_network_widget.set_activity_level(0.8)
+        if hasattr(self, 'ai_status_label'):
+            self.ai_status_label.setText("🤖 AI: Processing")
+            self.ai_status_label.setStyleSheet(f"""
+                color: {ModernTheme.get_colors()['primary']};
+                font-weight: 600;
+                padding: {ModernTheme.get_spacing('sm')};
+            """)
+        
+        self.results_text.clear()
+        
+        files = getattr(self, 'attached_files', [])
+        
+        # Create thread with auto-continue and autonomous settings
+        self.task_thread = TaskThread(
+            self.processor, 
+            task_text, 
+            files, 
+            task_type, 
+            self.use_memory_cb.isChecked(),
+            True,  # Auto-continue is now always intelligently managed
+            10,    # Max continues will be automatically determined
+            self.autonomous_mode_cb.isChecked()  # Add autonomous mode
+        )
+        
+        self.task_thread.progress_signal.connect(self.update_progress)
+        self.task_thread.result_signal.connect(self.display_task_result)
+        self.task_thread.finished.connect(self.task_finished)
+        self.task_thread.start()
+    
+    def show_settings(self):
+        dialog = SettingsDialog(self)
+        if dialog.exec():
+            self.load_config()
+            self.setup_processors()
+    
+    def clear_output(self):
+        """Clear all output displays with modern confirmation"""
+        reply = QMessageBox.question(
+            self, "Clear Output",
+            "Are you sure you want to clear all output and results?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            if hasattr(self, 'results_text'):
+                self.results_text.clear()
+                self.results_text.setPlaceholderText("Cleared. AI responses and analysis will appear here...")
+            
+            if hasattr(self, 'files_text'):
+                self.files_text.clear()
+                self.files_text.setPlaceholderText("Cleared. Generated files and their locations will be listed here...")
+            
+            if hasattr(self, 'monitor_display'):
+                self.monitor_display.clear()
+                self.monitor_display.setPlaceholderText("Cleared. System monitoring information will appear here...")
+            
+            self.statusBar().showMessage("✅ All output cleared")
+    
+    def toggle_theme(self):
+        """Toggle between light and dark theme"""
+        current_theme = getattr(self, 'current_theme', 'dark')
+        new_theme = 'light' if current_theme == 'dark' else 'dark'
+        self.current_theme = new_theme
+        
+        # Apply theme changes
+        ModernTheme.set_theme(new_theme)
+        self.setStyleSheet(ModernTheme.get_application_style())
+        
+        # Update theme toggle button text
+        if hasattr(self, 'theme_toggle_btn'):
+            self.theme_toggle_btn.setText("🌙 Dark" if new_theme == 'light' else "☀️ Light")
+    
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+    
+    def display_task_result(self, result):
+        """Display task result in the results panel"""
+        if result.success:
+            result_text = f"✅ Task Completed Successfully\n\n{result.result}"
+        else:
+            result_text = f"❌ Task Failed\n\n{result.result}"
+        
+        if hasattr(self, 'results_text'):
+            self.results_text.setPlainText(result_text)
+    
+    def task_finished(self):
+        """Handle task thread completion"""
+        self.process_btn.setEnabled(True)
+        self.stop_task_btn.setEnabled(False)
+        self.progress_bar.setVisible(False)
+        self.statusBar().showMessage("Task completed")
+    
+    def export_results(self):
+        """Export current results to file"""
+        if hasattr(self, 'results_text') and self.results_text.toPlainText():
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Export Results", "results.txt", "Text Files (*.txt);;All Files (*)"
+            )
+            if file_path:
+                try:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(self.results_text.toPlainText())
+                    QMessageBox.information(self, "Export", f"Results exported to {file_path}")
+                except Exception as e:
+                    QMessageBox.warning(self, "Export Error", f"Failed to export results: {e}")
+        else:
+            QMessageBox.information(self, "Export", "No results to export")
+    
+    def open_output_folder(self):
+        """Open the output folder in Finder"""
+        import subprocess
+        try:
+            output_dir = getattr(self, 'base_dir', str(Path.home() / "SuperMini_Output"))
+            subprocess.run(['open', output_dir], check=True)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to open output folder: {e}")
+    
+    def update_monitor_display(self, metrics):
+        """Update monitor display with system metrics"""
+        if hasattr(self, 'monitor_label'):
+            cpu_emoji = "🔥" if metrics.get('cpu', 0) > 80 else "⚡" if metrics.get('cpu', 0) > 50 else "💚"
+            mem_emoji = "🔥" if metrics.get('memory', 0) > 80 else "⚡" if metrics.get('memory', 0) > 50 else "💚"
+            
+            simple_text = f"{cpu_emoji} CPU: {metrics.get('cpu', 0):.1f}% | {mem_emoji} RAM: {metrics.get('memory', 0):.1f}%"
+            self.monitor_label.setText(simple_text)
+    
+    def update_ai_dashboard(self):
+        """Update AI dashboard components"""
+        pass  # Placeholder for dashboard updates
+    
+    def update_dashboard(self):
+        """Update general dashboard"""
+        pass  # Placeholder for dashboard updates
+    
+    def display_explore_result(self, result, files, iteration):
+        """Handle exploration results"""
+        if hasattr(self, 'results_text'):
+            self.results_text.append(f"\n🔍 Exploration {iteration}: {result}")
+    
+    def handle_explore_error(self, error):
+        """Handle exploration errors"""
+        QMessageBox.warning(self, "Exploration Error", f"Error during exploration: {error}")
+    
+    def exploration_finished(self):
+        """Handle exploration completion"""
+        self.start_explore_btn.setEnabled(True)
+        self.stop_explore_btn.setEnabled(False)
+        self.statusBar().showMessage("Exploration completed")
+    
+    def display_enhance_result(self, result, files, iteration, version):
+        """Handle enhancement results"""
+        if hasattr(self, 'results_text'):
+            self.results_text.append(f"\n🔧 Enhancement {iteration} (v{version}): {result}")
+    
+    def handle_enhance_error(self, error):
+        """Handle enhancement errors"""
+        QMessageBox.warning(self, "Enhancement Error", f"Error during enhancement: {error}")
+    
+    def update_enhancement_status(self, status_message):
+        """Update enhancement status"""
+        self.statusBar().showMessage(status_message)
+    
+    def enhancement_finished(self):
+        """Handle enhancement completion"""
+        self.start_enhance_btn.setEnabled(True)
+        self.stop_enhance_btn.setEnabled(False)
+        self.statusBar().showMessage("Enhancement completed")
+    
+    def create_output_panel(self) -> QWidget:
+        """Create a modern output panel with enhanced tabs and styling"""
+        panel = QWidget()
+        panel.setStyleSheet(f"""
+            QWidget {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border-radius: {ModernTheme.scale_value(12)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+            }}
+        """)
+        panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        layout = QVBoxLayout()
+        margin = ModernTheme.scale_value(16)
+        spacing = ModernTheme.scale_value(12)
+        layout.setContentsMargins(margin, margin, margin, margin)
+        layout.setSpacing(spacing)
+
+        # Header section with glass effect
+        header_card = QWidget()
+        header_card.setStyleSheet(f"""
+            QWidget {{
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(10)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                backdrop-filter: blur(8px);
+            }}
+        """)
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(12, 8, 12, 8)
+
+        header_label = QLabel("📊 AI Assistant Output")
+        header_label.setFont(QFont("Inter", 16, QFont.Weight.Bold))
+        header_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
+        header_layout.addWidget(header_label)
+        header_layout.addStretch()
+
+        clear_output_btn = QPushButton("🗑️ Clear All")
+        clear_output_btn.clicked.connect(self.clear_output)
+        clear_output_btn.setToolTip("Clear all output and results")
+        clear_output_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {ModernTheme.get_colors()['primary']};
+                color: {ModernTheme.get_colors()['text_primary']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(8)}px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['accent']};
+            }}
+        """)
+        header_layout.addWidget(clear_output_btn)
+        layout.addWidget(header_card)
+
+        # Enhanced tab widget
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                background: rgba(255, 255, 255, 0.03);
+            }}
+            QTabBar::tab {{
+                background: rgba(255, 255, 255, 0.05);
+                color: {ModernTheme.get_colors()['text_secondary']};
+                padding: {ModernTheme.scale_value(10)}px;
+                margin-right: {ModernTheme.scale_value(4)}px;
+                border-radius: {ModernTheme.scale_value(6)}px;
+            }}
+            QTabBar::tab:selected {{
+                background: {ModernTheme.get_colors()['primary']};
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+        """)
+        self.tab_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # Add activity monitoring tab first (real-time task details)
+        if ACTIVITY_MONITORING_AVAILABLE:
+            self.activity_monitor_widget = ActivityMonitorWidget(get_activity_logger())
+            activity_widget = QWidget()
+            activity_layout = self.activity_monitor_widget.create_activity_view()
+            activity_widget.setLayout(activity_layout)
+            self.tab_widget.addTab(activity_widget, "🔍 Activity Monitor")
+
+        # Enhanced results tab
+        results_widget = self.create_results_tab()
+        self.tab_widget.addTab(results_widget, "📄 Results")
+
+        # Files tab
+        files_widget = self.create_files_tab()
+        self.tab_widget.addTab(files_widget, "📁 Generated Files")
+
+        # System Info tab with AI monitoring dashboard
+        dashboard_widget = self.create_ai_monitoring_dashboard()
+        self.tab_widget.addTab(dashboard_widget, "📊 System Info")
+
+        layout.addWidget(self.tab_widget)
+        
+        # Set Activity Monitor as default tab if available
+        if ACTIVITY_MONITORING_AVAILABLE:
+            self.tab_widget.setCurrentIndex(0)
+        
+        panel.setLayout(layout)
+        return panel
+    
+    def create_results_tab(self) -> QWidget:
+        """Create an enhanced results display tab"""
+        widget = QWidget()
+        widget.setStyleSheet(f"background: transparent;")
+        layout = QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
+        # Results header
+        header_card = QWidget()
+        header_card.setStyleSheet(f"""
+            QWidget {{
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(8)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                backdrop-filter: blur(8px);
+            }}
+        """)
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(12, 8, 12, 8)
+
+        results_label = QLabel("AI Response & Analysis")
+        results_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        results_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
+        header_layout.addWidget(results_label)
+        header_layout.addStretch()
+
+        export_btn = QPushButton("💾 Export")
+        export_btn.setToolTip("Export results to file")
+        export_btn.clicked.connect(self.export_results)
+        export_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {ModernTheme.get_colors()['primary']};
+                color: {ModernTheme.get_colors()['text_primary']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(8)}px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['accent']};
+            }}
+        """)
+        header_layout.addWidget(export_btn)
+        layout.addWidget(header_card)
+
+        self.results_text = QTextBrowser()
+        self.results_text.setOpenExternalLinks(True)
+        self.results_text.setPlaceholderText("AI responses and analysis will appear here...")
+        self.results_text.setStyleSheet(f"""
+            QTextBrowser {{
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: {ModernTheme.scale_value(12)}px;
+            }}
+        """)
+        self.results_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.results_text)
+
+        widget.setLayout(layout)
+        return widget
+    
+    def create_files_tab(self) -> QWidget:
+        """Create a tab for displaying generated files"""
+        widget = QWidget()
+        widget.setStyleSheet(f"background: transparent;")
+        layout = QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
+        # Files header
+        header_card = QWidget()
+        header_card.setStyleSheet(f"""
+            QWidget {{
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(8)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                backdrop-filter: blur(8px);
+            }}
+        """)
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(12, 8, 12, 8)
+
+        files_label = QLabel("Generated Files & Outputs")
+        files_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        files_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
+        header_layout.addWidget(files_label)
+        header_layout.addStretch()
+
+        open_folder_btn = QPushButton("📂 Open Output Folder")
+        open_folder_btn.setToolTip("Open the SuperMini output directory")
+        open_folder_btn.clicked.connect(self.open_output_folder)
+        open_folder_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {ModernTheme.get_colors()['primary']};
+                color: {ModernTheme.get_colors()['text_primary']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(8)}px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['accent']};
+            }}
+        """)
+        header_layout.addWidget(open_folder_btn)
+        layout.addWidget(header_card)
+
+        self.files_text = QTextBrowser()
+        self.files_text.setOpenExternalLinks(True)
+        self.files_text.setPlaceholderText("Generated files and their locations will be listed here...")
+        self.files_text.setStyleSheet(f"""
+            QTextBrowser {{
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: {ModernTheme.scale_value(12)}px;
+            }}
+        """)
+        self.files_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.files_text)
+
+        widget.setLayout(layout)
+        return widget
+    
+    def create_simple_system_info_tab(self) -> QWidget:
+        """Create simple system info when matplotlib not available"""
+        widget = QWidget()
+        widget.setStyleSheet(f"""
+            QWidget {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border-radius: {ModernTheme.scale_value(12)}px;
+            }}
+        """)
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+
+        title = QLabel("💻 System Information")
+        title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
+        layout.addWidget(title)
+
+        try:
+            import platform
+            info_text = f"""
+            <b>Platform:</b> {platform.system()} {platform.release()}<br>
+            <b>Python Version:</b> {platform.python_version()}<br>
+            <b>CPU Cores:</b> {psutil.cpu_count()}<br>
+            <b>Memory:</b> {psutil.virtual_memory().total // (1024**3)} GB<br>
+            <b>SuperMini Version:</b> 2.0 Neural Edition
+            """
+            info_label = QLabel(info_text)
+            info_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {ModernTheme.get_colors()['text_secondary']};
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: {ModernTheme.scale_value(16)}px;
+                    border-radius: {ModernTheme.scale_value(8)}px;
+                    border: 1px solid {ModernTheme.get_colors()['border']};
+                    font-size: {ModernTheme.get_font_size('base')};
+                }}
+            """)
+            layout.addWidget(info_label)
+        except Exception as e:
+            error_label = QLabel(f"System info unavailable: {e}")
+            error_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {ModernTheme.get_colors()['error']};
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: {ModernTheme.scale_value(16)}px;
+                    border-radius: {ModernTheme.scale_value(8)}px;
+                    border: 1px solid {ModernTheme.get_colors()['border']};
+                }}
+            """)
+            layout.addWidget(error_label)
+
+        layout.addStretch()
+        return widget
+    
+    def create_ai_monitoring_dashboard(self) -> QWidget:
+        """Create ultra-modern creative AI monitoring dashboard with stunning metric cards"""
+        if not MATPLOTLIB_AVAILABLE:
+            return self.create_simple_system_info_tab()
+
+        widget = QWidget()
+        widget.setStyleSheet(f"""
+            QWidget {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {ModernTheme.get_colors()['bg_primary']},
+                    stop:1 {ModernTheme.get_colors()['bg_secondary']});
+                border-radius: {ModernTheme.scale_value(16)}px;
+            }}
+        """)
+
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(24)
+
+        # Modern glass morphism header
+        header_card = QWidget()
+        header_card.setFixedHeight(80)
+        header_card.setStyleSheet(f"""
+            QWidget {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(56, 189, 248, 0.15),
+                    stop:0.5 rgba(139, 92, 246, 0.15),
+                    stop:1 rgba(6, 255, 165, 0.15));
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(16)}px;
+                backdrop-filter: blur(10px);
+            }}
+        """)
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(20, 0, 20, 0)
+
+        title_label = QLabel("⚡ AI Performance Hub")
+        title_label.setFont(QFont("Inter", 24, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {ModernTheme.get_colors()['primary']},
+                    stop:0.5 {ModernTheme.get_colors()['secondary']},
+                    stop:1 {ModernTheme.get_colors()['accent']});
+                font-weight: 700;
+                letter-spacing: -0.5px;
+            }}
+        """)
+        header_layout.addWidget(title_label)
+
+        self.ai_status_label = QLabel("🟢 LIVE")
+        self.ai_status_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        self.ai_status_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['accent']};
+                background: rgba(6, 255, 165, 0.15);
+                border: 2px solid rgba(6, 255, 165, 0.4);
+                border-radius: {ModernTheme.scale_value(12)}px;
+                padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
+                font-weight: 700;
+            }}
+        """)
+        header_layout.addStretch()
+        header_layout.addWidget(self.ai_status_label)
+        layout.addWidget(header_card)
+
+        # Initialize metrics tracking
+        self.ai_metrics = {
+            'timestamps': [],
+            'token_usage': [],
+            'response_times': [],
+            'cpu_usage': [],
+            'memory_usage': [],
+            'gpu_usage': [],
+            'task_count': 0,
+            'total_tokens': 0,
+            'avg_response_time': 0,
+            'tasks_completed': 0,
+            'task_execution_times': [],
+            'avg_task_time': 0,
+            'task_types': {}
+        }
+
+        # Modern metric cards grid
+        cards_layout = QHBoxLayout()
+        cards_layout.setSpacing(20)
+
+        card_configs = [
+            {
+                'title': 'Tasks Completed',
+                'key': 'tasks_completed',
+                'icon': '🎯',
+                'color': '#38bdf8',
+                'bg_gradient': 'stop:0 rgba(56, 189, 248, 0.1), stop:1 rgba(56, 189, 248, 0.05)'
+            },
+            {
+                'title': 'Total Tokens',
+                'key': 'total_tokens',
+                'icon': '🚀',
+                'color': '#8b5cf6',
+                'bg_gradient': 'stop:0 rgba(139, 92, 246, 0.1), stop:1 rgba(139, 92, 246, 0.05)'
+            },
+            {
+                'title': 'Response Time',
+                'key': 'avg_response_time',
+                'icon': '⚡',
+                'color': '#06ffa5',
+                'bg_gradient': 'stop:0 rgba(6, 255, 165, 0.1), stop:1 rgba(6, 255, 165, 0.05)',
+                'suffix': 's'
+            },
+            {
+                'title': 'Task Time',
+                'key': 'avg_task_time',
+                'icon': '⏱️',
+                'color': '#f59e0b',
+                'bg_gradient': 'stop:0 rgba(245, 158, 11, 0.1), stop:1 rgba(245, 158, 11, 0.05)',
+                'suffix': 's'
+            }
+        ]
+
+        self.metric_cards = {}
+        for config in card_configs:
+            card = self.create_modern_metric_card(config)
+            cards_layout.addWidget(card)
+        layout.addLayout(cards_layout)
+
+        # Simple metrics display for now
+        metrics_text = QLabel("📊 Real-time AI metrics will be displayed here when tasks are processed")
+        metrics_text.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_secondary']};
+                background: rgba(255, 255, 255, 0.05);
+                padding: {ModernTheme.scale_value(20)}px;
+                border-radius: {ModernTheme.scale_value(12)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                font-size: {ModernTheme.get_font_size('lg')};
+                text-align: center;
+            }}
+        """)
+        layout.addWidget(metrics_text)
+
+        layout.addStretch()
+        return widget
+    
+    def create_modern_metric_card(self, config: dict) -> QWidget:
+        """Create a modern metric card with beautiful styling"""
+        card = QWidget()
+        card.setFixedHeight(120)
+        card.setStyleSheet(f"""
+            QWidget {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    {config['bg_gradient']});
+                border: 1px solid {config['color']}40;
+                border-radius: {ModernTheme.scale_value(16)}px;
+                padding: {ModernTheme.scale_value(16)}px;
+            }}
+            QWidget:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {config['color']}20, stop:1 {config['color']}10);
+                border: 2px solid {config['color']}60;
+            }}
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 12, 16, 12)
+
+        # Icon and title row
+        top_layout = QHBoxLayout()
+        icon_label = QLabel(config['icon'])
+        icon_label.setFont(QFont("Arial", 24))
+        top_layout.addWidget(icon_label)
+
+        title_label = QLabel(config['title'])
+        title_label.setFont(QFont("Inter", 12, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']};")
+        top_layout.addWidget(title_label)
+        top_layout.addStretch()
+        layout.addLayout(top_layout)
+
+        # Value display
+        value_label = QLabel("0")
+        value_label.setFont(QFont("Inter", 28, QFont.Weight.Bold))
+        value_label.setStyleSheet(f"color: {config['color']};")
+        layout.addWidget(value_label)
+        
+        # Store reference for updates
+        self.metric_cards[config['key']] = value_label
+
+        return card
+    
+    def create_explore_tab(self) -> QWidget:
+        """Create the autonomous exploration tab with enhanced modern design"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16), 
+                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
+        layout.setSpacing(ModernTheme.scale_value(20))
+        
+        # Header Section with icon and title
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        # Icon and title
+        title_label = QLabel("🧭 Autonomous Exploration")
+        title_label.setFont(QFont("Inter", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 600;
+            }}
+        """)
+        
+        description_label = QLabel("Let the AI explore, learn, and create autonomously")
+        description_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_muted']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
+        
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        layout.addWidget(header_widget)
+        layout.addWidget(description_label)
+        
+        # Settings Section
+        settings_group = QGroupBox("Exploration Settings")
+        settings_group.setStyleSheet(f"""
+            QGroupBox {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(12)}px;
+                margin-top: {ModernTheme.scale_value(12)}px;
+                font-weight: bold;
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+        """)
+        settings_layout = QVBoxLayout(settings_group)
+        
+        # Interval Setting
+        interval_layout = QHBoxLayout()
+        interval_label = QLabel("Exploration Interval (minutes):")
+        interval_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']};")
+        
+        self.explore_interval_spinbox = QSpinBox()
+        self.explore_interval_spinbox.setRange(1, 60)
+        self.explore_interval_spinbox.setValue(5)
+        self.explore_interval_spinbox.setStyleSheet(f"""
+            QSpinBox {{
+                background: {ModernTheme.get_colors()['bg_primary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+        """)
+        
+        interval_layout.addWidget(interval_label)
+        interval_layout.addWidget(self.explore_interval_spinbox)
+        interval_layout.addStretch()
+        settings_layout.addLayout(interval_layout)
+        
+        # Control Buttons
+        button_layout = QHBoxLayout()
+        
+        self.start_explore_btn = QPushButton("🧭 Start Exploration")
+        self.start_explore_btn.clicked.connect(self.start_exploration)
+        self.start_explore_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {ModernTheme.get_colors()['primary']};
+                color: white;
+                border: none;
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(12)}px {ModernTheme.scale_value(24)}px;
+                font-weight: 600;
+                min-height: {ModernTheme.scale_value(44)}px;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['primary_hover']};
+            }}
+            QPushButton:disabled {{
+                background: {ModernTheme.get_colors()['bg_tertiary']};
+                color: {ModernTheme.get_colors()['text_muted']};
+            }}
+        """)
+        
+        self.stop_explore_btn = QPushButton("⏹️ Stop Exploration")
+        self.stop_explore_btn.clicked.connect(self.stop_exploration)
+        self.stop_explore_btn.setEnabled(False)
+        self.stop_explore_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {ModernTheme.get_colors()['error']};
+                color: white;
+                border: none;
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(12)}px {ModernTheme.scale_value(24)}px;
+                font-weight: 600;
+                min-height: {ModernTheme.scale_value(44)}px;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['error']};
+            }}
+            QPushButton:disabled {{
+                background: {ModernTheme.get_colors()['bg_tertiary']};
+                color: {ModernTheme.get_colors()['text_muted']};
+            }}
+        """)
+        
+        button_layout.addWidget(self.start_explore_btn)
+        button_layout.addWidget(self.stop_explore_btn)
+        settings_layout.addLayout(button_layout)
+        
+        # Status Display
+        self.exploration_status = QLabel("Ready to explore")
+        self.exploration_status.setStyleSheet(f"""
+            QLabel {{
+                background: {ModernTheme.get_colors()['bg_primary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.scale_value(12)}px;
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: {ModernTheme.get_font_size('sm')};
+            }}
+        """)
+        settings_layout.addWidget(self.exploration_status)
+        
+        layout.addWidget(settings_group)
+        layout.addStretch()
+        
+        return tab
+    
+    def create_enhance_tab(self) -> QWidget:
+        """Create the self-enhancement tab with enhanced modern design"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16), 
+                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
+        layout.setSpacing(ModernTheme.scale_value(20))
+        
+        # Header Section
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(ModernTheme.scale_value(12))
+        
+        title_label = QLabel("⚡ Self-Enhancement")
+        title_label.setFont(QFont("Inter", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 600;
+            }}
+        """)
+        
+        description_label = QLabel("AI recursive self-improvement and code evolution")
+        description_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_muted']};
+                font-size: {ModernTheme.get_font_size('base')};
+            }}
+        """)
+        
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        layout.addWidget(header_widget)
+        layout.addWidget(description_label)
+        
+        # Settings Section
+        settings_group = QGroupBox("Enhancement Settings")
+        settings_group.setStyleSheet(f"""
+            QGroupBox {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(12)}px;
+                margin-top: {ModernTheme.scale_value(12)}px;
+                font-weight: bold;
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+        """)
+        settings_layout = QVBoxLayout(settings_group)
+        
+        # Interval Setting
+        interval_layout = QHBoxLayout()
+        interval_label = QLabel("Enhancement Interval (minutes):")
+        interval_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']};")
+        
+        self.enhance_interval_spinbox = QSpinBox()
+        self.enhance_interval_spinbox.setRange(1, 120)
+        self.enhance_interval_spinbox.setValue(10)
+        self.enhance_interval_spinbox.setStyleSheet(f"""
+            QSpinBox {{
+                background: {ModernTheme.get_colors()['bg_primary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+            }}
+        """)
+        
+        interval_layout.addWidget(interval_label)
+        interval_layout.addWidget(self.enhance_interval_spinbox)
+        interval_layout.addStretch()
+        settings_layout.addLayout(interval_layout)
+        
+        # Control Buttons
+        button_layout = QHBoxLayout()
+        
+        self.start_enhance_btn = QPushButton("⚡ Start Enhancement")
+        self.start_enhance_btn.clicked.connect(self.start_enhancement)
+        self.start_enhance_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #8b5cf6;
+                color: white;
+                border: none;
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(12)}px {ModernTheme.scale_value(24)}px;
+                font-weight: 600;
+                min-height: {ModernTheme.scale_value(44)}px;
+            }}
+            QPushButton:hover {{
+                background: #7c3aed;
+            }}
+            QPushButton:disabled {{
+                background: {ModernTheme.get_colors()['bg_tertiary']};
+                color: {ModernTheme.get_colors()['text_muted']};
+            }}
+        """)
+        
+        self.stop_enhance_btn = QPushButton("⏹️ Stop Enhancement")
+        self.stop_enhance_btn.clicked.connect(self.stop_enhancement)
+        self.stop_enhance_btn.setEnabled(False)
+        self.stop_enhance_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {ModernTheme.get_colors()['error']};
+                color: white;
+                border: none;
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(12)}px {ModernTheme.scale_value(24)}px;
+                font-weight: 600;
+                min-height: {ModernTheme.scale_value(44)}px;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['error']};
+            }}
+            QPushButton:disabled {{
+                background: {ModernTheme.get_colors()['bg_tertiary']};
+                color: {ModernTheme.get_colors()['text_muted']};
+            }}
+        """)
+        
+        button_layout.addWidget(self.start_enhance_btn)
+        button_layout.addWidget(self.stop_enhance_btn)
+        settings_layout.addLayout(button_layout)
+        
+        # Status Display
+        self.enhancement_status = QLabel("Ready to enhance")
+        self.enhancement_status.setStyleSheet(f"""
+            QLabel {{
+                background: {ModernTheme.get_colors()['bg_primary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(6)}px;
+                padding: {ModernTheme.scale_value(12)}px;
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: {ModernTheme.get_font_size('sm')};
+            }}
+        """)
+        settings_layout.addWidget(self.enhancement_status)
+        
+        layout.addWidget(settings_group)
+        layout.addStretch()
+        
+        return tab
+    
+    def setup_accessibility(self):
+        """Enhanced accessibility features for better keyboard navigation and screen reader support"""
+        try:
+            # Set up proper tab order for main interface elements
+            if hasattr(self, 'task_input') and hasattr(self, 'attach_btn'):
+                self.setTabOrder(self.task_input, self.attach_btn)
+            
+            if hasattr(self, 'attach_btn') and hasattr(self, 'clear_files_btn'):
+                self.setTabOrder(self.attach_btn, self.clear_files_btn)
+            
+            if hasattr(self, 'task_type_combo') and hasattr(self, 'process_btn'):
+                self.setTabOrder(self.task_type_combo, self.process_btn)
+            
+            # Set accessibility properties for better screen reader support
+            if hasattr(self, 'task_input'):
+                self.task_input.setAccessibleName("Task Description Input")
+                self.task_input.setAccessibleDescription("Enter your task description here. The AI will process your request based on the description and any attached files.")
+            
+            if hasattr(self, 'attach_btn'):
+                self.attach_btn.setAccessibleName("Attach Files Button")
+                self.attach_btn.setAccessibleDescription("Click to attach files for processing. Supports images, documents, code files, and CSV data.")
+            
+            if hasattr(self, 'process_btn'):
+                self.process_btn.setAccessibleName("Process Task Button")
+                self.process_btn.setAccessibleDescription("Start processing the task with the AI assistant.")
+            
+            if hasattr(self, 'theme_toggle_btn'):
+                self.theme_toggle_btn.setAccessibleName("Theme Toggle Button")
+                current_theme = getattr(self, 'current_theme', 'dark')
+                target_theme = 'light' if current_theme == 'dark' else 'dark'
+                self.theme_toggle_btn.setAccessibleDescription(f"Currently using {current_theme} theme. Click to switch to {target_theme} theme.")
+            
+            # Set main window accessibility properties
+            self.setAccessibleName("SuperMini AI Assistant")
+            self.setAccessibleDescription("AI-powered desktop assistant for task automation, multimedia processing, and intelligent document analysis.")
+            
+            logging.info("Accessibility features initialized successfully")
+            
+        except Exception as e:
+            logging.warning(f"Some accessibility features could not be initialized: {e}")
+    
+    def setup_monitoring(self):
+        self.monitor = SystemMonitor()
+        self.monitor.update_signal.connect(self.update_monitor_display)
+        self.monitoring_active = False
+        
+        # Start monitoring automatically
+        self.start_monitoring_automatically()
+    
+    def start_monitoring_automatically(self):
+        """Start system monitoring automatically"""
+        try:
+            self.monitor.start()
+            self.monitoring_active = True
+            print("✅ System monitoring started automatically")
+        except Exception as e:
+            print(f"⚠️ Failed to start monitoring automatically: {e}")
+    
+    def show_welcome_if_needed(self):
+        settings = QSettings()
+        if not settings.value("welcome_shown", False, type=bool):
+            dialog = WelcomeDialog(self)
+            dialog.exec()
+            settings.setValue("welcome_shown", True)
+    
+
     def process_task(self):
         task_text = self.task_input.toPlainText().strip()
         if not task_text:
@@ -6834,7 +9185,7 @@ class SuperMiniMainWindow(QMainWindow):
         if hasattr(self, 'ai_status_label'):
             self.ai_status_label.setText(f"🤖 AI: {self.get_random_ai_status()}")
             self.ai_status_label.setStyleSheet(f"""
-                color: {ModernTheme.COLORS['primary']};
+                color: {ModernTheme.get_colors()['primary']};
                 font-weight: 600;
                 padding: {ModernTheme.get_spacing('sm')};
             """)
@@ -6861,6 +9212,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.task_thread.finished.connect(self.task_finished)
         self.task_thread.start()
     
+
     def stop_task(self):
         """Stop the current task execution"""
         if self.task_thread and self.task_thread.isRunning():
@@ -6884,6 +9236,7 @@ class SuperMiniMainWindow(QMainWindow):
                 {"task_type": "regular_task"}
             )
     
+
     def task_finished(self):
         """Handle task thread completion"""
         self.process_btn.setEnabled(True)
@@ -6897,7 +9250,7 @@ class SuperMiniMainWindow(QMainWindow):
         if hasattr(self, 'ai_status_label'):
             self.ai_status_label.setText("🤖 AI: Ready")
             self.ai_status_label.setStyleSheet(f"""
-                color: {ModernTheme.COLORS['text_neural']};
+                color: {ModernTheme.get_colors()['text_neural']};
                 font-weight: 500;
                 padding: {ModernTheme.get_spacing('sm')};
             """)
@@ -6959,6 +9312,7 @@ class SuperMiniMainWindow(QMainWindow):
                 self.task_input.setMinimumHeight(ModernTheme.scale_value(min_height))
                 self.task_input.setMaximumHeight(ModernTheme.scale_value(max_height))
     
+
     def show_autonomous_suggestions(self):
         """Show autonomous action suggestions for current context"""
         if not AUTONOMOUS_AVAILABLE or not self.processor.autonomous_agent:
@@ -7002,46 +9356,48 @@ class SuperMiniMainWindow(QMainWindow):
             logging.error(f"Error getting autonomous suggestions: {e}")
             QMessageBox.warning(self, "Error", f"Failed to get suggestions: {str(e)}")
     
+
     def update_progress(self, value):
         self.progress_bar.setValue(value)
     
+
     def display_task_result(self, result: TaskResult):
         """Display task result in the results panel with modern formatting"""
         # Update results tab with enhanced HTML formatting
         if result.success:
             result_text = f"""
-            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.COLORS['text_primary']};'>
-                <div style='background: linear-gradient(135deg, {ModernTheme.COLORS['success']} 0%, #059669 100%); 
+            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.get_colors()['text_primary']};'>
+                <div style='background: linear-gradient(135deg, {ModernTheme.get_colors()['success']} 0%, #059669 100%); 
                             color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;'>
                     <h2 style='margin: 0; font-size: 24px; font-weight: 600;'>✅ Task Completed Successfully</h2>
                     <p style='margin: 8px 0 0 0; opacity: 0.9;'>Execution time: {result.execution_time:.2f} seconds</p>
                 </div>
                 
-                <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                            border-left: 4px solid {ModernTheme.COLORS['success']}; margin-bottom: 20px;'>
-                    <h3 style='color: {ModernTheme.COLORS['success']}; margin-top: 0;'>🎯 AI Response</h3>
-                    <div style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 16px; border-radius: 6px; 
+                <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                            border-left: 4px solid {ModernTheme.get_colors()['success']}; margin-bottom: 20px;'>
+                    <h3 style='color: {ModernTheme.get_colors()['success']}; margin-top: 0;'>🎯 AI Response</h3>
+                    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
                                 font-family: {ModernTheme.FONTS['mono']}; font-size: 13px; line-height: 1.5;
-                                border: 1px solid {ModernTheme.COLORS['border']};'>
+                                border: 1px solid {ModernTheme.get_colors()['border']};'>
                         {result.result.replace(chr(10), '<br>').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')}
                     </div>
                 </div>
             """
         else:
             result_text = f"""
-            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.COLORS['text_primary']};'>
-                <div style='background: linear-gradient(135deg, {ModernTheme.COLORS['error']} 0%, #dc2626 100%); 
+            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.get_colors()['text_primary']};'>
+                <div style='background: linear-gradient(135deg, {ModernTheme.get_colors()['error']} 0%, #dc2626 100%); 
                             color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;'>
                     <h2 style='margin: 0; font-size: 24px; font-weight: 600;'>❌ Task Failed</h2>
                     <p style='margin: 8px 0 0 0; opacity: 0.9;'>Execution time: {result.execution_time:.2f} seconds</p>
                 </div>
                 
-                <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                            border-left: 4px solid {ModernTheme.COLORS['error']}; margin-bottom: 20px;'>
-                    <h3 style='color: {ModernTheme.COLORS['error']}; margin-top: 0;'>⚠️ Error Details</h3>
-                    <div style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 16px; border-radius: 6px; 
+                <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                            border-left: 4px solid {ModernTheme.get_colors()['error']}; margin-bottom: 20px;'>
+                    <h3 style='color: {ModernTheme.get_colors()['error']}; margin-top: 0;'>⚠️ Error Details</h3>
+                    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
                                 font-family: {ModernTheme.FONTS['mono']}; font-size: 13px; line-height: 1.5;
-                                border: 1px solid {ModernTheme.COLORS['border']};'>
+                                border: 1px solid {ModernTheme.get_colors()['border']};'>
                         {result.result.replace(chr(10), '<br>').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')}
                     </div>
                 </div>
@@ -7049,22 +9405,22 @@ class SuperMiniMainWindow(QMainWindow):
         
         if result.generated_files:
             result_text += f"""
-            <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                        border-left: 4px solid {ModernTheme.COLORS['info']}; margin-bottom: 20px;'>
-                <h3 style='color: {ModernTheme.COLORS['info']}; margin-top: 0;'>📁 Generated Files ({len(result.generated_files)})</h3>
+            <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                        border-left: 4px solid {ModernTheme.get_colors()['info']}; margin-bottom: 20px;'>
+                <h3 style='color: {ModernTheme.get_colors()['info']}; margin-top: 0;'>📁 Generated Files ({len(result.generated_files)})</h3>
                 <ul style='list-style: none; padding: 0;'>
             """
             
             for file_path in result.generated_files:
                 file_name = Path(file_path).name if file_path else "Unknown file"
                 result_text += f"""
-                <li style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 12px; margin: 8px 0; 
-                           border-radius: 6px; border: 1px solid {ModernTheme.COLORS['border']};'>
+                <li style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 12px; margin: 8px 0; 
+                           border-radius: 6px; border: 1px solid {ModernTheme.get_colors()['border']};'>
                     <div style='display: flex; align-items: center;'>
                         <span style='margin-right: 8px;'>📄</span>
                         <div>
-                            <div style='color: {ModernTheme.COLORS['text_primary']}; font-weight: 500;'>{file_name}</div>
-                            <div style='color: {ModernTheme.COLORS['text_muted']}; font-size: 11px; font-family: {ModernTheme.FONTS['mono']};'>{file_path}</div>
+                            <div style='color: {ModernTheme.get_colors()['text_primary']}; font-weight: 500;'>{file_name}</div>
+                            <div style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px; font-family: {ModernTheme.FONTS['mono']};'>{file_path}</div>
                         </div>
                     </div>
                 </li>
@@ -7074,23 +9430,23 @@ class SuperMiniMainWindow(QMainWindow):
         
         if result.task_steps and len(result.task_steps) > 0:
             result_text += f"""
-            <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                        border-left: 4px solid {ModernTheme.COLORS['warning']}; margin-bottom: 20px;'>
-                <h3 style='color: {ModernTheme.COLORS['warning']}; margin-top: 0;'>📋 Task Steps ({len(result.task_steps)})</h3>
+            <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                        border-left: 4px solid {ModernTheme.get_colors()['warning']}; margin-bottom: 20px;'>
+                <h3 style='color: {ModernTheme.get_colors()['warning']}; margin-top: 0;'>📋 Task Steps ({len(result.task_steps)})</h3>
                 <ol style='padding-left: 20px; margin: 0;'>
             """
             
             for step in result.task_steps:
-                result_text += f"<li style='margin: 8px 0; color: {ModernTheme.COLORS['text_secondary']};'>{step}</li>"
+                result_text += f"<li style='margin: 8px 0; color: {ModernTheme.get_colors()['text_secondary']};'>{step}</li>"
             
             result_text += "</ol></div>"
         
         if result.audio_path:
             result_text += f"""
-            <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                        border-left: 4px solid {ModernTheme.COLORS['primary']}; margin-bottom: 20px;'>
-                <h3 style='color: {ModernTheme.COLORS['primary']}; margin-top: 0;'>🔊 Audio Output</h3>
-                <p style='margin: 0;'><code style='color: {ModernTheme.COLORS['primary_light']};'>{result.audio_path}</code></p>
+            <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                        border-left: 4px solid {ModernTheme.get_colors()['primary']}; margin-bottom: 20px;'>
+                <h3 style='color: {ModernTheme.get_colors()['primary']}; margin-top: 0;'>🔊 Audio Output</h3>
+                <p style='margin: 0;'><code style='color: {ModernTheme.get_colors()['primary_light']};'>{result.audio_path}</code></p>
             </div>
             """
         
@@ -7111,8 +9467,8 @@ class SuperMiniMainWindow(QMainWindow):
             return
             
         files_text = f"""
-        <div style='font-family: {ModernTheme.FONTS['ui']}; color: {ModernTheme.COLORS['text_primary']};'>
-            <div style='background: linear-gradient(135deg, {ModernTheme.COLORS['info']} 0%, {ModernTheme.COLORS['primary']} 100%); 
+        <div style='font-family: {ModernTheme.FONTS['ui']}; color: {ModernTheme.get_colors()['text_primary']};'>
+            <div style='background: linear-gradient(135deg, {ModernTheme.get_colors()['info']} 0%, {ModernTheme.get_colors()['primary']} 100%); 
                         color: white; padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
                 <h3 style='margin: 0; font-size: 18px; font-weight: 600;'>📁 Generated Files ({len(file_paths)})</h3>
                 <p style='margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;'>Files created by your AI assistant</p>
@@ -7155,55 +9511,64 @@ class SuperMiniMainWindow(QMainWindow):
                     icon = "📄"
                 
                 files_text += f"""
-                <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 16px; margin: 12px 0; 
-                            border-radius: 8px; border: 1px solid {ModernTheme.COLORS['border']};
+                <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; margin: 12px 0; 
+                            border-radius: 8px; border: 1px solid {ModernTheme.get_colors()['border']};
                             transition: all 0.2s ease;'>
                     <div style='display: flex; align-items: center; margin-bottom: 8px;'>
                         <span style='font-size: 24px; margin-right: 12px;'>{icon}</span>
                         <div style='flex: 1;'>
-                            <h4 style='margin: 0; color: {ModernTheme.COLORS['text_primary']}; font-size: 16px;'>{file_name}</h4>
-                            <p style='margin: 2px 0 0 0; color: {ModernTheme.COLORS['text_muted']}; font-size: 12px;'>
+                            <h4 style='margin: 0; color: {ModernTheme.get_colors()['text_primary']}; font-size: 16px;'>{file_name}</h4>
+                            <p style='margin: 2px 0 0 0; color: {ModernTheme.get_colors()['text_muted']}; font-size: 12px;'>
                                 {file_size} • {file_ext.upper()[1:] if file_ext else 'Unknown'} file
                             </p>
                         </div>
                     </div>
-                    <div style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 8px; border-radius: 4px;
-                                border: 1px solid {ModernTheme.COLORS['border']};'>
-                        <code style='color: {ModernTheme.COLORS['text_muted']}; font-size: 11px; word-break: break-all;'>{file_path}</code>
+                    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 8px; border-radius: 4px;
+                                border: 1px solid {ModernTheme.get_colors()['border']};'>
+                        <code style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px; word-break: break-all;'>{file_path}</code>
                     </div>
                 </div>
                 """
             except Exception as e:
                 # Fallback for invalid paths
                 files_text += f"""
-                <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 16px; margin: 12px 0; 
-                            border-radius: 8px; border: 1px solid {ModernTheme.COLORS['border']};'>
-                    <h4 style='margin: 0 0 8px 0; color: {ModernTheme.COLORS['text_primary']};'>📄 {file_path}</h4>
-                    <p style='margin: 0; color: {ModernTheme.COLORS['text_muted']}; font-size: 12px;'>File information unavailable</p>
+                <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; margin: 12px 0; 
+                            border-radius: 8px; border: 1px solid {ModernTheme.get_colors()['border']};'>
+                    <h4 style='margin: 0 0 8px 0; color: {ModernTheme.get_colors()['text_primary']};'>📄 {file_path}</h4>
+                    <p style='margin: 0; color: {ModernTheme.get_colors()['text_muted']}; font-size: 12px;'>File information unavailable</p>
                 </div>
                 """
         
         files_text += "</div>"
         self.files_text.setHtml(files_text)
     
+
     def task_finished(self):
         self.progress_bar.setVisible(False)
         self.process_btn.setEnabled(True)
         self.statusBar().showMessage("Task completed")
     
+
     def start_exploration(self):
-        if self.explore_hours.value() == 0 and self.explore_minutes.value() == 0:
+        # Get interval in seconds from the spinbox
+        interval_seconds = self.explore_interval_spinbox.value()
+        if interval_seconds <= 0:
             QMessageBox.warning(self, "Invalid Interval", "Please set a non-zero interval for exploration.")
             return
+        
+        # Convert seconds to hours and minutes
+        hours = interval_seconds // 3600
+        minutes = (interval_seconds % 3600) // 60
+        
         self.start_explore_btn.setEnabled(False)
         self.stop_explore_btn.setEnabled(True)
-        self.exploration_status.setText("Exploring...")
+        self.exploration_status.setText("🔍 Exploring...")
         files = getattr(self, 'attached_files', [])
         self.explore_thread = ExploreThread(
             self.processor, 
             files, 
-            iteration_delay_hours=self.explore_hours.value(),
-            iteration_delay_minutes=self.explore_minutes.value()
+            iteration_delay_hours=hours,
+            iteration_delay_minutes=minutes
         )
         self.explore_thread.progress_signal.connect(self.update_progress)
         self.explore_thread.result_signal.connect(self.display_explore_result)
@@ -7211,6 +9576,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.explore_thread.finished.connect(self.exploration_finished)
         self.explore_thread.start()
     
+
     def stop_exploration(self):
         """Stop the exploration thread and any ongoing operations"""
         if self.explore_thread and self.explore_thread.isRunning():
@@ -7227,6 +9593,7 @@ class SuperMiniMainWindow(QMainWindow):
             self.progress_bar.setVisible(False)
             self.statusBar().showMessage("Exploration stopped")
     
+
     def display_explore_result(self, result: str, files: List[str], iteration: int):
         self.results_text.append(f"\n\n{result}")
         # File generation info now displayed in Activity Monitor
@@ -7235,27 +9602,36 @@ class SuperMiniMainWindow(QMainWindow):
         self.results_text.append(f"\nError: {error}")
         QMessageBox.warning(self, "Exploration Error", error)
     
+
     def exploration_finished(self):
         self.start_explore_btn.setEnabled(True)
         self.stop_explore_btn.setEnabled(False)
         self.exploration_status.setText("Exploration stopped")
         self.progress_bar.setVisible(False)
     
+
     def start_enhancement(self):
-        if self.enhance_hours.value() == 0 and self.enhance_minutes.value() == 0:
+        # Get interval in seconds from the spinbox
+        interval_seconds = self.enhance_interval_spinbox.value()
+        if interval_seconds <= 0:
             QMessageBox.warning(self, "Invalid Interval", "Please set a non-zero interval for enhancement.")
             return
+        
+        # Convert seconds to hours and minutes
+        hours = interval_seconds // 3600
+        minutes = (interval_seconds % 3600) // 60
+        
         self.start_enhance_btn.setEnabled(False)
         self.stop_enhance_btn.setEnabled(True)
-        self.enhancement_status.setText("Enhancing...")
+        self.enhancement_status.setText("⚡ Enhancing...")
         files = getattr(self, 'attached_files', [])
         app_path = os.path.abspath(__file__)
         self.enhance_thread = EnhanceThread(
             self.processor, 
             files, 
             app_path, 
-            iteration_delay_hours=self.enhance_hours.value(),
-            iteration_delay_minutes=self.enhance_minutes.value()
+            iteration_delay_hours=hours,
+            iteration_delay_minutes=minutes
         )
         self.enhance_thread.progress_signal.connect(self.update_progress)
         self.enhance_thread.result_signal.connect(self.display_enhance_result)
@@ -7264,6 +9640,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.enhance_thread.finished.connect(self.enhancement_finished)
         self.enhance_thread.start()
     
+
     def stop_enhancement(self):
         """Stop the enhancement thread and any ongoing operations"""
         if self.enhance_thread and self.enhance_thread.isRunning():
@@ -7369,20 +9746,20 @@ class SuperMiniMainWindow(QMainWindow):
             if hasattr(self, 'monitor_display'):
                 # Create rich HTML display for system tab
                 monitor_html = f"""
-                <div style='font-family: {ModernTheme.FONTS['ui']}; color: {ModernTheme.COLORS['text_primary']};'>
-                    <div style='background: linear-gradient(135deg, {ModernTheme.COLORS['primary']} 0%, {ModernTheme.COLORS['primary_dark']} 100%); 
+                <div style='font-family: {ModernTheme.FONTS['ui']}; color: {ModernTheme.get_colors()['text_primary']};'>
+                    <div style='background: linear-gradient(135deg, {ModernTheme.get_colors()['primary']} 0%, {ModernTheme.get_colors()['primary_dark']} 100%); 
                                 color: white; padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
                         <h3 style='margin: 0; font-size: 18px; font-weight: 600;'>💻 System Performance</h3>
                         <p style='margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;'>Real-time system metrics</p>
                     </div>
                     
                     <div style='display: grid; gap: 12px;'>
-                        <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 16px; border-radius: 8px; 
+                        <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; border-radius: 8px; 
                                     border-left: 4px solid {self._get_metric_color(metrics['cpu'])};'>
                             <div style='display: flex; justify-content: space-between; align-items: center;'>
                                 <div>
-                                    <h4 style='margin: 0; color: {ModernTheme.COLORS['text_primary']};'>🔥 CPU Usage</h4>
-                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.COLORS['text_muted']}; font-size: 12px;'>Processor utilization</p>
+                                    <h4 style='margin: 0; color: {ModernTheme.get_colors()['text_primary']};'>🔥 CPU Usage</h4>
+                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.get_colors()['text_muted']}; font-size: 12px;'>Processor utilization</p>
                                 </div>
                                 <div style='text-align: right;'>
                                     <div style='font-size: 24px; font-weight: 600; color: {self._get_metric_color(metrics['cpu'])};'>{metrics['cpu']:.1f}%</div>
@@ -7390,12 +9767,12 @@ class SuperMiniMainWindow(QMainWindow):
                             </div>
                         </div>
                         
-                        <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 16px; border-radius: 8px; 
+                        <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; border-radius: 8px; 
                                     border-left: 4px solid {self._get_metric_color(metrics['memory'])};'>
                             <div style='display: flex; justify-content: space-between; align-items: center;'>
                                 <div>
-                                    <h4 style='margin: 0; color: {ModernTheme.COLORS['text_primary']};'>🧠 Memory Usage</h4>
-                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.COLORS['text_muted']}; font-size: 12px;'>RAM utilization</p>
+                                    <h4 style='margin: 0; color: {ModernTheme.get_colors()['text_primary']};'>🧠 Memory Usage</h4>
+                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.get_colors()['text_muted']}; font-size: 12px;'>RAM utilization</p>
                                 </div>
                                 <div style='text-align: right;'>
                                     <div style='font-size: 24px; font-weight: 600; color: {self._get_metric_color(metrics['memory'])};'>{metrics['memory']:.1f}%</div>
@@ -7403,12 +9780,12 @@ class SuperMiniMainWindow(QMainWindow):
                             </div>
                         </div>
                         
-                        <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 16px; border-radius: 8px; 
+                        <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; border-radius: 8px; 
                                     border-left: 4px solid {self._get_metric_color(metrics.get('disk', 0))};'>
                             <div style='display: flex; justify-content: space-between; align-items: center;'>
                                 <div>
-                                    <h4 style='margin: 0; color: {ModernTheme.COLORS['text_primary']};'>💾 Disk Usage</h4>
-                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.COLORS['text_muted']}; font-size: 12px;'>Storage utilization</p>
+                                    <h4 style='margin: 0; color: {ModernTheme.get_colors()['text_primary']};'>💾 Disk Usage</h4>
+                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.get_colors()['text_muted']}; font-size: 12px;'>Storage utilization</p>
                                 </div>
                                 <div style='text-align: right;'>
                                     <div style='font-size: 24px; font-weight: 600; color: {self._get_metric_color(metrics.get('disk', 0))};'>{metrics.get('disk', 0):.1f}%</div>
@@ -7416,15 +9793,15 @@ class SuperMiniMainWindow(QMainWindow):
                             </div>
                         </div>
                         
-                        <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 16px; border-radius: 8px; 
-                                    border-left: 4px solid {ModernTheme.COLORS['info']};'>
+                        <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; border-radius: 8px; 
+                                    border-left: 4px solid {ModernTheme.get_colors()['info']};'>
                             <div style='display: flex; justify-content: space-between; align-items: center;'>
                                 <div>
-                                    <h4 style='margin: 0; color: {ModernTheme.COLORS['text_primary']};'>⏰ Last Updated</h4>
-                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.COLORS['text_muted']}; font-size: 12px;'>System metrics timestamp</p>
+                                    <h4 style='margin: 0; color: {ModernTheme.get_colors()['text_primary']};'>⏰ Last Updated</h4>
+                                    <p style='margin: 2px 0 0 0; color: {ModernTheme.get_colors()['text_muted']}; font-size: 12px;'>System metrics timestamp</p>
                                 </div>
                                 <div style='text-align: right;'>
-                                    <div style='font-size: 14px; color: {ModernTheme.COLORS['info']};'>{metrics.get('timestamp', 'Unknown')}</div>
+                                    <div style='font-size: 14px; color: {ModernTheme.get_colors()['info']};'>{metrics.get('timestamp', 'Unknown')}</div>
                                 </div>
                             </div>
                         </div>
@@ -7442,13 +9819,13 @@ class SuperMiniMainWindow(QMainWindow):
         """Get color based on metric value"""
         try:
             if value > 80:
-                return ModernTheme.COLORS['error']
+                return ModernTheme.get_colors()['error']
             elif value > 60:
-                return ModernTheme.COLORS['warning']
+                return ModernTheme.get_colors()['warning']
             else:
-                return ModernTheme.COLORS['success']
+                return ModernTheme.get_colors()['success']
         except:
-            return ModernTheme.COLORS['text_muted']
+            return ModernTheme.get_colors()['text_muted']
 
 def main():
     # PyQt6 Note: High DPI scaling is enabled by default

@@ -37,7 +37,7 @@ This project and everyone participating in it is governed by our commitment to c
 
 1. **Fork and Clone the Repository**
    ```bash
-   git clone https://github.com/your-username/supermini.git
+   git clone https://github.com/rohnspringfield/supermini.git
    cd supermini
    ```
 
@@ -85,6 +85,7 @@ We welcome several types of contributions:
 - **Performance**: Optimize code performance and resource usage
 - **UI/UX**: Improve user interface and user experience
 - **AI Models**: Add support for new AI models or providers
+- **Autonomous Contributions**: SuperMini's "Enhance Yourself" mode can contribute automatically
 
 ### Before You Start
 
@@ -361,6 +362,45 @@ Releases are automated through the "Enhance Yourself" mode integration:
 - **Documentation**: Check the wiki and docs/ directory
 - **Code Review**: Request reviews on pull requests
 
+## Autonomous Contributions
+
+SuperMini includes an "Enhance Yourself" mode that can contribute to the project autonomously:
+
+### How Autonomous Enhancement Works
+
+1. **Self-Analysis**: SuperMini analyzes its own codebase for improvements
+2. **Enhancement Generation**: AI identifies potential optimizations and features
+3. **Safety Validation**: Built-in safety framework validates all changes
+4. **GitHub Integration**: Creates branches, commits, and pull requests automatically
+5. **Community Review**: All autonomous contributions go through standard PR review
+
+### Enabling Autonomous Contributions
+
+```bash
+# Run SuperMini and enable "Enhance Yourself" mode
+python3 supermini.py
+
+# In the GUI:
+# 1. Click "Enhance Yourself" button
+# 2. Enable "Autonomous Mode" checkbox
+# 3. Configure GitHub integration in Settings
+# 4. Review and approve autonomous suggestions
+```
+
+### Safety Measures
+
+- **Human Oversight**: All autonomous PRs require human review
+- **Limited Scope**: Autonomous agents can only modify specific file types
+- **Validation Testing**: All changes must pass automated test suite
+- **Rollback Capability**: Easy rollback for any problematic changes
+
+### Contributing Alongside AI
+
+We encourage both human and AI contributions:
+- Humans provide creative direction and complex problem-solving
+- AI agents handle routine optimizations and code quality improvements
+- Collaboration between human and AI contributors is welcome
+
 ## Recognition
 
 Contributors will be recognized in:
@@ -369,5 +409,6 @@ Contributors will be recognized in:
 - **CHANGELOG.md** for specific contributions
 - **GitHub contributors** page
 - **Release notes** for significant contributions
+- **AI Contributors**: Autonomous contributions are marked as "Co-Authored-By: SuperMini AI"
 
 Thank you for contributing to SuperMini! Your efforts help make AI more accessible and useful for everyone.

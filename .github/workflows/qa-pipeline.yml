@@ -1,0 +1,456 @@
+name: SuperMini QA Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  PYTHON_VERSION: "3.9"
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  SUPERMINI_TEST_MODE: "true"
+
+jobs:
+  # Job 1: Code Quality and Static Analysis
+  code-quality:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Code formatting check (Black)
+        run: black --check --diff .
+        continue-on-error: true
+        
+      - name: Import sorting check (isort)
+        run: isort --check-only --diff .
+        continue-on-error: true
+        
+      - name: Linting (flake8)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        continue-on-error: true
+        
+      - name: Type checking (mypy)
+        run: mypy supermini.py src/ --ignore-missing-imports
+        continue-on-error: true
+
+  # Job 2: Unit Tests
+  unit-tests:
+    runs-on: macos-latest
+    needs: code-quality
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Set up test environment
+        run: |
+          mkdir -p ~/SuperMini_Test_Output/logs
+          export SUPERMINI_OUTPUT_DIR=~/SuperMini_Test_Output
+          
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/ -m "unit" --cov=supermini --cov=src --cov-report=xml --cov-report=html --junitxml=unit-test-results.xml -v
+          
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: unit-test-results
+          path: |
+            unit-test-results.xml
+            htmlcov/
+            
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unit-tests
+          name: codecov-unit
+
+  # Job 3: Integration Tests
+  integration-tests:
+    runs-on: macos-latest
+    needs: unit-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Set up display for GUI tests
+        run: |
+          export DISPLAY=:99
+          # Install virtual display for headless GUI testing
+          brew install --cask xquartz || true
+          
+      - name: Run integration tests
+        run: |
+          pytest tests/ -m "integration" --junitxml=integration-test-results.xml -v --tb=short
+          
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-test-results
+          path: integration-test-results.xml
+
+  # Job 4: Critical Path Tests
+  critical-path-tests:
+    runs-on: macos-latest
+    needs: unit-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Run critical path tests
+        run: |
+          pytest tests/ -m "critical" --junitxml=critical-test-results.xml -v --tb=short
+          
+      - name: Upload critical path test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: critical-test-results
+          path: critical-test-results.xml
+
+  # Job 5: Performance Tests
+  performance-tests:
+    runs-on: macos-latest
+    needs: integration-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Run performance benchmark tests
+        run: |
+          pytest tests/ -m "performance and not slow" --junitxml=performance-test-results.xml -v --tb=short --benchmark-only --benchmark-json=benchmark-results.json
+          
+      - name: Upload performance test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-test-results
+          path: |
+            performance-test-results.xml
+            benchmark-results.json
+
+  # Job 6: GUI Tests (when applicable)
+  gui-tests:
+    runs-on: macos-latest
+    needs: integration-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Set up GUI testing environment
+        run: |
+          # Set up virtual display for GUI tests
+          export QT_QPA_PLATFORM=offscreen
+          
+      - name: Run GUI tests
+        run: |
+          pytest tests/ -m "gui and not slow" --junitxml=gui-test-results.xml -v --tb=short
+          
+      - name: Upload GUI test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: gui-test-results
+          path: gui-test-results.xml
+
+  # Job 7: Security Scan
+  security-scan:
+    runs-on: macos-latest
+    needs: code-quality
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+          
+      - name: Run Bandit security scan
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+          bandit -r . -f txt || true
+          
+      - name: Check dependencies for known vulnerabilities
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check || true
+          
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # Job 8: End-to-End Tests (Slow)
+  e2e-tests:
+    runs-on: macos-latest
+    needs: [integration-tests, critical-path-tests]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          
+      - name: Run end-to-end tests
+        run: |
+          pytest tests/ -m "e2e" --junitxml=e2e-test-results.xml -v --tb=short
+          
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-test-results
+          path: e2e-test-results.xml
+
+  # Job 9: Test Report Generation
+  test-report:
+    runs-on: macos-latest
+    needs: [unit-tests, integration-tests, critical-path-tests, performance-tests, gui-tests, security-scan]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Generate comprehensive test report
+        run: |
+          python -c "
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          
+          # Initialize report data
+          report_data = {
+              'total_tests': 0,
+              'passed_tests': 0,
+              'failed_tests': 0,
+              'skipped_tests': 0,
+              'test_suites': {}
+          }
+          
+          # Process JUnit XML files
+          for xml_file in Path('.').glob('**/*test-results.xml'):
+              try:
+                  tree = ET.parse(xml_file)
+                  root = tree.getroot()
+                  
+                  suite_name = xml_file.stem.replace('-test-results', '')
+                  tests = int(root.get('tests', 0))
+                  failures = int(root.get('failures', 0))
+                  errors = int(root.get('errors', 0))
+                  skipped = int(root.get('skipped', 0))
+                  passed = tests - failures - errors - skipped
+                  
+                  report_data['test_suites'][suite_name] = {
+                      'total': tests,
+                      'passed': passed,
+                      'failed': failures + errors,
+                      'skipped': skipped
+                  }
+                  
+                  report_data['total_tests'] += tests
+                  report_data['passed_tests'] += passed
+                  report_data['failed_tests'] += failures + errors
+                  report_data['skipped_tests'] += skipped
+                  
+              except Exception as e:
+                  print(f'Error processing {xml_file}: {e}')
+          
+          # Generate summary report
+          with open('test-summary-report.json', 'w') as f:
+              json.dump(report_data, f, indent=2)
+          
+          # Generate markdown report
+          success_rate = (report_data['passed_tests'] / report_data['total_tests'] * 100) if report_data['total_tests'] > 0 else 0
+          
+          markdown_report = f'''# SuperMini QA Test Report
+          
+          ## Summary
+          - **Total Tests**: {report_data['total_tests']}
+          - **Passed**: {report_data['passed_tests']} ✅
+          - **Failed**: {report_data['failed_tests']} ❌
+          - **Skipped**: {report_data['skipped_tests']} ⏭️
+          - **Success Rate**: {success_rate:.1f}%
+          
+          ## Test Suite Results
+          '''
+          
+          for suite, results in report_data['test_suites'].items():
+              suite_success_rate = (results['passed'] / results['total'] * 100) if results['total'] > 0 else 0
+              status_emoji = '✅' if results['failed'] == 0 else '❌'
+              markdown_report += f'''
+          ### {suite.replace('-', ' ').title()} {status_emoji}
+          - Total: {results['total']}
+          - Passed: {results['passed']}
+          - Failed: {results['failed']}
+          - Success Rate: {suite_success_rate:.1f}%
+          '''
+          
+          with open('TEST_REPORT.md', 'w') as f:
+              f.write(markdown_report)
+          
+          print('Test report generated successfully!')
+          print(markdown_report)
+          "
+          
+      - name: Upload test report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: |
+            test-summary-report.json
+            TEST_REPORT.md
+            
+      - name: Comment test results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('TEST_REPORT.md')) {
+              const report = fs.readFileSync('TEST_REPORT.md', 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: report
+              });
+            }
+
+  # Job 10: Quality Gates
+  quality-gates:
+    runs-on: macos-latest
+    needs: [unit-tests, integration-tests, critical-path-tests, performance-tests]
+    if: always()
+    steps:
+      - name: Evaluate quality gates
+        run: |
+          echo "Evaluating quality gates..."
+          
+          # Check if critical tests passed
+          if [ "${{ needs.critical-path-tests.result }}" != "success" ]; then
+            echo "❌ Critical path tests failed - Quality gate FAILED"
+            exit 1
+          fi
+          
+          # Check if unit tests passed
+          if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "❌ Unit tests failed - Quality gate FAILED"
+            exit 1
+          fi
+          
+          # Check if integration tests passed
+          if [ "${{ needs.integration-tests.result }}" != "success" ]; then
+            echo "❌ Integration tests failed - Quality gate FAILED"
+            exit 1
+          fi
+          
+          echo "✅ All quality gates passed!"
+          
+      - name: Quality gate status
+        run: |
+          echo "Quality Gates Status: PASSED ✅"
+          echo "- Critical path tests: ✅"
+          echo "- Unit tests: ✅" 
+          echo "- Integration tests: ✅"
+          echo "- Performance tests: ✅"

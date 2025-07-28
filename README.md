@@ -2,7 +2,7 @@
 
 A powerful desktop AI assistant that combines Claude API and local Ollama models for task automation, autonomous exploration, and intelligent enhancement capabilities.
 
-![SuperMini Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![SuperMini Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
 
@@ -46,7 +46,7 @@ A powerful desktop AI assistant that combines Claude API and local Ollama models
 #### Option 1: Automated Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/supermini.git
+git clone https://github.com/rohnspringfield/supermini.git
 cd supermini
 
 # Run automated setup
@@ -188,16 +188,54 @@ SuperMini remembers your previous tasks and uses them for context:
 - **Context Awareness**: References previous tasks when relevant
 - **Pattern Recognition**: Learns your common workflows
 
+### 🤖 Autonomous Enhancement Mode
+SuperMini can improve itself autonomously and contribute back to the open-source project:
+- **🔍 Self-Analysis**: Automatically analyzes code quality and performance
+- **✨ Code Enhancement**: Suggests and implements improvements with safety validation
+- **🔄 GitHub Integration**: Automatically creates pull requests back to the repository
+- **🛡️ Safety Framework**: Multi-layer validation and rollback capabilities
+- **🤝 Community Contributions**: Autonomous agents help with open-source development
+- **📊 Impact Tracking**: Measures and reports enhancement effectiveness
+- **🎯 Smart Targeting**: Only modifies safe files with appropriate permissions
+
 ### System Monitoring
 Track resource usage in real-time:
 - **CPU Usage**: Monitor processing load
 - **Memory Usage**: Track RAM consumption
 - **Performance Metrics**: Optimize for your system
+- **Activity Logging**: Comprehensive logging of all operations
+
+### 🔄 Autonomous GitHub Integration
+SuperMini v2.1.0 introduces groundbreaking autonomous contribution capabilities:
+- **🤖 Automatic Pull Requests**: Creates PRs automatically when improvements are found
+- **🛡️ Safety Controls**: Strict validation ensures only safe, beneficial changes
+- **📋 Professional Templates**: Uses proper PR templates with detailed change descriptions
+- **🎯 Smart File Filtering**: Only modifies approved file types (*.py, *.md, etc.)
+- **🔍 Human Oversight**: All autonomous PRs require human review before merging
+- **📊 Impact Measurement**: Tracks and reports enhancement effectiveness
+
+#### Setting Up Autonomous Contributions
+```bash
+# 1. Set your GitHub token (optional, for autonomous PRs)
+export GITHUB_TOKEN="your-github-token"
+
+# 2. Enable autonomous mode in SuperMini
+# - Check "Autonomous Mode" in the interface
+# - Configure GitHub integration in Settings
+# - Review autonomous suggestions before approval
+
+# 3. Monitor autonomous contributions
+# - Check GitHub for automatically created PRs
+# - Review and merge beneficial changes
+# - Provide feedback to improve AI suggestions
+```
 
 ### Collaboration Features
 - **Local Storage**: All data stored securely on your machine
 - **Task History**: Complete record of all interactions
 - **Export Options**: Share results and generated files
+- **Open Source Workflow**: Seamless integration with Git and GitHub
+- **Autonomous Contributions**: AI can contribute improvements back to the project
 
 ## 🔍 Troubleshooting
 
@@ -267,14 +305,15 @@ We welcome contributions! Here's how to get started:
 ### Development Setup
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/supermini.git
+git clone https://github.com/rohnspringfield/supermini.git
 cd supermini
 
 # Install development dependencies
-pip3 install -r requirements-dev.txt
+pip3 install -r requirements.txt
+pip3 install -r requirements-test.txt
 
 # Run in development mode
-python3 supermini.py --debug
+python3 supermini.py
 ```
 
 ## 📋 Roadmap
@@ -304,10 +343,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [Wiki](https://github.com/your-repo/supermini/wiki)
-- **Issues**: [GitHub Issues](https://github.com/your-repo/supermini/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/supermini/discussions)
-- **Email**: support@supermini.app
+- **Documentation**: [Wiki](https://github.com/rohnspringfield/supermini/wiki)
+- **Issues**: [GitHub Issues](https://github.com/rohnspringfield/supermini/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/rohnspringfield/supermini/discussions)
+- **Project**: Open-source AI desktop assistant
 
 ---
 

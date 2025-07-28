@@ -18,7 +18,7 @@ def test_activity_logger():
     print("🔍 Testing Activity Logger...")
     
     try:
-        from activity_monitor import (
+        from src.utils.activity_monitor import (
             get_activity_logger, ActivityType, ActivityLevel,
             log_activity as log_activity_event
         )
@@ -104,7 +104,7 @@ def test_performance_tracking():
     print("\n📊 Testing Performance Tracking...")
     
     try:
-        from activity_monitor import get_activity_logger
+        from src.utils.activity_monitor import get_activity_logger
         
         logger = get_activity_logger()
         
@@ -144,7 +144,7 @@ def test_event_filtering():
     print("\n🔍 Testing Event Filtering...")
     
     try:
-        from activity_monitor import (
+        from src.utils.activity_monitor import (
             get_activity_logger, ActivityType, ActivityLevel,
             log_activity as log_activity_event
         )
@@ -203,7 +203,7 @@ def test_log_export():
     print("\n💾 Testing Log Export...")
     
     try:
-        from activity_monitor import get_activity_logger
+        from src.utils.activity_monitor import get_activity_logger
         import tempfile
         
         logger = get_activity_logger()
@@ -242,7 +242,7 @@ def test_autonomous_integration():
     print("\n🤖 Testing Autonomous Integration...")
     
     try:
-        from activity_monitor import get_activity_logger, ActivityType, ActivityLevel
+        from src.utils.activity_monitor import get_activity_logger, ActivityType, ActivityLevel
         
         logger = get_activity_logger()
         
@@ -296,7 +296,7 @@ def test_concurrent_logging():
     print("\n🧵 Testing Concurrent Logging...")
     
     try:
-        from activity_monitor import (
+        from src.utils.activity_monitor import (
             get_activity_logger, ActivityType, ActivityLevel,
             log_activity as log_activity_event
         )
@@ -375,7 +375,7 @@ def run_monitoring_tests():
     
     # Show sample recent events
     try:
-        from activity_monitor import get_activity_logger
+        from src.utils.activity_monitor import get_activity_logger
         logger = get_activity_logger()
         
         print(f"\n📋 Sample Recent Events ({len(logger.events)} total):")

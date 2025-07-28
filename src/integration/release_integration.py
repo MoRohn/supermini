@@ -7,7 +7,15 @@ import logging
 import os
 from pathlib import Path
 from typing import Optional
-from release_automation import ReleaseManager, integrate_with_enhancement_system
+
+try:
+    from src.integration.release_automation import ReleaseManager, integrate_with_enhancement_system
+    RELEASE_AUTOMATION_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Release automation not available: {e}")
+    RELEASE_AUTOMATION_AVAILABLE = False
+    ReleaseManager = None
+    integrate_with_enhancement_system = None
 
 class SuperMiniReleaseIntegration:
     """Integrates release automation with SuperMini's existing architecture"""
@@ -19,6 +27,10 @@ class SuperMiniReleaseIntegration:
         
     def initialize_release_system(self):
         """Initialize the release management system"""
+        if not RELEASE_AUTOMATION_AVAILABLE:
+            logging.info("Release automation not available - skipping initialization")
+            return False
+            
         try:
             # Get repository path (assuming it's the current directory or parent)
             repo_path = Path.cwd()
