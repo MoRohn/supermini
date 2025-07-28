@@ -2,7 +2,7 @@
 
 A powerful desktop AI assistant that combines Claude API and local Ollama models for task automation, autonomous exploration, and intelligent enhancement capabilities.
 
-![SuperMini Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
+![SuperMini Version](https://img.shields.io/badge/version-2.1.1-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
 

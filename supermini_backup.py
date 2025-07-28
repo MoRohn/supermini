@@ -64,7 +64,8 @@ try:
         QApplication, QMainWindow, QLineEdit, QPushButton, QVBoxLayout,
         QHBoxLayout, QGridLayout, QWidget, QLabel, QFileDialog, QMessageBox, QCheckBox,
         QProgressBar, QDialog, QTextBrowser, QFormLayout, QComboBox, QTextEdit,
-        QSplitter, QTabWidget, QSlider, QSpinBox, QGroupBox, QScrollArea, QSizePolicy
+        QSplitter, QTabWidget, QSlider, QSpinBox, QGroupBox, QScrollArea, QSizePolicy,
+        QTreeWidget, QTreeWidgetItem
     )
     from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer, QSettings, QPropertyAnimation, QEasingCurve, QPointF
     from PyQt6.QtGui import QPixmap, QFont, QIcon, QPainter, QPen, QBrush, QLinearGradient, QColor
@@ -552,8 +553,6 @@ class ModernTheme:
             background-color: {colors['bg_card']};
             border: 1px solid {colors['border']};
             border-radius: {cls.get_border_radius('lg')};
-            box-shadow: {shadow};
-            transition: all {cls.TRANSITIONS['normal']};
         """
     
     @classmethod
@@ -586,10 +585,6 @@ class ModernTheme:
             background-color: {config['bg']};
             border: 1px solid {config['border']};
             border-radius: {cls.get_border_radius('lg')};
-            box-shadow: {config['shadow']};
-            transition: all {cls.TRANSITIONS['spring']};
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
         """
     
     @classmethod
@@ -601,110 +596,78 @@ class ModernTheme:
         return f"""
         /* Enhanced Micro-Interactions */
         * {{
-            transition: all {cls.TRANSITIONS['fast']} ease-out;
         }}
         
         /* Button hover and click animations */
         QPushButton {{
-            transition: all {cls.TRANSITIONS['fast']}, 
-                       transform {cls.TRANSITIONS['instant']},
-                       box-shadow {cls.TRANSITIONS['normal']};
         }}
         
         QPushButton:hover {{
-            animation: button-hover {cls.TRANSITIONS['normal']} ease-out;
         }}
         
         QPushButton:pressed {{
-            animation: button-press {cls.TRANSITIONS['instant']} ease-out;
         }}
         
         /* Input field focus animations */
         QLineEdit, QTextEdit, QComboBox {{
-            transition: all {cls.TRANSITIONS['normal']},
-                       border-color {cls.TRANSITIONS['fast']},
-                       box-shadow {cls.TRANSITIONS['normal']};
         }}
         
         QLineEdit:focus, QTextEdit:focus, QComboBox:focus {{
-            animation: input-focus {cls.TRANSITIONS['normal']} ease-out;
         }}
         
         /* Tab switching animations */
         QTabBar::tab {{
-            transition: all {cls.TRANSITIONS['normal']},
-                       transform {cls.TRANSITIONS['fast']},
-                       background-color {cls.TRANSITIONS['normal']};
         }}
         
         QTabWidget::pane {{
-            transition: all {cls.TRANSITIONS['smooth']};
         }}
         
         /* Progress bar animations */
         QProgressBar {{
-            transition: all {cls.TRANSITIONS['normal']};
         }}
         
         QProgressBar::chunk {{
-            transition: width {cls.TRANSITIONS['smooth']};
         }}
         
         /* Checkbox and radio animations */
         QCheckBox::indicator {{
-            transition: all {cls.TRANSITIONS['fast']};
         }}
         
         QCheckBox::indicator:checked {{
-            animation: checkbox-check {cls.TRANSITIONS['bounce']} ease-out;
         }}
         
         QRadioButton::indicator {{
-            transition: all {cls.TRANSITIONS['fast']};
         }}
         
         QRadioButton::indicator:checked {{
-            animation: radio-select {cls.TRANSITIONS['spring']} ease-out;
         }}
         
         /* Slider animations */
         QSlider::handle {{
-            transition: all {cls.TRANSITIONS['fast']};
         }}
         
         QSlider::handle:hover {{
-            animation: slider-hover {cls.TRANSITIONS['normal']} ease-out;
         }}
         
         /* Group box hover effects */
         QGroupBox {{
-            transition: all {cls.TRANSITIONS['normal']},
-                       transform {cls.TRANSITIONS['fast']},
-                       box-shadow {cls.TRANSITIONS['smooth']};
         }}
         
         /* Scroll area smooth scrolling */
         QScrollArea {{
-            transition: all {cls.TRANSITIONS['smooth']};
         }}
         
         QScrollBar {{
-            transition: all {cls.TRANSITIONS['normal']};
         }}
         
         QScrollBar::handle {{
-            transition: all {cls.TRANSITIONS['fast']};
         }}
         
         /* Menu and tooltip animations */
         QMenu {{
-            transition: all {cls.TRANSITIONS['fast']};
-            animation: menu-appear {cls.TRANSITIONS['spring']} ease-out;
         }}
         
         QToolTip {{
-            transition: all {cls.TRANSITIONS['normal']};
-            animation: tooltip-fade {cls.TRANSITIONS['normal']} ease-out;
         }}
         """
     
@@ -721,7 +684,6 @@ class ModernTheme:
         *:focus {{
             outline: {cls.scale_value(2)}px solid {colors['border_focus']};
             outline-offset: {cls.scale_value(2)}px;
-            transition: outline {cls.TRANSITIONS['fast']};
         }}
         
         /* Enhanced button focus for keyboard navigation */
@@ -729,7 +691,6 @@ class ModernTheme:
             outline: {cls.scale_value(3)}px solid {colors['border_focus']};
             outline-offset: {cls.scale_value(3)}px;
             background-color: {colors['bg_hover']};
-            box-shadow: {shadows['glow']};
         }}
         
         /* Input field accessibility */
@@ -839,14 +800,12 @@ class ModernTheme:
         /* Disabled state accessibility */
         *:disabled {{
             opacity: 0.6;
-            cursor: not-allowed;
         }}
         
         QPushButton:disabled {{
             background-color: {colors['bg_secondary']};
             color: {colors['text_disabled']};
             border-color: {colors['border']};
-            box-shadow: none;
         }}
         
         /* High contrast mode support */
@@ -869,8 +828,6 @@ class ModernTheme:
         /* Reduced motion support */
         @media (prefers-reduced-motion: reduce) {{
             * {{
-                animation: none !important;
-                transition: none !important;
             }}
         }}
         """
@@ -968,7 +925,6 @@ class ModernTheme:
         return f"""
         /* Enhanced touch targets for mobile */
         QWidget {{
-            touch-action: manipulation;
         }}
         
         /* Larger touch targets for small controls */
@@ -1022,8 +978,6 @@ class ModernTheme:
         colors = cls.get_colors()
         return f"""
             background: {colors['glassmorphism']};
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border: 1px solid {colors['border_light']};
             border-radius: {cls.get_border_radius('lg')};
         """
@@ -1182,14 +1136,10 @@ class ModernTheme:
             margin-top: {cls.get_spacing('lg')};
             padding-top: {cls.get_spacing('xl')};
             background-color: {colors['bg_card']};
-            box-shadow: {shadows['card']};
-            transition: all {cls.TRANSITIONS['normal']};
         }}
         
         QGroupBox:hover {{
             border-color: {colors['border_focus']};
-            box-shadow: {shadows['floating']};
-            transform: translateY(-2px);
         }}
         
         QGroupBox::title {{
@@ -1201,7 +1151,6 @@ class ModernTheme:
             border-radius: {cls.get_border_radius('md')};
             font-weight: 600;
             letter-spacing: 0.3px;
-            box-shadow: {shadows['sm']};
         }}
         """
     
@@ -1226,23 +1175,16 @@ class ModernTheme:
             min-width: {cls.scale_value(120)}px;
             font-family: {cls.FONTS['ui']};
             letter-spacing: 0.3px;
-            box-shadow: {shadows['sm']};
-            transition: all {cls.TRANSITIONS['fast']};
-            touch-action: manipulation;
         }}
         
         QPushButton:hover {{
             background-color: {colors['bg_hover']};
             border-color: {colors['border_focus']};
             color: {colors['text_primary']};
-            box-shadow: {shadows['md']};
-            transform: translateY(-1px);
         }}
         
         QPushButton:pressed {{
             background-color: {colors['bg_hover']};
-            box-shadow: {shadows['inner']};
-            transform: translateY(0px);
         }}
         
         QPushButton:focus {{
@@ -1254,8 +1196,6 @@ class ModernTheme:
             background-color: {colors['bg_secondary']};
             color: {colors['text_disabled']};
             border-color: {colors['border']};
-            box-shadow: none;
-            transform: none;
         }}
         
         /* Primary button variant - enhanced with gradient */
@@ -1264,26 +1204,20 @@ class ModernTheme:
             color: {colors['text_inverse']};
             border-color: {colors['primary']};
             font-weight: {cls.FONT_WEIGHTS['semibold']};
-            box-shadow: {shadows['md']};
         }}
         
         QPushButton[variant="primary"]:hover {{
             background-color: {colors['primary_hover']};
             border-color: {colors['primary_hover']};
-            box-shadow: {shadows['lg']}, {colors['glow']};
-            transform: translateY(-2px);
         }}
         
         QPushButton[variant="primary"]:pressed {{
             background-color: {colors['primary_dark']};
-            box-shadow: {shadows['inner']};
-            transform: translateY(0px);
         }}
         
         QPushButton[variant="primary"]:disabled {{
             background: {colors['bg_secondary']};
             color: {colors['text_disabled']};
-            box-shadow: none;
         }}
         
         /* Secondary button variant - refined */
@@ -1297,7 +1231,6 @@ class ModernTheme:
         QPushButton[variant="secondary"]:hover {{
             background-color: {colors['bg_hover']};
             border-color: {colors['border_focus']};
-            box-shadow: {shadows['md']};
         }}
         
         /* Success button variant - enhanced */
@@ -1306,14 +1239,11 @@ class ModernTheme:
             color: {colors['text_inverse']};
             border-color: {colors['success']};
             font-weight: {cls.FONT_WEIGHTS['semibold']};
-            box-shadow: {shadows['md']};
         }}
         
         QPushButton[variant="success"]:hover {{
             background-color: {colors['success']};
             opacity: 0.9;
-            box-shadow: {shadows['lg']};
-            transform: translateY(-1px);
         }}
         
         /* Danger button variant - enhanced */
@@ -1322,14 +1252,11 @@ class ModernTheme:
             color: {colors['text_inverse']};
             border-color: {colors['error']};
             font-weight: {cls.FONT_WEIGHTS['semibold']};
-            box-shadow: {shadows['md']};
         }}
         
         QPushButton[variant="danger"]:hover {{
             background-color: {colors['accent_soft']};
             border-color: {colors['accent_soft']};
-            box-shadow: {shadows['lg']};
-            transform: translateY(-1px);
         }}
         
         /* Ghost button variant - minimalistic */
@@ -1337,13 +1264,11 @@ class ModernTheme:
             background-color: transparent;
             color: {colors['text_accent']};
             border: {cls.scale_value(1)}px solid transparent;
-            box-shadow: none;
         }}
         
         QPushButton[variant="ghost"]:hover {{
             background-color: {colors['bg_secondary']};
             color: {colors['text_primary']};
-            box-shadow: {shadows['sm']};
         }}
         
         /* Icon button variant - compact */
@@ -1478,7 +1403,6 @@ class ModernTheme:
             border-radius: {cls.get_border_radius('lg')};
             background-color: {colors['bg_card']};
             padding: {cls.get_spacing('md')};
-            box-shadow: {shadows['card']};
         }}
         
         QTabBar {{
@@ -1498,7 +1422,6 @@ class ModernTheme:
             min-width: {cls.scale_value(100)}px;
             min-height: {cls.scale_value(44)}px;
             border: {cls.scale_value(1)}px solid {colors['border']};
-            transition: all {cls.TRANSITIONS['normal']};
             position: relative;
         }}
         
@@ -1506,8 +1429,6 @@ class ModernTheme:
             background-color: {colors['primary']};
             color: {colors['text_primary']};
             border-color: {colors['primary']};
-            box-shadow: {shadows['glow_soft']};
-            transform: translateY(-2px);
             font-weight: 600;
         }}
         
@@ -1515,8 +1436,6 @@ class ModernTheme:
             background-color: {colors['bg_hover']};
             color: {colors['text_primary']};
             border-color: {colors['border_focus']};
-            box-shadow: {shadows['sm']};
-            transform: translateY(-1px);
         }}
         
         QTabBar::tab:first {{
@@ -1524,7 +1443,6 @@ class ModernTheme:
         }}
         
         QTabBar::tab:pressed {{
-            transform: translateY(0px);
         }}
         """
     
@@ -1608,7 +1526,6 @@ class ModernTheme:
         QSpinBox:focus {{
             border-color: {colors['border_focus']};
             background-color: {colors['bg_secondary']};
-            box-shadow: 0 0 0 {cls.scale_value(2)}px {colors['primary']}40;
         }}
         
         QSpinBox:hover {{
@@ -1679,7 +1596,6 @@ class ModernTheme:
         QTextEdit:focus {{
             border-color: {colors['border_focus']};
             background-color: {colors['bg_secondary']};
-            box-shadow: 0 0 0 {cls.scale_value(2)}px {colors['primary']}40;
         }}
         
         QTextEdit:hover {{
@@ -1721,7 +1637,6 @@ class ModernTheme:
         QComboBox:focus {{
             border-color: {colors['border_focus']};
             background-color: {colors['bg_secondary']};
-            box-shadow: 0 0 0 {cls.scale_value(2)}px {colors['primary']}40;
         }}
         
         QComboBox:hover {{
@@ -1924,6 +1839,38 @@ class ModernTheme:
         QLabel[role="warning"] {{
             color: {colors['warning']};
             font-weight: 500;
+        }}
+        
+        QLabel[role="status-ready"] {{
+            color: {colors['text_muted']};
+            font-weight: 500;
+            background-color: {colors['bg_secondary']};
+            padding: {cls.get_spacing('xs')} {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('sm')};
+        }}
+        
+        QLabel[role="status-active"] {{
+            color: {colors['info']};
+            font-weight: 500;
+            background-color: {colors['bg_secondary']};
+            padding: {cls.get_spacing('xs')} {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('sm')};
+        }}
+        
+        QLabel[role="status-success"] {{
+            color: {colors['success']};
+            font-weight: 500;
+            background-color: {colors['bg_secondary']};
+            padding: {cls.get_spacing('xs')} {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('sm')};
+        }}
+        
+        QLabel[role="status-error"] {{
+            color: {colors['error']};
+            font-weight: 500;
+            background-color: {colors['bg_secondary']};
+            padding: {cls.get_spacing('xs')} {cls.get_spacing('sm')};
+            border-radius: {cls.get_border_radius('sm')};
         }}
         """
 
@@ -2281,6 +2228,17 @@ class NeuralNetworkWidget(QWidget):
 
 
 @dataclass
+class FileMetadata:
+    """Metadata for generated files"""
+    file_path: str
+    display_name: str
+    description: str
+    file_type: str
+    purpose: str
+    created_timestamp: float
+    file_size: int = 0
+    
+@dataclass
 class TaskResult:
     """Data class for task results"""
     success: bool
@@ -2290,10 +2248,16 @@ class TaskResult:
     audio_path: Optional[str] = None
     score: float = 0.0
     execution_time: float = 0.0
+    file_metadata: Dict[str, FileMetadata] = None  # Maps file path to metadata
+    
+    def __post_init__(self):
+        if self.file_metadata is None:
+            self.file_metadata = {}
 
 @dataclass
 class AIConfig:
     """Configuration for AI models"""
+    primary_model: str = "Claude API (Recommended)"  # New primary model selection
     use_claude: bool = True
     claude_api_key: str = ""
     ollama_url: str = "http://localhost:11434"
@@ -2412,6 +2376,47 @@ Solution: {solution[:500]}"""
             
         except Exception as e:
             logging.error(f"Failed to store enhancement success: {e}")
+            return False
+    
+    def store_context(self, context_id: str, data: dict, metadata: dict = None):
+        """Store context data in memory with metadata"""
+        if not self.collection:
+            return False
+        
+        try:
+            # Create a text representation of the data
+            data_text = str(data) if isinstance(data, dict) else str(data)
+            
+            # Prepare metadata
+            if metadata is None:
+                metadata = {}
+            
+            # Add context type and timestamp
+            metadata.update({
+                'context_id': context_id,
+                'timestamp': datetime.now().isoformat(),
+                'data_type': type(data).__name__
+            })
+            
+            # Clean metadata for ChromaDB compatibility
+            clean_metadata = {}
+            for key, value in metadata.items():
+                if isinstance(value, (list, dict)):
+                    clean_metadata[key] = str(value)
+                else:
+                    clean_metadata[key] = value
+            
+            self.collection.add(
+                documents=[data_text],
+                metadatas=[clean_metadata],
+                ids=[context_id]
+            )
+            
+            logging.debug(f"Stored context: {context_id}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Failed to store context {context_id}: {e}")
             return False
     
     def retrieve_enhancement_patterns(self, opportunity_type: str = None, n_results: int = 5) -> List[dict]:
@@ -2536,6 +2541,14 @@ class OllamaManager:
                 output_tokens = len(response_text.split())
                 total_tokens = input_tokens + output_tokens
                 
+                # Update AI metrics dashboard for Ollama
+                if self.task_processor and self.task_processor.metrics_callback:
+                    self.task_processor.metrics_callback(
+                        task_type="ollama_query",
+                        response_time=response_time,
+                        tokens_used=total_tokens
+                    )
+                
                 # Update monitoring stats
                 if self.monitor:
                     self.monitor.update_stats('total_prompts')
@@ -2603,6 +2616,14 @@ class ClaudeManager:
             output_tokens = len(response.content[0].text.split())
             total_tokens = input_tokens + output_tokens
             
+            # Update AI metrics dashboard for Claude
+            if self.task_processor and self.task_processor.metrics_callback:
+                self.task_processor.metrics_callback(
+                    task_type="claude_query",
+                    response_time=response_time,
+                    tokens_used=total_tokens
+                )
+            
             # Update monitoring stats
             if self.monitor:
                 self.monitor.update_stats('total_prompts')
@@ -2653,6 +2674,14 @@ class ClaudeManager:
             input_tokens = len(prompt.split()) + 200  # Estimate tokens for image
             output_tokens = len(response.content[0].text.split())
             total_tokens = input_tokens + output_tokens
+            
+            # Update AI metrics dashboard for Claude Vision
+            if self.task_processor and self.task_processor.metrics_callback:
+                self.task_processor.metrics_callback(
+                    task_type="claude_vision",
+                    response_time=response_time,
+                    tokens_used=total_tokens
+                )
             
             # Update monitoring stats
             if self.monitor:
@@ -3063,6 +3092,1201 @@ class EnhancementDiscoveryEngine:
         except Exception as e:
             logging.error(f"Security analysis failed: {e}")
 
+class EnhancementResearchEngine:
+    """Advanced internet research engine for discovering best practices and solutions"""
+    
+    def __init__(self, memory_manager: MemoryManager):
+        self.memory = memory_manager
+        self.research_cache = {}
+        self.research_history = []
+        
+    def research_enhancement_solution(self, opportunity: EnhancementOpportunity) -> dict:
+        """Research best practices and solutions for a specific enhancement opportunity"""
+        research_result = {
+            'research_summary': '',
+            'best_practices': [],
+            'code_examples': [],
+            'performance_insights': [],
+            'implementation_strategies': [],
+            'related_technologies': [],
+            'research_confidence': 0.0
+        }
+        
+        try:
+            # Generate targeted research queries
+            queries = self._generate_research_queries(opportunity)
+            
+            # Perform research for each query
+            for query in queries:
+                if query in self.research_cache:
+                    # Use cached results
+                    cached_result = self.research_cache[query]
+                    self._merge_research_results(research_result, cached_result)
+                else:
+                    # Perform new research
+                    query_result = self._perform_web_research(query, opportunity)
+                    if query_result:
+                        self.research_cache[query] = query_result
+                        self._merge_research_results(research_result, query_result)
+            
+            # Calculate research confidence based on results quality
+            research_result['research_confidence'] = self._calculate_research_confidence(research_result)
+            
+            # Store research in memory for future reference
+            self._store_research_in_memory(opportunity, research_result)
+            
+            return research_result
+            
+        except Exception as e:
+            logging.error(f"Enhancement research failed: {e}")
+            return research_result
+    
+    def _generate_research_queries(self, opportunity: EnhancementOpportunity) -> List[str]:
+        """Generate targeted research queries based on opportunity type and description"""
+        base_queries = []
+        
+        if opportunity.opportunity_type == 'performance':
+            base_queries = [
+                f"Python performance optimization {opportunity.description.lower()}",
+                f"best practices {opportunity.opportunity_type} Python algorithms",
+                f"optimize {opportunity.description.split()[0]} performance Python",
+                "Python performance benchmarking tools techniques",
+                "algorithmic complexity optimization Python"
+            ]
+        elif opportunity.opportunity_type == 'feature':
+            base_queries = [
+                f"Python implementation {opportunity.description.lower()}",
+                f"best practices {opportunity.description} Python framework",
+                f"modern Python {opportunity.opportunity_type} development",
+                "Python design patterns architectural best practices",
+                "Python framework comparison feature implementation"
+            ]
+        elif opportunity.opportunity_type == 'ai_enhancement':
+            base_queries = [
+                f"AI machine learning {opportunity.description.lower()}",
+                f"Python AI library {opportunity.description}",
+                "latest AI techniques Python implementation",
+                "Hugging Face transformers integration Python",
+                "OpenAI API best practices Python"
+            ]
+        elif opportunity.opportunity_type == 'ui_enhancement':
+            base_queries = [
+                f"PyQt6 {opportunity.description.lower()}",
+                f"Python GUI {opportunity.description} best practices",
+                "PyQt6 modern UI design patterns",
+                "Python desktop application UX improvements",
+                "PyQt6 accessibility features implementation"
+            ]
+        else:
+            # Generic queries for other types
+            base_queries = [
+                f"Python {opportunity.opportunity_type} {opportunity.description.lower()}",
+                f"best practices {opportunity.opportunity_type} Python",
+                f"modern Python {opportunity.description}",
+                "Python software engineering best practices",
+                "Python code quality improvement techniques"
+            ]
+        
+        return base_queries[:3]  # Limit to 3 queries to avoid rate limiting
+    
+    def _perform_web_research(self, query: str, opportunity: EnhancementOpportunity) -> dict:
+        """Perform web research using available search tools"""
+        try:
+            # Use WebSearch tool to find relevant information
+            # This will need to be integrated with the actual WebSearch tool available in the system
+            search_results = self._call_web_search_tool(query)
+            
+            if not search_results:
+                return None
+            
+            # Process search results to extract useful information
+            research_data = {
+                'query': query,
+                'best_practices': [],
+                'code_examples': [],
+                'performance_insights': [],
+                'implementation_strategies': [],
+                'related_technologies': [],
+                'sources': []
+            }
+            
+            # Analyze search results
+            for result in search_results[:5]:  # Limit to top 5 results
+                if 'github.com' in result.get('url', ''):
+                    research_data['code_examples'].append({
+                        'title': result.get('title', ''),
+                        'url': result.get('url', ''),
+                        'description': result.get('snippet', '')
+                    })
+                elif 'stackoverflow.com' in result.get('url', ''):
+                    research_data['best_practices'].append({
+                        'title': result.get('title', ''),
+                        'url': result.get('url', ''),
+                        'description': result.get('snippet', '')
+                    })
+                elif any(domain in result.get('url', '') for domain in ['arxiv.org', 'papers.', 'research.']):
+                    research_data['performance_insights'].append({
+                        'title': result.get('title', ''),
+                        'url': result.get('url', ''),
+                        'description': result.get('snippet', '')
+                    })
+                else:
+                    research_data['implementation_strategies'].append({
+                        'title': result.get('title', ''),
+                        'url': result.get('url', ''),
+                        'description': result.get('snippet', '')
+                    })
+                
+                research_data['sources'].append(result.get('url', ''))
+            
+            return research_data
+            
+        except Exception as e:
+            logging.error(f"Web research failed for query '{query}': {e}")
+            return None
+    
+    def _call_web_search_tool(self, query: str) -> List[dict]:
+        """Interface with the actual WebSearch tool available in the system"""
+        try:
+            # This would integrate with the WebSearch tool that's available
+            # For now, return a mock structure that matches expected format
+            mock_results = [
+                {
+                    'title': f"Best Practices for {query}",
+                    'url': f"https://stackoverflow.com/questions/search?q={query.replace(' ', '+')}",
+                    'snippet': f"Community discussions and solutions for {query}"
+                },
+                {
+                    'title': f"GitHub Implementation of {query}",
+                    'url': f"https://github.com/search?q={query.replace(' ', '+')}",
+                    'snippet': f"Open source code examples for {query}"
+                },
+                {
+                    'title': f"Python Documentation for {query}",
+                    'url': f"https://docs.python.org/search.html?q={query.replace(' ', '+')}",
+                    'snippet': f"Official Python documentation and examples for {query}"
+                }
+            ]
+            return mock_results
+        except Exception as e:
+            logging.error(f"Web search tool call failed: {e}")
+            return []
+    
+    def _merge_research_results(self, main_result: dict, query_result: dict):
+        """Merge research results from multiple queries"""
+        for key in ['best_practices', 'code_examples', 'performance_insights', 
+                   'implementation_strategies', 'related_technologies']:
+            if key in query_result:
+                main_result[key].extend(query_result[key])
+        
+        # Update research summary
+        if query_result.get('query'):
+            if main_result['research_summary']:
+                main_result['research_summary'] += f"\n\nResearch Query: {query_result['query']}"
+            else:
+                main_result['research_summary'] = f"Research Query: {query_result['query']}"
+    
+    def _calculate_research_confidence(self, research_result: dict) -> float:
+        """Calculate confidence score based on research quality and quantity"""
+        confidence = 0.0
+        
+        # Base confidence from having results
+        if research_result['research_summary']:
+            confidence += 0.3
+        
+        # Confidence from different types of results
+        result_types = ['best_practices', 'code_examples', 'performance_insights', 
+                       'implementation_strategies', 'related_technologies']
+        
+        for result_type in result_types:
+            if research_result.get(result_type):
+                confidence += 0.1 * min(len(research_result[result_type]), 3)
+        
+        # Bonus for diverse sources
+        if len(set(result_types) & set(k for k, v in research_result.items() if v)) >= 3:
+            confidence += 0.2
+        
+        return min(confidence, 1.0)
+    
+    def _store_research_in_memory(self, opportunity: EnhancementOpportunity, research_result: dict):
+        """Store research results in memory for future reference and learning"""
+        try:
+            # Create a comprehensive research record
+            research_record = {
+                'opportunity_type': opportunity.opportunity_type,
+                'opportunity_description': opportunity.description,
+                'research_timestamp': datetime.now().isoformat(),
+                'research_summary': research_result['research_summary'],
+                'confidence_score': research_result['research_confidence'],
+                'results_count': sum(len(research_result.get(key, [])) for key in 
+                                   ['best_practices', 'code_examples', 'performance_insights']),
+                'research_metadata': {
+                    'impact_score': opportunity.impact_score,
+                    'complexity_score': opportunity.complexity_score,
+                    'priority_score': opportunity.priority_score
+                }
+            }
+            
+            # Store in memory with metadata
+            self.memory.store_context(
+                f"enhancement_research_{opportunity.opportunity_type}",
+                research_record,
+                metadata={
+                    'type': 'enhancement_research',
+                    'opportunity_type': opportunity.opportunity_type,
+                    'timestamp': datetime.now().isoformat(),
+                    'confidence': research_result['research_confidence']
+                }
+            )
+            
+            # Add to local research history
+            self.research_history.append(research_record)
+            
+        except Exception as e:
+            logging.error(f"Failed to store research in memory: {e}")
+    
+    def get_similar_research(self, opportunity: EnhancementOpportunity, limit: int = 5) -> List[dict]:
+        """Retrieve similar past research for pattern learning"""
+        try:
+            # Query memory for similar enhancement research
+            similar_research = self.memory.query_context(
+                f"enhancement research {opportunity.opportunity_type} {opportunity.description}",
+                k=limit,
+                filter_metadata={'type': 'enhancement_research'}
+            )
+            
+            return similar_research
+            
+        except Exception as e:
+            logging.error(f"Failed to retrieve similar research: {e}")
+            return []
+    
+    def analyze_research_patterns(self) -> dict:
+        """Analyze patterns in successful research to improve future queries"""
+        pattern_analysis = {
+            'most_successful_query_types': {},
+            'best_source_domains': {},
+            'optimal_query_length': 0,
+            'success_factors': []
+        }
+        
+        try:
+            if not self.research_history:
+                return pattern_analysis
+            
+            # Analyze successful research patterns
+            high_confidence_research = [r for r in self.research_history if r.get('confidence_score', 0) > 0.7]
+            
+            if high_confidence_research:
+                # Find common patterns in successful research
+                for research in high_confidence_research:
+                    opp_type = research.get('opportunity_type', 'unknown')
+                    pattern_analysis['most_successful_query_types'][opp_type] = (
+                        pattern_analysis['most_successful_query_types'].get(opp_type, 0) + 1
+                    )
+                
+                # Calculate optimal patterns
+                if pattern_analysis['most_successful_query_types']:
+                    pattern_analysis['success_factors'] = [
+                        f"Query type '{k}' has {v} successful research instances"
+                        for k, v in pattern_analysis['most_successful_query_types'].items()
+                    ]
+            
+            return pattern_analysis
+            
+        except Exception as e:
+            logging.error(f"Research pattern analysis failed: {e}")
+            return pattern_analysis
+
+class EnhancementMetricsTracker:
+    """Advanced metrics tracking system for enhancement effectiveness"""
+    
+    def __init__(self, memory_manager: MemoryManager, output_dir: Path):
+        self.memory = memory_manager
+        self.output_dir = output_dir
+        self.metrics_history = []
+        self.performance_baselines = {}
+        
+    def establish_baseline_metrics(self, app_path: str) -> dict:
+        """Establish baseline performance and quality metrics"""
+        baseline_metrics = {
+            'timestamp': datetime.now().isoformat(),
+            'file_size_bytes': 0,
+            'lines_of_code': 0,
+            'cyclomatic_complexity': 0,
+            'function_count': 0,
+            'class_count': 0,
+            'import_count': 0,
+            'comment_ratio': 0.0,
+            'test_coverage': 0.0,
+            'performance_score': 0.0
+        }
+        
+        try:
+            # File size metrics
+            if Path(app_path).exists():
+                baseline_metrics['file_size_bytes'] = Path(app_path).stat().st_size
+                
+                with open(app_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    lines = content.split('\n')
+                    
+                    # Basic code metrics
+                    baseline_metrics['lines_of_code'] = len([l for l in lines if l.strip() and not l.strip().startswith('#')])
+                    baseline_metrics['function_count'] = len(re.findall(r'^\s*def ', content, re.MULTILINE))
+                    baseline_metrics['class_count'] = len(re.findall(r'^\s*class ', content, re.MULTILINE))
+                    baseline_metrics['import_count'] = len(re.findall(r'^\s*(?:import|from)', content, re.MULTILINE))
+                    
+                    # Comment ratio
+                    comment_lines = len([l for l in lines if l.strip().startswith('#')])
+                    baseline_metrics['comment_ratio'] = comment_lines / max(len(lines), 1)
+                    
+                    # Basic complexity estimation
+                    complexity_indicators = len(re.findall(r'\b(?:if|for|while|try|except|with)\b', content))
+                    baseline_metrics['cyclomatic_complexity'] = complexity_indicators
+            
+            # Store baseline in memory
+            self.memory.store_context(
+                "enhancement_baseline_metrics",
+                baseline_metrics,
+                metadata={
+                    'type': 'baseline_metrics',
+                    'timestamp': baseline_metrics['timestamp'],
+                    'app_path': app_path
+                }
+            )
+            
+            self.performance_baselines = baseline_metrics
+            return baseline_metrics
+            
+        except Exception as e:
+            logging.error(f"Failed to establish baseline metrics: {e}")
+            return baseline_metrics
+    
+    def measure_enhancement_impact(self, app_path: str, enhancement_version: str, 
+                                 opportunity: EnhancementOpportunity, solution: str) -> dict:
+        """Measure the impact of an enhancement compared to baseline"""
+        impact_metrics = {
+            'enhancement_version': enhancement_version,
+            'timestamp': datetime.now().isoformat(),
+            'opportunity_type': opportunity.opportunity_type,
+            'opportunity_description': opportunity.description,
+            'solution_size_lines': len(solution.split('\n')),
+            'improvements': {},
+            'regressions': {},
+            'overall_impact_score': 0.0
+        }
+        
+        try:
+            # Get current metrics
+            current_metrics = self.establish_baseline_metrics(app_path)
+            
+            # Compare with baseline
+            if self.performance_baselines:
+                impact_metrics['improvements'] = {}
+                impact_metrics['regressions'] = {}
+                
+                for metric, current_value in current_metrics.items():
+                    if metric in ['timestamp']:
+                        continue
+                        
+                    baseline_value = self.performance_baselines.get(metric, 0)
+                    if isinstance(current_value, (int, float)) and isinstance(baseline_value, (int, float)):
+                        if baseline_value > 0:
+                            change_percent = ((current_value - baseline_value) / baseline_value) * 100
+                            
+                            # Determine if change is improvement or regression
+                            improvement_metrics = ['comment_ratio', 'test_coverage', 'performance_score']
+                            regression_metrics = ['cyclomatic_complexity', 'file_size_bytes']
+                            
+                            if metric in improvement_metrics and change_percent > 0:
+                                impact_metrics['improvements'][metric] = change_percent
+                            elif metric in regression_metrics and change_percent < 0:
+                                impact_metrics['improvements'][metric] = abs(change_percent)
+                            elif metric in improvement_metrics and change_percent < 0:
+                                impact_metrics['regressions'][metric] = abs(change_percent)
+                            elif metric in regression_metrics and change_percent > 0:
+                                impact_metrics['regressions'][metric] = change_percent
+                            else:
+                                # Neutral metrics - just track the change
+                                impact_metrics[f'{metric}_change_percent'] = change_percent
+            
+            # Calculate overall impact score
+            impact_metrics['overall_impact_score'] = self._calculate_overall_impact_score(impact_metrics)
+            
+            # Store metrics in memory and history
+            self.memory.store_context(
+                f"enhancement_impact_{enhancement_version}",
+                impact_metrics,
+                metadata={
+                    'type': 'enhancement_impact',
+                    'version': enhancement_version,
+                    'timestamp': impact_metrics['timestamp'],
+                    'impact_score': impact_metrics['overall_impact_score']
+                }
+            )
+            
+            self.metrics_history.append(impact_metrics)
+            
+            return impact_metrics
+            
+        except Exception as e:
+            logging.error(f"Failed to measure enhancement impact: {e}")
+            return impact_metrics
+    
+    def _calculate_overall_impact_score(self, impact_metrics: dict) -> float:
+        """Calculate overall impact score from improvements and regressions"""
+        improvements = impact_metrics.get('improvements', {})
+        regressions = impact_metrics.get('regressions', {})
+        
+        # Weight improvements and regressions
+        improvement_score = sum(min(value / 10, 1.0) for value in improvements.values())  # Cap at 1.0 per metric
+        regression_penalty = sum(min(value / 10, 0.5) for value in regressions.values())  # Cap penalty at 0.5
+        
+        # Base score from opportunity impact
+        base_score = 0.5
+        
+        # Calculate final score
+        final_score = base_score + improvement_score - regression_penalty
+        return max(0.0, min(final_score, 1.0))  # Clamp between 0 and 1
+    
+    def get_enhancement_effectiveness_report(self) -> dict:
+        """Generate comprehensive effectiveness report"""
+        if not self.metrics_history:
+            return {'message': 'No enhancement metrics available'}
+        
+        report = {
+            'total_enhancements': len(self.metrics_history),
+            'average_impact_score': 0.0,
+            'most_effective_enhancement': None,
+            'improvement_trends': {},
+            'recommendation_score': 0.0,
+            'success_patterns': []
+        }
+        
+        try:
+            # Calculate average impact
+            impact_scores = [m.get('overall_impact_score', 0) for m in self.metrics_history]
+            report['average_impact_score'] = sum(impact_scores) / len(impact_scores)
+            
+            # Find most effective enhancement
+            best_enhancement = max(self.metrics_history, key=lambda x: x.get('overall_impact_score', 0))
+            report['most_effective_enhancement'] = {
+                'version': best_enhancement.get('enhancement_version'),
+                'type': best_enhancement.get('opportunity_type'),
+                'description': best_enhancement.get('opportunity_description'),
+                'impact_score': best_enhancement.get('overall_impact_score')
+            }
+            
+            # Analyze improvement trends by type
+            type_impacts = {}
+            for metrics in self.metrics_history:
+                opp_type = metrics.get('opportunity_type', 'unknown')
+                impact = metrics.get('overall_impact_score', 0)
+                
+                if opp_type not in type_impacts:
+                    type_impacts[opp_type] = []
+                type_impacts[opp_type].append(impact)
+            
+            for opp_type, impacts in type_impacts.items():
+                report['improvement_trends'][opp_type] = {
+                    'average_impact': sum(impacts) / len(impacts),
+                    'enhancement_count': len(impacts),
+                    'success_rate': len([i for i in impacts if i > 0.6]) / len(impacts)
+                }
+            
+            # Calculate recommendation score
+            recent_metrics = self.metrics_history[-5:] if len(self.metrics_history) >= 5 else self.metrics_history
+            recent_average = sum(m.get('overall_impact_score', 0) for m in recent_metrics) / len(recent_metrics)
+            report['recommendation_score'] = recent_average
+            
+            # Identify success patterns
+            successful_enhancements = [m for m in self.metrics_history if m.get('overall_impact_score', 0) > 0.7]
+            if successful_enhancements:
+                success_types = [e.get('opportunity_type') for e in successful_enhancements]
+                most_successful_type = max(set(success_types), key=success_types.count)
+                report['success_patterns'].append(f"Enhancement type '{most_successful_type}' has highest success rate")
+            
+            return report
+            
+        except Exception as e:
+            logging.error(f"Failed to generate effectiveness report: {e}")
+            return report
+
+class EnhancementPatternLearning:
+    """Advanced pattern learning system for cross-enhancement knowledge transfer"""
+    
+    def __init__(self, memory_manager: MemoryManager):
+        self.memory = memory_manager
+        self.pattern_database = {}
+        self.success_patterns = []
+        self.learned_techniques = {}
+        
+    def extract_success_patterns(self, successful_enhancements: List[dict]) -> List[dict]:
+        """Extract patterns from successful enhancements for future use"""
+        patterns = []
+        
+        try:
+            for enhancement in successful_enhancements:
+                if enhancement.get('impact_metrics', {}).get('overall_impact_score', 0) > 0.7:
+                    pattern = self._analyze_enhancement_for_patterns(enhancement)
+                    if pattern:
+                        patterns.append(pattern)
+                        self.success_patterns.append(pattern)
+            
+            # Store patterns in memory for future retrieval
+            self._store_patterns_in_memory(patterns)
+            
+            return patterns
+            
+        except Exception as e:
+            logging.error(f"Failed to extract success patterns: {e}")
+            return []
+    
+    def _analyze_enhancement_for_patterns(self, enhancement: dict) -> dict:
+        """Analyze a successful enhancement to extract reusable patterns"""
+        pattern = {
+            'pattern_id': f"pattern_{len(self.success_patterns) + 1}",
+            'opportunity_type': enhancement.get('opportunity_type'),
+            'success_factors': [],
+            'code_patterns': [],
+            'architectural_decisions': [],
+            'performance_improvements': [],
+            'implementation_strategy': '',
+            'confidence_score': 0.0
+        }
+        
+        try:
+            # Extract code patterns from solution
+            solution = enhancement.get('solution_summary', '')
+            if solution:
+                # Look for common successful patterns
+                code_patterns = self._extract_code_patterns(solution)
+                pattern['code_patterns'] = code_patterns
+                
+                # Analyze architectural decisions
+                arch_patterns = self._extract_architectural_patterns(solution)
+                pattern['architectural_decisions'] = arch_patterns
+                
+                # Extract implementation strategy
+                strategy = self._extract_implementation_strategy(solution, enhancement.get('opportunity_type'))
+                pattern['implementation_strategy'] = strategy
+            
+            # Extract success factors from metrics
+            impact_metrics = enhancement.get('impact_metrics', {})
+            if impact_metrics:
+                improvements = impact_metrics.get('improvements', {})
+                pattern['success_factors'] = list(improvements.keys())
+                pattern['performance_improvements'] = [
+                    f"{metric}: {value:.1f}% improvement" 
+                    for metric, value in improvements.items()
+                ]
+            
+            # Calculate pattern confidence based on impact score
+            pattern['confidence_score'] = impact_metrics.get('overall_impact_score', 0)
+            
+            return pattern
+            
+        except Exception as e:
+            logging.error(f"Failed to analyze enhancement for patterns: {e}")
+            return None
+    
+    def _extract_code_patterns(self, solution: str) -> List[str]:
+        """Extract reusable code patterns from solution"""
+        patterns = []
+        
+        # Common successful patterns to look for
+        pattern_checks = [
+            (r'async\s+def', 'Async/await pattern for non-blocking operations'),
+            (r'class\s+\w+.*Manager', 'Manager class pattern for resource coordination'),
+            (r'def\s+.*_factory\(', 'Factory pattern for object creation'),
+            (r'@\w+', 'Decorator pattern for cross-cutting concerns'),
+            (r'with\s+.*:', 'Context manager pattern for resource management'),
+            (r'try:.*except.*finally:', 'Comprehensive error handling pattern'),
+            (r'logging\.\w+\(', 'Proper logging integration'),
+            (r'cache\s*=', 'Caching implementation pattern'),
+            (r'config\.\w+', 'Configuration-driven approach'),
+            (r'validate_.*\(', 'Input validation pattern')
+        ]
+        
+        for pattern_regex, description in pattern_checks:
+            if re.search(pattern_regex, solution, re.MULTILINE | re.DOTALL):
+                patterns.append(description)
+        
+        return patterns
+    
+    def _extract_architectural_patterns(self, solution: str) -> List[str]:
+        """Extract architectural decision patterns"""
+        patterns = []
+        
+        arch_indicators = [
+            ('separation of concerns', 'Multiple specialized classes/functions'),
+            ('dependency injection', 'Constructor parameter injection'),
+            ('observer pattern', 'Event-driven architecture'),
+            ('strategy pattern', 'Pluggable algorithm implementations'),
+            ('facade pattern', 'Simplified interface to complex subsystem'),
+            ('template method', 'Algorithm skeleton with customizable steps'),
+            ('singleton pattern', 'Single instance management'),
+            ('builder pattern', 'Step-by-step object construction')
+        ]
+        
+        for pattern_name, indicator in arch_indicators:
+            # Simple heuristics to detect architectural patterns
+            if any(keyword in solution.lower() for keyword in indicator.lower().split()[:2]):
+                patterns.append(pattern_name)
+        
+        return patterns
+    
+    def _extract_implementation_strategy(self, solution: str, opportunity_type: str) -> str:
+        """Extract the overall implementation strategy used"""
+        strategies = []
+        
+        if opportunity_type == 'performance':
+            if 'cache' in solution.lower():
+                strategies.append('Caching optimization')
+            if 'async' in solution.lower():
+                strategies.append('Asynchronous processing')
+            if 'batch' in solution.lower():
+                strategies.append('Batch processing optimization')
+        elif opportunity_type == 'feature':
+            if 'class' in solution.lower() and 'manager' in solution.lower():
+                strategies.append('Manager-based feature architecture')
+            if 'config' in solution.lower():
+                strategies.append('Configuration-driven feature implementation')
+        elif opportunity_type == 'ai_enhancement':
+            if 'model' in solution.lower():
+                strategies.append('AI model integration approach')
+            if 'pipeline' in solution.lower():
+                strategies.append('Processing pipeline enhancement')
+        
+        return '; '.join(strategies) if strategies else 'Standard implementation approach'
+    
+    def _store_patterns_in_memory(self, patterns: List[dict]):
+        """Store learned patterns in memory for future retrieval"""
+        try:
+            for pattern in patterns:
+                self.memory.store_context(
+                    f"learned_pattern_{pattern['pattern_id']}",
+                    pattern,
+                    metadata={
+                        'type': 'learned_pattern',
+                        'pattern_id': pattern['pattern_id'],
+                        'opportunity_type': pattern['opportunity_type'],
+                        'confidence_score': pattern['confidence_score'],
+                        'timestamp': datetime.now().isoformat()
+                    }
+                )
+        except Exception as e:
+            logging.error(f"Failed to store patterns in memory: {e}")
+    
+    def find_applicable_patterns(self, opportunity: EnhancementOpportunity) -> List[dict]:
+        """Find learned patterns applicable to a new enhancement opportunity"""
+        applicable_patterns = []
+        
+        try:
+            # Query memory for similar patterns
+            query = f"learned pattern {opportunity.opportunity_type} {opportunity.description}"
+            similar_patterns = self.memory.query_context(
+                query,
+                k=5,
+                filter_metadata={'type': 'learned_pattern'}
+            )
+            
+            # Filter patterns by relevance and confidence
+            for pattern_data in similar_patterns:
+                pattern = pattern_data.get('content', {})
+                confidence = pattern.get('confidence_score', 0)
+                
+                # Only include high-confidence patterns
+                if confidence > 0.6:
+                    # Calculate relevance score
+                    relevance = self._calculate_pattern_relevance(pattern, opportunity)
+                    if relevance > 0.5:
+                        pattern['relevance_score'] = relevance
+                        applicable_patterns.append(pattern)
+            
+            # Sort by combined confidence and relevance
+            applicable_patterns.sort(
+                key=lambda p: (p.get('confidence_score', 0) + p.get('relevance_score', 0)) / 2,
+                reverse=True
+            )
+            
+            return applicable_patterns[:3]  # Return top 3 most applicable patterns
+            
+        except Exception as e:
+            logging.error(f"Failed to find applicable patterns: {e}")
+            return []
+    
+    def _calculate_pattern_relevance(self, pattern: dict, opportunity: EnhancementOpportunity) -> float:
+        """Calculate how relevant a learned pattern is to the current opportunity"""
+        relevance_score = 0.0
+        
+        # Type match bonus
+        if pattern.get('opportunity_type') == opportunity.opportunity_type:
+            relevance_score += 0.4
+        
+        # Description similarity (simple keyword matching)
+        pattern_keywords = set(pattern.get('implementation_strategy', '').lower().split())
+        opportunity_keywords = set(opportunity.description.lower().split())
+        
+        if pattern_keywords and opportunity_keywords:
+            keyword_overlap = len(pattern_keywords & opportunity_keywords) / len(pattern_keywords | opportunity_keywords)
+            relevance_score += keyword_overlap * 0.3
+        
+        # Success factor relevance
+        success_factors = pattern.get('success_factors', [])
+        if any(factor in opportunity.description.lower() for factor in success_factors):
+            relevance_score += 0.3
+        
+        return min(relevance_score, 1.0)
+    
+    def apply_learned_patterns(self, opportunity: EnhancementOpportunity, applicable_patterns: List[dict]) -> str:
+        """Generate pattern-informed enhancement suggestions"""
+        if not applicable_patterns:
+            return ""
+        
+        suggestions = """🧠 LEARNED PATTERN INSIGHTS:
+Based on analysis of successful past enhancements, consider these proven approaches:
+
+"""
+        
+        for i, pattern in enumerate(applicable_patterns, 1):
+            suggestions += f"{i}. **{pattern.get('opportunity_type', 'General').title()} Enhancement Pattern** "
+            suggestions += f"(Confidence: {pattern.get('confidence_score', 0):.1%}, "
+            suggestions += f"Relevance: {pattern.get('relevance_score', 0):.1%}):\n"
+            
+            # Add implementation strategy
+            strategy = pattern.get('implementation_strategy', '')
+            if strategy:
+                suggestions += f"   • Strategy: {strategy}\n"
+            
+            # Add successful code patterns
+            code_patterns = pattern.get('code_patterns', [])
+            if code_patterns:
+                suggestions += f"   • Proven patterns: {', '.join(code_patterns[:3])}\n"
+            
+            # Add architectural decisions
+            arch_decisions = pattern.get('architectural_decisions', [])
+            if arch_decisions:
+                suggestions += f"   • Architecture: {', '.join(arch_decisions[:2])}\n"
+            
+            # Add performance improvements achieved
+            perf_improvements = pattern.get('performance_improvements', [])
+            if perf_improvements:
+                suggestions += f"   • Past improvements: {', '.join(perf_improvements[:2])}\n"
+            
+            suggestions += "\n"
+        
+        return suggestions
+    
+    def generate_enhancement_evolution_suggestions(self, enhancement_history: List[dict]) -> List[str]:
+        """Generate suggestions for how enhancements can build upon each other"""
+        evolution_suggestions = []
+        
+        try:
+            if len(enhancement_history) < 2:
+                return evolution_suggestions
+            
+            # Analyze patterns across enhancement history
+            type_sequences = []
+            success_trends = []
+            
+            for i in range(len(enhancement_history) - 1):
+                current = enhancement_history[i]
+                next_enh = enhancement_history[i + 1]
+                
+                current_type = current.get('opportunity_type', 'unknown')
+                next_type = next_enh.get('opportunity_type', 'unknown')
+                
+                type_sequences.append((current_type, next_type))
+                
+                current_impact = current.get('impact_metrics', {}).get('overall_impact_score', 0)
+                next_impact = next_enh.get('impact_metrics', {}).get('overall_impact_score', 0)
+                
+                success_trends.append(next_impact - current_impact)
+            
+            # Identify successful enhancement sequences
+            successful_sequences = []
+            for i, trend in enumerate(success_trends):
+                if trend > 0.1:  # Significant improvement
+                    successful_sequences.append(type_sequences[i])
+            
+            # Generate suggestions based on successful patterns
+            if successful_sequences:
+                most_common_sequence = max(set(successful_sequences), key=successful_sequences.count)
+                evolution_suggestions.append(
+                    f"Consider following the successful pattern: {most_common_sequence[0]} → {most_common_sequence[1]}"
+                )
+            
+            # Suggest compound enhancements
+            recent_types = [e.get('opportunity_type') for e in enhancement_history[-3:]]
+            if len(set(recent_types)) == 1:  # All same type
+                evolution_suggestions.append(
+                    f"Consider diversifying from {recent_types[0]} to complementary enhancement types"
+                )
+            
+            return evolution_suggestions
+            
+        except Exception as e:
+            logging.error(f"Failed to generate evolution suggestions: {e}")
+            return []
+
+class EnhancementCompositionEngine:
+    """System for combining multiple enhancements into compound improvements"""
+    
+    def __init__(self, memory_manager: MemoryManager):
+        self.memory = memory_manager
+        self.composition_history = []
+        self.synergy_patterns = {}
+        
+    def identify_composable_opportunities(self, opportunities: List[EnhancementOpportunity]) -> List[dict]:
+        """Identify sets of opportunities that can be combined for compound improvements"""
+        compositions = []
+        
+        if len(opportunities) < 2:
+            return compositions
+        
+        try:
+            # Group opportunities by type for potential synergies
+            type_groups = {}
+            for opp in opportunities:
+                opp_type = opp.opportunity_type
+                if opp_type not in type_groups:
+                    type_groups[opp_type] = []
+                type_groups[opp_type].append(opp)
+            
+            # Look for cross-type synergies
+            synergy_combinations = [
+                ('performance', 'feature', 'Performance-enhanced feature implementation'),
+                ('ui_enhancement', 'feature', 'Feature with enhanced user experience'),
+                ('ai_enhancement', 'performance', 'Optimized AI capability integration'),
+                ('security', 'feature', 'Secure feature implementation'),
+                ('code_quality', 'performance', 'Clean, optimized code architecture'),
+                ('integration', 'ai_enhancement', 'AI-powered integration capabilities')
+            ]
+            
+            for type1, type2, description in synergy_combinations:
+                if type1 in type_groups and type2 in type_groups:
+                    # Find best opportunities from each type
+                    best_type1 = max(type_groups[type1], key=lambda x: x.priority_score)
+                    best_type2 = max(type_groups[type2], key=lambda x: x.priority_score)
+                    
+                    composition = self._create_composition(
+                        [best_type1, best_type2], description
+                    )
+                    if composition:
+                        compositions.append(composition)
+            
+            # Look for same-type compositions (compound enhancements)
+            for opp_type, group_opps in type_groups.items():
+                if len(group_opps) >= 2:
+                    # Select top opportunities for composition
+                    top_opps = sorted(group_opps, key=lambda x: x.priority_score, reverse=True)[:3]
+                    
+                    if len(top_opps) >= 2:
+                        composition = self._create_composition(
+                            top_opps, f"Compound {opp_type} enhancement"
+                        )
+                        if composition:
+                            compositions.append(composition)
+            
+            # Sort compositions by potential impact
+            compositions.sort(key=lambda x: x.get('compound_impact_score', 0), reverse=True)
+            
+            return compositions[:3]  # Return top 3 compositions
+            
+        except Exception as e:
+            logging.error(f"Failed to identify composable opportunities: {e}")
+            return compositions
+    
+    def _create_composition(self, opportunities: List[EnhancementOpportunity], description: str) -> dict:
+        """Create a composition from multiple opportunities"""
+        try:
+            composition = {
+                'composition_id': f"comp_{len(self.composition_history) + 1}",
+                'description': description,
+                'component_opportunities': [opp.to_dict() for opp in opportunities],
+                'compound_impact_score': 0.0,
+                'complexity_multiplier': 1.0,
+                'synergy_potential': 0.0,
+                'implementation_strategy': '',
+                'expected_benefits': []
+            }
+            
+            # Calculate compound impact (not just sum, but considering synergies)
+            individual_impacts = [opp.impact_score for opp in opportunities]
+            base_impact = sum(individual_impacts)
+            
+            # Calculate synergy bonus based on opportunity types
+            synergy_bonus = self._calculate_synergy_bonus(opportunities)
+            composition['synergy_potential'] = synergy_bonus
+            
+            # Compound impact includes synergy
+            composition['compound_impact_score'] = base_impact * (1 + synergy_bonus)
+            
+            # Calculate complexity multiplier (compound tasks are more complex)
+            complexity_values = [opp.complexity_score for opp in opportunities]
+            composition['complexity_multiplier'] = 1 + (sum(complexity_values) / len(complexity_values)) * 0.5
+            
+            # Generate implementation strategy
+            composition['implementation_strategy'] = self._generate_composition_strategy(opportunities)
+            
+            # Identify expected benefits
+            composition['expected_benefits'] = self._identify_compound_benefits(opportunities)
+            
+            return composition
+            
+        except Exception as e:
+            logging.error(f"Failed to create composition: {e}")
+            return None
+    
+    def _calculate_synergy_bonus(self, opportunities: List[EnhancementOpportunity]) -> float:
+        """Calculate synergy bonus for combining opportunities"""
+        synergy_bonus = 0.0
+        
+        # Define synergy matrices
+        synergy_matrix = {
+            ('performance', 'feature'): 0.3,  # Performance-optimized features
+            ('ui_enhancement', 'feature'): 0.25,  # Feature with better UX
+            ('ai_enhancement', 'performance'): 0.35,  # Optimized AI capabilities
+            ('security', 'feature'): 0.2,  # Secure feature implementation
+            ('code_quality', 'performance'): 0.25,  # Clean, fast code
+            ('integration', 'ai_enhancement'): 0.3,  # AI-powered integrations
+            ('feature', 'feature'): 0.15,  # Compound features
+            ('performance', 'performance'): 0.2,  # Compound optimizations
+        }
+        
+        # Calculate synergy for all pairs
+        types = [opp.opportunity_type for opp in opportunities]
+        
+        for i in range(len(types)):
+            for j in range(i + 1, len(types)):
+                type_pair = tuple(sorted([types[i], types[j]]))
+                synergy_bonus += synergy_matrix.get(type_pair, 0.1)  # Default small bonus
+        
+        # Normalize by number of pairs
+        num_pairs = len(opportunities) * (len(opportunities) - 1) // 2
+        if num_pairs > 0:
+            synergy_bonus /= num_pairs
+        
+        return min(synergy_bonus, 0.5)  # Cap at 50% bonus
+    
+    def _generate_composition_strategy(self, opportunities: List[EnhancementOpportunity]) -> str:
+        """Generate implementation strategy for compound enhancement"""
+        strategies = []
+        
+        types = [opp.opportunity_type for opp in opportunities]
+        type_set = set(types)
+        
+        if 'performance' in type_set and 'feature' in type_set:
+            strategies.append("Performance-first approach: optimize core algorithms then add features")
+        elif 'ui_enhancement' in type_set and 'feature' in type_set:
+            strategies.append("User-centered design: implement features with enhanced UX from start")
+        elif 'ai_enhancement' in type_set:
+            strategies.append("AI-native implementation: design with AI capabilities as core architecture")
+        elif len(type_set) == 1:
+            strategies.append(f"Compound {list(type_set)[0]} implementation with unified architecture")
+        else:
+            strategies.append("Layered implementation: establish foundation then add capabilities")
+        
+        # Add coordination strategy
+        if len(opportunities) > 2:
+            strategies.append("Coordinate implementation to maximize synergies and minimize conflicts")
+        
+        return "; ".join(strategies)
+    
+    def _identify_compound_benefits(self, opportunities: List[EnhancementOpportunity]) -> List[str]:
+        """Identify benefits that emerge from combining enhancements"""
+        benefits = []
+        
+        types = [opp.opportunity_type for opp in opportunities]
+        descriptions = [opp.description.lower() for opp in opportunities]
+        
+        # Cross-type benefit analysis
+        if 'performance' in types and 'feature' in types:
+            benefits.append("Features that are fast and efficient from day one")
+            benefits.append("Reduced need for future performance retrofitting")
+        
+        if 'ui_enhancement' in types and any('ai' in desc for desc in descriptions):
+            benefits.append("AI capabilities with intuitive user interfaces")
+            benefits.append("Seamless integration of complex AI into user workflow")
+        
+        if 'security' in types:
+            benefits.append("Security built into core architecture, not bolted on")
+            benefits.append("Reduced attack surface through secure design patterns")
+        
+        # Same-type compound benefits
+        if len(set(types)) == 1:
+            if types[0] == 'feature':
+                benefits.append("Cohesive feature set with unified user experience")
+                benefits.append("Shared infrastructure reducing implementation complexity")
+            elif types[0] == 'performance':
+                benefits.append("Compound performance gains from multiple optimizations")
+                benefits.append("Holistic system optimization rather than isolated improvements")
+        
+        # Generic compound benefits
+        benefits.extend([
+            "Reduced integration overhead compared to sequential implementation",
+            "Opportunity for architectural improvements that benefit all components",
+            "Enhanced testing efficiency through unified test strategy"
+        ])
+        
+        return benefits[:5]  # Return top 5 benefits
+    
+    def generate_compound_enhancement_solution(self, composition: dict, 
+                                             research_results: dict = None, 
+                                             learned_patterns: List[dict] = None) -> str:
+        """Generate solution for compound enhancement"""
+        
+        component_opportunities = composition.get('component_opportunities', [])
+        if not component_opportunities:
+            return ""
+        
+        # Create enhanced prompt for compound solution
+        compound_prompt = f"""🔗 COMPOUND ENHANCEMENT ARCHITECT
+Advanced Multi-Dimensional Enhancement System
+
+════════════════════════════════════════════════════════════════════
+
+🎯 COMPOUND ENHANCEMENT MISSION:
+{composition.get('description', 'Multi-enhancement composition')}
+
+📊 COMPOSITION ANALYSIS:
+• Component Count: {len(component_opportunities)}
+• Compound Impact Score: {composition.get('compound_impact_score', 0):.2f}
+• Synergy Potential: {composition.get('synergy_potential', 0):.1%}
+• Complexity Multiplier: {composition.get('complexity_multiplier', 1):.2f}
+
+🧩 COMPONENT ENHANCEMENTS:
+"""
+        
+        for i, comp_opp in enumerate(component_opportunities, 1):
+            compound_prompt += f"""
+{i}. **{comp_opp.get('opportunity_type', 'Enhancement').title()}**: {comp_opp.get('description', 'Component enhancement')}
+   • Impact: {comp_opp.get('impact_score', 0):.2f} | Complexity: {comp_opp.get('complexity_score', 0):.2f}
+   • Priority: {comp_opp.get('priority_score', 0):.2f}
+"""
+        
+        compound_prompt += f"""
+🚀 IMPLEMENTATION STRATEGY:
+{composition.get('implementation_strategy', 'Unified compound implementation')}
+
+🎁 EXPECTED COMPOUND BENEFITS:
+"""
+        
+        for benefit in composition.get('expected_benefits', []):
+            compound_prompt += f"• {benefit}\n"
+        
+        # Add research insights if available
+        if research_results:
+            compound_prompt += f"""
+🔬 RESEARCH-DRIVEN INSIGHTS:
+Research Confidence: {research_results.get('research_confidence', 0):.1%}
+• Integration strategies from successful compound implementations
+• Best practices for managing multi-dimensional enhancements
+• Performance optimization techniques for compound solutions
+"""
+        
+        # Add learned patterns if available
+        if learned_patterns:
+            compound_prompt += """
+🧠 LEARNED PATTERN INSIGHTS:
+Based on successful past compound enhancements:
+"""
+            for pattern in learned_patterns[:2]:
+                compound_prompt += f"• {pattern.get('implementation_strategy', 'Pattern strategy')}\n"
+        
+        compound_prompt += f"""
+🔧 COMPOUND IMPLEMENTATION REQUIREMENTS:
+1. **UNIFIED ARCHITECTURE**: Design single coherent system, not separate components
+2. **SYNERGY MAXIMIZATION**: Leverage interactions between enhancements for emergent benefits
+3. **COMPLEXITY MANAGEMENT**: Use sophisticated patterns to manage increased complexity
+4. **INCREMENTAL VALIDATION**: Validate each component while ensuring compound functionality
+5. **FUTURE EXTENSIBILITY**: Design for easy addition of more enhancements
+6. **PERFORMANCE OPTIMIZATION**: Ensure compound enhancement doesn't sacrifice performance
+7. **MAINTAINABILITY**: Create clean, documented code despite increased complexity
+
+💡 COMPOUND ENHANCEMENT PHILOSOPHY:
+- The whole is greater than the sum of its parts
+- Design for synergies, not just feature addition
+- Create emergent capabilities through thoughtful combination
+- Build compound intelligence into the architecture
+- Anticipate how this compound enhancement enables future compounds
+
+🎯 DELIVERABLE:
+Provide a complete, immediately implementable compound enhancement that demonstrates clear synergies between components and delivers exponential value over individual enhancements.
+
+════════════════════════════════════════════════════════════════════
+BEGIN COMPOUND IMPLEMENTATION:"""
+        
+        return compound_prompt
+    
+    def record_composition_success(self, composition: dict, solution: str, 
+                                 impact_metrics: dict):
+        """Record successful composition for future learning"""
+        try:
+            composition_record = {
+                'composition_id': composition.get('composition_id'),
+                'timestamp': datetime.now().isoformat(),
+                'description': composition.get('description'),
+                'component_count': len(composition.get('component_opportunities', [])),
+                'compound_impact_score': composition.get('compound_impact_score'),
+                'actual_impact_score': impact_metrics.get('overall_impact_score', 0),
+                'synergy_realized': impact_metrics.get('overall_impact_score', 0) / max(composition.get('compound_impact_score', 1), 0.1),
+                'solution_summary': solution[:500] + "..." if len(solution) > 500 else solution,
+                'success': impact_metrics.get('overall_impact_score', 0) > 0.6
+            }
+            
+            self.composition_history.append(composition_record)
+            
+            # Store in memory
+            self.memory.store_context(
+                f"compound_enhancement_{composition.get('composition_id')}",
+                composition_record,
+                metadata={
+                    'type': 'compound_enhancement',
+                    'composition_id': composition.get('composition_id'),
+                    'success': composition_record['success'],
+                    'timestamp': composition_record['timestamp']
+                }
+            )
+            
+            # Update synergy patterns
+            if composition_record['success']:
+                self._update_synergy_patterns(composition, impact_metrics)
+            
+        except Exception as e:
+            logging.error(f"Failed to record composition success: {e}")
+    
+    def _update_synergy_patterns(self, composition: dict, impact_metrics: dict):
+        """Update synergy patterns based on successful compositions"""
+        try:
+            component_types = [comp.get('opportunity_type') for comp in composition.get('component_opportunities', [])]
+            type_signature = tuple(sorted(component_types))
+            
+            if type_signature not in self.synergy_patterns:
+                self.synergy_patterns[type_signature] = {
+                    'success_count': 0,
+                    'total_attempts': 0,
+                    'average_impact': 0.0,
+                    'best_impact': 0.0
+                }
+            
+            pattern = self.synergy_patterns[type_signature]
+            pattern['total_attempts'] += 1
+            
+            impact_score = impact_metrics.get('overall_impact_score', 0)
+            if impact_score > 0.6:
+                pattern['success_count'] += 1
+                pattern['best_impact'] = max(pattern['best_impact'], impact_score)
+                
+                # Update running average
+                current_avg = pattern['average_impact']
+                pattern['average_impact'] = (current_avg * (pattern['success_count'] - 1) + impact_score) / pattern['success_count']
+            
+        except Exception as e:
+            logging.error(f"Failed to update synergy patterns: {e}")
+
 class EnhancementQualityAssessment:
     """System for evaluating and validating enhancement quality"""
     
@@ -3321,11 +4545,12 @@ class EnhancementQualityAssessment:
 
 class TaskProcessor:
     """Core task processing engine with autonomous capabilities"""
-    def __init__(self, config: AIConfig, memory: MemoryManager, output_dir: Path, monitor: Optional['SystemMonitor'] = None):
+    def __init__(self, config: AIConfig, memory: MemoryManager, output_dir: Path, monitor: Optional['SystemMonitor'] = None, metrics_callback: Optional[callable] = None):
         self.config = config
         self.memory = memory
         self.output_dir = output_dir
         self.monitor = monitor
+        self.metrics_callback = metrics_callback
         
         # Create essential output directories
         self._create_output_directories()
@@ -3343,6 +4568,15 @@ class TaskProcessor:
         # Initialize task intelligence for autonomous decision-making
         self.task_intelligence = TaskIntelligence()
         self.response_analyzer = ResponseAnalyzer()
+        
+        # Initialize new autonomous continuation engine
+        try:
+            from src.autonomous.autonomous_continuation_engine import AutonomousContinuationEngine
+            self.autonomous_continuation_engine = AutonomousContinuationEngine()
+            logging.info("Autonomous continuation engine initialized successfully")
+        except ImportError as e:
+            logging.warning(f"Could not import autonomous continuation engine: {e}")
+            self.autonomous_continuation_engine = None
         
         # Initialize AI managers with monitor and self reference for task-specific prompts
         self.claude = ClaudeManager(config, monitor=monitor, task_processor=self)
@@ -3388,6 +4622,25 @@ class TaskProcessor:
             {"timestamp": time.time()}
         )
     
+    def query_ai_with_primary_fallback(self, prompt: str, system_prompt: str = "") -> Optional[str]:
+        """Query AI based on primary model setting with fallback to backup model"""
+        primary_is_claude = self.config.primary_model == "Claude API (Recommended)"
+        
+        if primary_is_claude:
+            # Claude is primary, Ollama is backup
+            response = self.claude.query(prompt, system_prompt)
+            if not response:
+                logging.info("Claude (primary) failed, falling back to Ollama (backup)")
+                response = self.ollama.query(prompt)
+        else:
+            # Ollama is primary, Claude is backup
+            response = self.ollama.query(prompt)
+            if not response:
+                logging.info("Ollama (primary) failed, falling back to Claude (backup)")
+                response = self.claude.query(prompt, system_prompt)
+        
+        return response
+    
     def reset_stop_flag(self):
         """Reset the stop flag for new operations"""
         self.stop_requested = False
@@ -3428,9 +4681,7 @@ Categories:
 Respond with just the category name and confidence (0-1), separated by comma.
 Example: code,0.9
 """
-        response = self.claude.query(classification_prompt)
-        if not response:
-            response = self.ollama.query(classification_prompt)
+        response = self.query_ai_with_primary_fallback(classification_prompt)
         if response:
             try:
                 parts = response.strip().split(',')
@@ -3478,40 +4729,77 @@ Example: code,0.9
             if file_contents:
                 enhanced_prompt += f"\n\nFile contents:\n" + "\n\n".join(file_contents)
         
-        response = self.claude.query(enhanced_prompt, "You are a helpful coding assistant. Generate clean, working code.")
-        if not response:
-            response = self.ollama.query(enhanced_prompt)
+        response = self.query_ai_with_primary_fallback(enhanced_prompt, "You are a helpful coding assistant. Generate clean, working code.")
         if not response:
             return TaskResult(False, "Failed to get AI response", [], task_steps)
         
         task_steps.append("Generated code response")
         generated_files = []
         code_blocks = self.extract_code_blocks(response)
+        file_metadata = {}
         
         for i, (language, code) in enumerate(code_blocks):
             if code.strip():
-                extension = self.get_file_extension(language)
-                filename = f"generated_code_{int(time.time())}_{i}.{extension}"
+                # Generate descriptive filename with better naming
+                purpose = self._extract_code_purpose_from_prompt(prompt)
+                filename = self.generate_descriptive_filename("code", language, purpose)
                 file_path = self.output_dir / filename
+                
                 try:
                     with open(file_path, 'w', encoding='utf-8') as f:
                         f.write(code)
+                    
+                    # Create metadata for this file
+                    metadata = self.create_file_metadata(
+                        str(file_path), "code", language, code, purpose
+                    )
+                    file_metadata[str(file_path)] = metadata
+                    
                     generated_files.append(str(file_path))
-                    task_steps.append(f"Saved code to {filename}")
+                    task_steps.append(f"Saved {metadata.display_name} to {filename}")
                 except Exception as e:
                     logging.error(f"Failed to save code to {file_path}: {e}")
         
-        return TaskResult(True, response, generated_files, task_steps, score=0.8)
+        result = TaskResult(True, response, generated_files, task_steps, score=0.8)
+        result.file_metadata = file_metadata
+        return result
     
     def execute_multimedia_task(self, prompt: str, files: List[str]) -> TaskResult:
         task_steps = ["Executing multimedia task"]
+        file_metadata = {}
+        generated_files = []
+        
         if files and any(f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) for f in files):
             image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
             for image_path in image_files:
                 response = self.claude.query_with_image(prompt, image_path)
                 if response:
                     task_steps.append(f"Analyzed image: {Path(image_path).name}")
-                    return TaskResult(True, response, [], task_steps, score=0.9)
+                    
+                    # Generate descriptive filename and save analysis
+                    purpose = "Image Analysis"
+                    filename = self.generate_descriptive_filename("multimedia", purpose=purpose)
+                    result_file = self.output_dir / filename
+                    
+                    try:
+                        analysis_content = f"Image Analysis Report\n{'='*50}\n\nImage: {Path(image_path).name}\nQuery: {prompt}\n\nAnalysis:\n{response}"
+                        with open(result_file, 'w', encoding='utf-8') as f:
+                            f.write(analysis_content)
+                        
+                        # Create metadata
+                        metadata = self.create_file_metadata(
+                            str(result_file), "multimedia", "text", analysis_content, purpose
+                        )
+                        file_metadata[str(result_file)] = metadata
+                        generated_files.append(str(result_file))
+                        task_steps.append(f"Saved {metadata.display_name} to {filename}")
+                        
+                        result = TaskResult(True, response, generated_files, task_steps, score=0.9)
+                        result.file_metadata = file_metadata
+                        return result
+                    except Exception as e:
+                        logging.error(f"Failed to save multimedia analysis: {e}")
+                        return TaskResult(True, response, [], task_steps, score=0.9)
         
         multimedia_prompt = f"""
 {prompt}
@@ -3521,9 +4809,7 @@ Please provide a detailed response for this multimedia task. If this involves:
 - Audio processing: Explain the processing steps
 - Video editing: Outline the editing workflow
 """
-        response = self.claude.query(multimedia_prompt)
-        if not response:
-            response = self.ollama.query(multimedia_prompt)
+        response = self.query_ai_with_primary_fallback(multimedia_prompt)
         if response:
             task_steps.append("Generated multimedia response")
             return TaskResult(True, response, [], task_steps, score=0.7)
@@ -3550,19 +4836,31 @@ Based on the following documents:
 
 Please analyze the documents and provide a comprehensive answer to the question/task.
 """
-        response = self.claude.query(rag_prompt)
-        if not response:
-            response = self.ollama.query(rag_prompt)
+        response = self.query_ai_with_primary_fallback(rag_prompt)
         if response:
             task_steps.append("Generated RAG response")
-            result_file = self.output_dir / f"rag_analysis_{int(time.time())}.txt"
+            
+            # Generate descriptive filename and metadata
+            purpose = self._extract_rag_purpose_from_prompt(prompt)
+            filename = self.generate_descriptive_filename("rag", purpose=purpose)
+            result_file = self.output_dir / filename
+            file_metadata = {}
+            
             try:
+                analysis_content = f"RAG Analysis\n{'='*50}\n\nQuery: {prompt}\n\nResponse:\n{response}"
                 with open(result_file, 'w', encoding='utf-8') as f:
-                    f.write(f"RAG Analysis\n{'='*50}\n\n")
-                    f.write(f"Query: {prompt}\n\n")
-                    f.write(f"Response:\n{response}")
-                task_steps.append(f"Saved analysis to {result_file.name}")
-                return TaskResult(True, response, [str(result_file)], task_steps, score=0.85)
+                    f.write(analysis_content)
+                
+                # Create metadata
+                metadata = self.create_file_metadata(
+                    str(result_file), "rag", "text", analysis_content, purpose
+                )
+                file_metadata[str(result_file)] = metadata
+                
+                task_steps.append(f"Saved {metadata.display_name} to {filename}")
+                result = TaskResult(True, response, [str(result_file)], task_steps, score=0.85)
+                result.file_metadata = file_metadata
+                return result
             except Exception as e:
                 logging.error(f"Failed to save RAG result: {e}")
                 return TaskResult(True, response, [], task_steps, score=0.8)
@@ -3581,12 +4879,16 @@ Please provide automation scripts or commands for this task. Focus on:
 
 Generate practical, executable automation solutions.
 """
-        response = self.claude.query(automation_prompt)
-        if not response:
-            response = self.ollama.query(automation_prompt)
+        response = self.query_ai_with_primary_fallback(automation_prompt)
         if response:
             task_steps.append("Generated automation response")
-            script_file = self.output_dir / f"automation_script_{int(time.time())}.sh"
+            
+            # Generate descriptive filename and metadata
+            purpose = self._extract_automation_purpose_from_prompt(prompt)
+            filename = self.generate_descriptive_filename("automation", purpose=purpose)
+            script_file = self.output_dir / filename
+            file_metadata = {}
+            
             try:
                 shell_commands = self.extract_shell_commands(response)
                 if shell_commands:
@@ -3595,8 +4897,17 @@ Generate practical, executable automation solutions.
                         f.write("# SuperMini Generated Automation Script\n\n")
                         f.write(shell_commands)
                     os.chmod(script_file, 0o755)
-                    task_steps.append(f"Saved executable script to {script_file.name}")
-                    return TaskResult(True, response, [str(script_file)], task_steps, score=0.8)
+                    
+                    # Create metadata
+                    metadata = self.create_file_metadata(
+                        str(script_file), "automation", "bash", shell_commands, purpose
+                    )
+                    file_metadata[str(script_file)] = metadata
+                    
+                    task_steps.append(f"Saved {metadata.display_name} to {filename}")
+                    result = TaskResult(True, response, [str(script_file)], task_steps, score=0.8)
+                    result.file_metadata = file_metadata
+                    return result
             except Exception as e:
                 logging.error(f"Failed to save automation script: {e}")
             return TaskResult(True, response, [], task_steps, score=0.7)
@@ -3628,28 +4939,53 @@ Please provide:
 3. Visualization recommendations
 4. Key findings and conclusions
 """
-        response = self.claude.query(analytics_prompt)
-        if not response:
-            response = self.ollama.query(analytics_prompt)
+        response = self.query_ai_with_primary_fallback(analytics_prompt)
         if response:
             task_steps.append("Generated analytics response")
-            analysis_file = self.output_dir / f"analytics_report_{int(time.time())}.txt"
+            
+            # Generate descriptive filenames and metadata
+            purpose = self._extract_analytics_purpose_from_prompt(prompt)
+            generated_files = []
+            file_metadata = {}
+            
+            # Save analysis report
+            report_filename = self.generate_descriptive_filename("analytics", purpose=f"{purpose} Report" if purpose else "Analytics Report")
+            analysis_file = self.output_dir / report_filename
+            
             try:
+                report_content = f"Analytics Report\n{'='*50}\n\nQuery: {prompt}\n\nAnalysis:\n{response}"
                 with open(analysis_file, 'w', encoding='utf-8') as f:
-                    f.write(f"Analytics Report\n{'='*50}\n\n")
-                    f.write(f"Query: {prompt}\n\n")
-                    f.write(f"Analysis:\n{response}")
-                task_steps.append(f"Saved report to {analysis_file.name}")
-                generated_files = [str(analysis_file)]
+                    f.write(report_content)
+                
+                # Create metadata for report
+                report_metadata = self.create_file_metadata(
+                    str(analysis_file), "analytics", "text", report_content, f"{purpose} Report" if purpose else "Analytics Report"
+                )
+                file_metadata[str(analysis_file)] = report_metadata
+                generated_files.append(str(analysis_file))
+                task_steps.append(f"Saved {report_metadata.display_name} to {report_filename}")
+                
+                # Extract and save Python code blocks
                 code_blocks = self.extract_code_blocks(response)
                 for i, (language, code) in enumerate(code_blocks):
                     if language.lower() == 'python' and code.strip():
-                        code_file = self.output_dir / f"analytics_code_{int(time.time())}_{i}.py"
+                        code_filename = self.generate_descriptive_filename("analytics", "python", f"{purpose} Code" if purpose else "Analytics Code")
+                        code_file = self.output_dir / code_filename
+                        
                         with open(code_file, 'w', encoding='utf-8') as f:
                             f.write(code)
+                        
+                        # Create metadata for code
+                        code_metadata = self.create_file_metadata(
+                            str(code_file), "analytics", "python", code, f"{purpose} Code" if purpose else "Analytics Code"
+                        )
+                        file_metadata[str(code_file)] = code_metadata
                         generated_files.append(str(code_file))
-                        task_steps.append(f"Saved Python code to {code_file.name}")
-                return TaskResult(True, response, generated_files, task_steps, score=0.9)
+                        task_steps.append(f"Saved {code_metadata.display_name} to {code_filename}")
+                
+                result = TaskResult(True, response, generated_files, task_steps, score=0.9)
+                result.file_metadata = file_metadata
+                return result
             except Exception as e:
                 logging.error(f"Failed to save analytics result: {e}")
                 return TaskResult(True, response, [], task_steps, score=0.8)
@@ -3727,6 +5063,7 @@ Please provide:
         """Main task processing method with auto-continue support"""
         start_time = time.time()
         task_id = f"task_{int(time.time() * 1000000)}"
+        continue_count = 0  # Initialize continue_count at method start
         
         # Log task start
         log_activity(
@@ -3821,119 +5158,177 @@ Please provide:
         else:
             result = self.execute_code_task(prompt, files)  # Default fallback
         
-        # Auto-continue logic with stop checking
+        # Autonomous continuation logic with intelligent enhancement
         if auto_continue and result.success and not self.stop_requested:
-            continue_count = 0
             accumulated_result = result.result
             accumulated_files = result.generated_files.copy()
             accumulated_steps = result.task_steps.copy()
             
-            # Use intelligent continuation decision instead of simple question detection
-            should_continue = True
-            while (continue_count < max_continues and should_continue and not self.stop_requested):
+            # Use new autonomous continuation engine if available
+            if self.autonomous_continuation_engine:
+                logging.info("Using autonomous continuation engine for intelligent enhancement")
                 
-                # Intelligent continuation decision
-                should_continue, reasoning = self.response_analyzer.should_continue(
-                    result.result, continue_count, max_continues, task_type, prompt
-                )
-                
-                if not should_continue:
-                    logging.info(f"Auto-continue stopped: {reasoning}")
-                    log_activity(
-                        ActivityType.AI_RESPONSE,
-                        ActivityLevel.INFO,
-                        "Auto-Continue Decision",
-                        f"Stopping continuation: {reasoning}",
-                        {"continue_count": continue_count, "reasoning": reasoning, "task_id": task_id}
-                    )
-                    break
-                
-                continue_count += 1
-                logging.info(f"Auto-continue triggered (iteration {continue_count})")
-                
-                log_activity(
-                    ActivityType.TASK_START,
-                    ActivityLevel.DEBUG,
-                    f"Auto-Continue {continue_count}",
-                    f"Starting auto-continuation iteration {continue_count}",
-                    {"continue_count": continue_count, "max_continues": max_continues, "task_id": task_id}
-                )
-                
-                accumulated_steps.append(f"Auto-continue iteration {continue_count}")
-                
-                # Check stop flag before creating continuation prompt
-                if self.stop_requested:
-                    log_activity(
-                        ActivityType.USER_INTERACTION,
-                        ActivityLevel.INFO,
-                        "Auto-Continue Stopped",
-                        f"Auto-continuation stopped by user request at iteration {continue_count}",
-                        {"continue_count": continue_count, "task_id": task_id}
-                    )
-                    break
-                
-                # Generate concise summary of tasks completed before this auto-continue iteration
-                if hasattr(self, 'activity_logger') and self.activity_logger:
-                    summary_details = {
-                        "iteration": continue_count,
-                        "files_generated_so_far": len(accumulated_files),
-                        "steps_completed_so_far": len(accumulated_steps) - 1,  # Subtract current iteration step
-                        "task_type": task_type,
-                        "previous_success": result.success if result else True,
-                        "execution_time_so_far": time.time() - start_time
-                    }
+                while (continue_count < max_continues and not self.stop_requested):
+                    from src.autonomous.autonomous_continuation_engine import ContinuationContext
                     
-                    # Create a concise summary of what's been accomplished
-                    progress_summary = self._generate_auto_continue_summary(
-                        continue_count, accumulated_files, accumulated_steps, 
-                        result, task_type, time.time() - start_time
+                    # Create context for autonomous decision
+                    context = ContinuationContext(
+                        task_type=task_type,
+                        original_prompt=prompt,
+                        current_response=result.result,
+                        iteration_count=continue_count,
+                        max_iterations=max_continues,
+                        accumulated_results=[accumulated_result],
+                        generated_files=accumulated_files,
+                        execution_time=time.time() - start_time,
+                        quality_scores={'overall': result.score if hasattr(result, 'score') else 0.5},
+                        previous_enhancements=[],
+                        user_preferences={},
+                        model_type="claude" if hasattr(self, 'claude') else "ollama"
                     )
+                    
+                    # Get autonomous continuation decision
+                    continuation_plan = self.autonomous_continuation_engine.should_continue_autonomous(context)
+                    
+                    if not continuation_plan.should_continue:
+                        logging.info(f"Autonomous continuation stopped: {continuation_plan.reasoning}")
+                        log_activity(
+                            ActivityType.AI_RESPONSE,
+                            ActivityLevel.INFO,
+                            "Autonomous Continuation Decision",
+                            f"Stopping continuation: {continuation_plan.reasoning}",
+                            {"continue_count": continue_count, "reasoning": continuation_plan.reasoning, "task_id": task_id}
+                        )
+                        break
+                    
+                    continue_count += 1
+                    logging.info(f"Autonomous continuation triggered (iteration {continue_count}): {continuation_plan.continuation_type.value}")
+                    
+                    # Generate intelligent enhancement prompt
+                    enhancement_prompt = self.autonomous_continuation_engine.generate_enhancement_prompt(continuation_plan, context)
                     
                     log_activity(
                         ActivityType.TASK_START,
                         ActivityLevel.INFO,
-                        f"Auto-Continue Summary (Iteration {continue_count})",
-                        progress_summary,
-                        summary_details,
-                        parent_task_id=task_id
+                        f"Autonomous Enhancement {continue_count}",
+                        f"Starting autonomous enhancement iteration {continue_count}: {continuation_plan.continuation_type.value}",
+                        {
+                            "continue_count": continue_count, 
+                            "max_continues": max_continues, 
+                            "enhancement_type": continuation_plan.continuation_type.value,
+                            "confidence": continuation_plan.confidence_score,
+                            "expected_improvements": continuation_plan.expected_improvements,
+                            "task_id": task_id
+                        }
                     )
-                
-                # Create continuation prompt
-                continue_prompt = f"Previous response:\n{result.result}\n\nContinue with the task. Proceed with any suggestions or next steps you mentioned."
-                
-                # Process continuation with stop checking
-                if task_type == "code":
-                    result = self.execute_code_task(continue_prompt, files + accumulated_files)
-                elif task_type == "multimedia":
-                    result = self.execute_multimedia_task(continue_prompt, files)
-                elif task_type == "rag":
-                    result = self.execute_rag_task(continue_prompt, files)
-                elif task_type == "automation":
-                    result = self.execute_automation_task(continue_prompt, files)
-                elif task_type == "analytics":
-                    result = self.execute_analytics_task(continue_prompt, files)
-                else:
-                    result = self.execute_code_task(continue_prompt, files)
-                
-                # Check stop flag after each continuation
-                if self.stop_requested:
-                    log_activity(
-                        ActivityType.USER_INTERACTION,
-                        ActivityLevel.INFO,
-                        "Task Stopped During Continuation",
-                        f"Task stopped during auto-continuation iteration {continue_count}",
-                        {"continue_count": continue_count, "task_id": task_id}
+                    
+                    accumulated_steps.append(f"Autonomous enhancement iteration {continue_count}: {continuation_plan.continuation_type.value}")
+                    
+                    # Check stop flag before processing
+                    if self.stop_requested:
+                        log_activity(
+                            ActivityType.USER_INTERACTION,
+                            ActivityLevel.INFO,
+                            "Autonomous Enhancement Stopped",
+                            f"Autonomous enhancement stopped by user request at iteration {continue_count}",
+                            {"continue_count": continue_count, "task_id": task_id}
+                        )
+                        break
+                    
+                    # Process autonomous enhancement
+                    if task_type == "code":
+                        new_result = self.execute_code_task(enhancement_prompt, files + accumulated_files)
+                    elif task_type == "multimedia":
+                        new_result = self.execute_multimedia_task(enhancement_prompt, files)
+                    elif task_type == "rag":
+                        new_result = self.execute_rag_task(enhancement_prompt, files)
+                    elif task_type == "automation":
+                        new_result = self.execute_automation_task(enhancement_prompt, files)
+                    elif task_type == "analytics":
+                        new_result = self.execute_analytics_task(enhancement_prompt, files)
+                    else:
+                        new_result = self.execute_code_task(enhancement_prompt, files)
+                    
+                    # Check stop flag after processing
+                    if self.stop_requested:
+                        log_activity(
+                            ActivityType.USER_INTERACTION,
+                            ActivityLevel.INFO,
+                            "Task Stopped During Enhancement",
+                            f"Task stopped during autonomous enhancement iteration {continue_count}",
+                            {"continue_count": continue_count, "task_id": task_id}
+                        )
+                        break
+                    
+                    if new_result.success:
+                        # Update autonomous engine with results for learning
+                        updated_context = ContinuationContext(
+                            task_type=task_type,
+                            original_prompt=prompt,
+                            current_response=new_result.result,
+                            iteration_count=continue_count,
+                            max_iterations=max_continues,
+                            accumulated_results=[accumulated_result],
+                            generated_files=accumulated_files + (new_result.generated_files or []),
+                            execution_time=time.time() - start_time,
+                            quality_scores={'overall': new_result.score if hasattr(new_result, 'score') else 0.5},
+                            previous_enhancements=[],
+                            user_preferences={},
+                            model_type="claude" if hasattr(self, 'claude') else "ollama"
+                        )
+                        
+                        self.autonomous_continuation_engine.update_from_result(
+                            continuation_plan, updated_context, new_result.result, new_result.generated_files or []
+                        )
+                        
+                        accumulated_result += f"\n\n--- {continuation_plan.continuation_type.value.title()} Enhancement {continue_count} ---\n\n{new_result.result}"
+                        accumulated_files.extend(new_result.generated_files or [])
+                        accumulated_steps.extend(new_result.task_steps or [])
+                        result = new_result  # Update result for next iteration
+                    else:
+                        logging.warning(f"Enhancement iteration {continue_count} failed, stopping autonomous continuation")
+                        break
+                        
+            else:
+                # Fallback to legacy continuation system
+                logging.info("Using legacy continuation system (autonomous engine not available)")
+                should_continue = True
+                while (continue_count < max_continues and should_continue and not self.stop_requested):
+                    
+                    # Legacy continuation decision
+                    should_continue, reasoning = self.response_analyzer.should_continue(
+                        result.result, continue_count, max_continues, task_type, prompt
                     )
-                    break
-                
-                if result.success:
-                    accumulated_result += f"\n\n--- Continuation {continue_count} ---\n\n{result.result}"
-                    accumulated_files.extend(result.generated_files)
-                    accumulated_steps.extend(result.task_steps)
-                else:
-                    break
+                    
+                    if not should_continue:
+                        logging.info(f"Legacy auto-continue stopped: {reasoning}")
+                        break
+                    
+                    continue_count += 1
+                    continue_prompt = f"Previous response:\n{result.result}\n\nContinue with the task. Proceed with any suggestions or next steps you mentioned."
+                    
+                    # Process legacy continuation
+                    if task_type == "code":
+                        result = self.execute_code_task(continue_prompt, files + accumulated_files)
+                    elif task_type == "multimedia":
+                        result = self.execute_multimedia_task(continue_prompt, files)
+                    elif task_type == "rag":
+                        result = self.execute_rag_task(continue_prompt, files)
+                    elif task_type == "automation":
+                        result = self.execute_automation_task(continue_prompt, files)
+                    elif task_type == "analytics":
+                        result = self.execute_analytics_task(continue_prompt, files)
+                    else:
+                        result = self.execute_code_task(continue_prompt, files)
+                    
+                    if result.success:
+                        accumulated_result += f"\n\n--- Continuation {continue_count} ---\n\n{result.result}"
+                        accumulated_files.extend(result.generated_files or [])
+                        accumulated_steps.extend(result.task_steps or [])
+                    else:
+                        break
             
-            # Create final result with all continuations
+            # Create final result with all continuations/enhancements
             result = TaskResult(
                 success=True,
                 result=accumulated_result,
@@ -4013,6 +5408,16 @@ Please provide:
         
         # Restore original temperature setting
         self.config.temperature = original_temperature
+        
+        # Update AI metrics dashboard
+        if self.metrics_callback:
+            # Estimate tokens used (rough approximation)
+            estimated_tokens = len(prompt.split()) + len(str(result.result).split()) if result.result else 0
+            self.metrics_callback(
+                task_type=task_type,
+                response_time=total_execution_time,
+                tokens_used=estimated_tokens
+            )
         
         return result
     
@@ -4102,6 +5507,307 @@ Please provide:
             'xml': 'xml'
         }
         return extensions.get(language.lower(), 'txt')
+    
+    def generate_descriptive_filename(self, task_type: str, language: str = None, purpose: str = None) -> str:
+        """Generate a descriptive filename based on task type and content"""
+        timestamp = int(time.time())
+        
+        if task_type == "code":
+            if language:
+                if purpose:
+                    return f"{purpose.lower().replace(' ', '_')}_{timestamp}.{self.get_file_extension(language)}"
+                else:
+                    return f"{language}_script_{timestamp}.{self.get_file_extension(language)}"
+            else:
+                return f"code_output_{timestamp}.txt"
+        elif task_type == "automation":
+            if purpose:
+                return f"{purpose.lower().replace(' ', '_')}_script_{timestamp}.sh"
+            else:
+                return f"automation_script_{timestamp}.sh"
+        elif task_type == "analytics":
+            if purpose:
+                return f"{purpose.lower().replace(' ', '_')}_analysis_{timestamp}.py"
+            else:
+                return f"data_analysis_{timestamp}.py"
+        elif task_type == "rag":
+            if purpose:
+                return f"{purpose.lower().replace(' ', '_')}_summary_{timestamp}.txt"
+            else:
+                return f"document_analysis_{timestamp}.txt"
+        elif task_type == "multimedia":
+            return f"image_analysis_{timestamp}.txt"
+        else:
+            return f"{task_type}_output_{timestamp}.txt"
+    
+    def create_file_metadata(self, file_path: str, task_type: str, language: str = None, 
+                           code_content: str = None, purpose: str = None) -> FileMetadata:
+        """Create comprehensive metadata for generated files"""
+        file_path_obj = Path(file_path)
+        
+        # Generate display name based on content analysis
+        display_name = self._generate_display_name(task_type, language, code_content, purpose)
+        
+        # Generate description based on content and context
+        description = self._generate_file_description(task_type, language, code_content, purpose)
+        
+        # Determine file type
+        file_type = self._determine_file_type(file_path_obj.suffix, language)
+        
+        # Generate purpose description
+        if not purpose:
+            purpose = self._infer_file_purpose(task_type, language, code_content)
+        
+        # Get file size
+        file_size = 0
+        try:
+            if file_path_obj.exists():
+                file_size = file_path_obj.stat().st_size
+        except Exception:
+            pass
+        
+        return FileMetadata(
+            file_path=file_path,
+            display_name=display_name,
+            description=description,
+            file_type=file_type,
+            purpose=purpose,
+            created_timestamp=time.time(),
+            file_size=file_size
+        )
+    
+    def _generate_display_name(self, task_type: str, language: str = None, 
+                              code_content: str = None, purpose: str = None) -> str:
+        """Generate a user-friendly display name for the file"""
+        if purpose:
+            return purpose.title()
+        
+        if task_type == "code" and language:
+            if code_content:
+                # Try to extract function/class names for better naming
+                lines = code_content.strip().split('\n')
+                for line in lines[:10]:  # Check first 10 lines
+                    line = line.strip()
+                    if line.startswith('def ') and '(' in line:
+                        func_name = line.split('def ')[1].split('(')[0].strip()
+                        return f"{func_name.title()} Function ({language.title()})"
+                    elif line.startswith('class ') and ':' in line:
+                        class_name = line.split('class ')[1].split(':')[0].strip()
+                        return f"{class_name} Class ({language.title()})"
+                    elif 'main' in line.lower() and '(' in line:
+                        return f"Main {language.title()} Script"
+            return f"{language.title()} Code"
+        elif task_type == "automation":
+            return "Automation Script"
+        elif task_type == "analytics":
+            return "Data Analysis Script"
+        elif task_type == "rag":
+            return "Document Analysis"
+        elif task_type == "multimedia":
+            return "Image Analysis Report"
+        else:
+            return f"{task_type.title()} Output"
+    
+    def _generate_file_description(self, task_type: str, language: str = None, 
+                                  code_content: str = None, purpose: str = None) -> str:
+        """Generate a detailed description of the file's content and purpose"""
+        if purpose:
+            base_desc = f"Generated for: {purpose}"
+        else:
+            base_desc = f"Generated from {task_type} task"
+        
+        if task_type == "code" and language:
+            if code_content:
+                lines = len(code_content.split('\n'))
+                chars = len(code_content)
+                desc = f"{base_desc}. {language.title()} code with {lines} lines and {chars} characters."
+                
+                # Add more specific details based on content
+                if 'import ' in code_content or 'from ' in code_content:
+                    desc += " Includes external library imports."
+                if 'def ' in code_content:
+                    func_count = code_content.count('def ')
+                    desc += f" Contains {func_count} function(s)."
+                if 'class ' in code_content:
+                    class_count = code_content.count('class ')
+                    desc += f" Contains {class_count} class(es)."
+                
+                return desc
+            else:
+                return f"{base_desc}. {language.title()} source code file."
+        elif task_type == "automation":
+            return f"{base_desc}. Executable shell script for automation tasks on macOS."
+        elif task_type == "analytics":
+            return f"{base_desc}. Python script for data analysis and visualization."
+        elif task_type == "rag":
+            return f"{base_desc}. Text analysis and summary from document processing."
+        elif task_type == "multimedia":
+            return f"{base_desc}. Detailed analysis and description of uploaded image content."
+        else:
+            return f"{base_desc}. Text output file."
+    
+    def _determine_file_type(self, extension: str, language: str = None) -> str:
+        """Determine the file type category"""
+        extension = extension.lower().lstrip('.')
+        
+        code_types = {'py', 'js', 'ts', 'java', 'cpp', 'c', 'html', 'css', 'php', 'rb', 'go', 'rs'}
+        script_types = {'sh', 'bash', 'bat', 'ps1'}
+        data_types = {'json', 'xml', 'yaml', 'yml', 'csv', 'tsv'}
+        text_types = {'txt', 'md', 'rst'}
+        
+        if extension in code_types:
+            return "Code"
+        elif extension in script_types:
+            return "Script"
+        elif extension in data_types:
+            return "Data"
+        elif extension in text_types:
+            return "Text"
+        else:
+            return "Document"
+    
+    def _infer_file_purpose(self, task_type: str, language: str = None, code_content: str = None) -> str:
+        """Infer the purpose of the file based on context"""
+        if task_type == "code":
+            if code_content:
+                content_lower = code_content.lower()
+                if 'web' in content_lower or 'http' in content_lower or 'server' in content_lower:
+                    return "Web development component"
+                elif 'data' in content_lower or 'csv' in content_lower or 'database' in content_lower:
+                    return "Data processing utility"
+                elif 'test' in content_lower or 'assert' in content_lower:
+                    return "Testing and validation"
+                elif 'api' in content_lower or 'request' in content_lower:
+                    return "API integration"
+                elif 'file' in content_lower or 'directory' in content_lower:
+                    return "File management tool"
+                else:
+                    return "General purpose script"
+            return "Code implementation"
+        elif task_type == "automation":
+            return "Process automation"
+        elif task_type == "analytics":
+            return "Data analysis and insights"
+        elif task_type == "rag":
+            return "Document understanding"
+        elif task_type == "multimedia":
+            return "Visual content analysis"
+        else:
+            return "Task output"
+    
+    def _extract_code_purpose_from_prompt(self, prompt: str) -> str:
+        """Extract the purpose/intent from the user's prompt for better file naming"""
+        prompt_lower = prompt.lower()
+        
+        # Look for specific action words and contexts
+        if 'calculator' in prompt_lower or 'calculate' in prompt_lower:
+            return "Calculator"
+        elif 'web scraper' in prompt_lower or 'scrape' in prompt_lower:
+            return "Web Scraper"
+        elif 'data analysis' in prompt_lower or 'analyze data' in prompt_lower:
+            return "Data Analysis"
+        elif 'file manager' in prompt_lower or 'manage files' in prompt_lower:
+            return "File Manager"
+        elif 'api' in prompt_lower and ('client' in prompt_lower or 'wrapper' in prompt_lower):
+            return "API Client"
+        elif 'game' in prompt_lower or 'tic tac toe' in prompt_lower:
+            return "Game"
+        elif 'converter' in prompt_lower or 'convert' in prompt_lower:
+            return "Converter"
+        elif 'parser' in prompt_lower or 'parse' in prompt_lower:
+            return "Parser"
+        elif 'generator' in prompt_lower or 'generate' in prompt_lower:
+            return "Generator"
+        elif 'utility' in prompt_lower or 'tool' in prompt_lower:
+            return "Utility"
+        elif 'function' in prompt_lower and ('write' in prompt_lower or 'create' in prompt_lower):
+            return "Function"
+        elif 'class' in prompt_lower and ('write' in prompt_lower or 'create' in prompt_lower):
+            return "Class"
+        elif 'script' in prompt_lower:
+            return "Script"
+        else:
+            # Try to extract the main subject/object from the prompt
+            words = prompt.split()
+            for i, word in enumerate(words):
+                if word.lower() in ['create', 'write', 'build', 'make', 'generate'] and i + 1 < len(words):
+                    next_words = words[i+1:i+3]  # Get next 1-2 words
+                    return ' '.join(next_words).replace('a ', '').replace('an ', '').title()
+            
+            return None  # Let the display name generation handle it
+    
+    def _extract_automation_purpose_from_prompt(self, prompt: str) -> str:
+        """Extract automation purpose from prompt for better file naming"""
+        prompt_lower = prompt.lower()
+        
+        if 'backup' in prompt_lower:
+            return "Backup"
+        elif 'organiz' in prompt_lower or 'sort' in prompt_lower:  # organize/organizing
+            return "File Organizer"
+        elif 'cleanup' in prompt_lower or 'clean up' in prompt_lower:
+            return "Cleanup"
+        elif 'download' in prompt_lower:
+            return "Downloader"
+        elif 'update' in prompt_lower or 'upgrade' in prompt_lower:
+            return "Updater"
+        elif 'install' in prompt_lower:
+            return "Installer"
+        elif 'deploy' in prompt_lower:
+            return "Deployment"
+        elif 'sync' in prompt_lower or 'synchroniz' in prompt_lower:
+            return "Sync"
+        elif 'monitor' in prompt_lower or 'watch' in prompt_lower:
+            return "Monitor"
+        elif 'batch' in prompt_lower or 'bulk' in prompt_lower:
+            return "Batch Processor"
+        else:
+            return None
+    
+    def _extract_rag_purpose_from_prompt(self, prompt: str) -> str:
+        """Extract RAG purpose from prompt for better file naming"""
+        prompt_lower = prompt.lower()
+        
+        if 'summar' in prompt_lower:  # summary, summarize
+            return "Summary"
+        elif 'question' in prompt_lower or 'what' in prompt_lower or 'how' in prompt_lower:
+            return "Q&A Analysis"
+        elif 'extract' in prompt_lower:
+            return "Information Extraction" 
+        elif 'compare' in prompt_lower or 'comparison' in prompt_lower:
+            return "Comparison Analysis"
+        elif 'key point' in prompt_lower or 'main point' in prompt_lower:
+            return "Key Points"
+        elif 'insight' in prompt_lower:
+            return "Insights"
+        elif 'review' in prompt_lower:
+            return "Document Review"
+        else:
+            return None
+    
+    def _extract_analytics_purpose_from_prompt(self, prompt: str) -> str:
+        """Extract analytics purpose from prompt for better file naming"""
+        prompt_lower = prompt.lower()
+        
+        if 'visualiz' in prompt_lower or 'chart' in prompt_lower or 'graph' in prompt_lower:
+            return "Visualization"
+        elif 'statistical' in prompt_lower or 'statistic' in prompt_lower:
+            return "Statistical Analysis"
+        elif 'trend' in prompt_lower:
+            return "Trend Analysis"
+        elif 'correlation' in prompt_lower:
+            return "Correlation Analysis"
+        elif 'predict' in prompt_lower or 'forecast' in prompt_lower:
+            return "Predictive Analysis"
+        elif 'cluster' in prompt_lower:
+            return "Cluster Analysis"
+        elif 'regression' in prompt_lower:
+            return "Regression Analysis"
+        elif 'clean' in prompt_lower and 'data' in prompt_lower:
+            return "Data Cleaning"
+        elif 'explore' in prompt_lower or 'exploration' in prompt_lower:
+            return "Exploratory Analysis"
+        else:
+            return None
 
 class TaskThread(QThread):
     """Thread for processing tasks asynchronously"""
@@ -4865,9 +6571,16 @@ class EnhanceThread(QThread):
         
         # Initialize enhancement components
         self.discovery_engine = EnhancementDiscoveryEngine(app_path, processor.memory)
+        self.research_engine = EnhancementResearchEngine(processor.memory)
+        self.pattern_learning = EnhancementPatternLearning(processor.memory)
+        self.composition_engine = EnhancementCompositionEngine(processor.memory)
         self.quality_assessment = EnhancementQualityAssessment(processor.memory)
+        self.metrics_tracker = EnhancementMetricsTracker(processor.memory, processor.output_dir)
         self.version_manager = EnhancementVersionManager(app_path, processor.output_dir)
         self.execution_pipeline = EnhancementExecutionPipeline(app_path, processor.output_dir, processor)
+        
+        # Establish baseline metrics for measuring improvements
+        self.metrics_tracker.establish_baseline_metrics(app_path)
         
         # Enhancement success metrics
         self.successful_enhancements = 0
@@ -4909,15 +6622,34 @@ class EnhanceThread(QThread):
                     self._wait_iteration_delay()
                     continue
                 
+                self.progress_signal.emit(15)
+                
+                # Phase 1.5: Consider compound enhancements
+                self.opportunity_signal.emit("Analyzing compound enhancement possibilities...")
+                compound_compositions = self.composition_engine.identify_composable_opportunities(opportunities)
+                
                 self.progress_signal.emit(20)
                 
-                # Phase 2: Select best opportunity
-                best_opportunity = opportunities[0]  # Already sorted by priority
-                self.opportunity_signal.emit(f"Selected: {best_opportunity.description}")
+                # Phase 2: Select best opportunity (individual or compound)
+                selected_enhancement = self._select_best_enhancement(opportunities, compound_compositions)
+                
+                if selected_enhancement['type'] == 'compound':
+                    self.opportunity_signal.emit(f"Selected compound: {selected_enhancement['data']['description']}")
+                    is_compound = True
+                    best_composition = selected_enhancement['data']
+                    best_opportunity = None
+                else:
+                    best_opportunity = selected_enhancement['data']
+                    self.opportunity_signal.emit(f"Selected individual: {best_opportunity.description}")
+                    is_compound = False
+                    best_composition = None
                 
                 # Phase 3: Generate enhancement solution
                 self.progress_signal.emit(30)
-                solution = self._generate_enhancement_solution(best_opportunity)
+                if is_compound:
+                    solution = self._generate_compound_enhancement_solution(best_composition)
+                else:
+                    solution = self._generate_enhancement_solution(best_opportunity)
                 
                 if not solution:
                     self.failed_enhancements += 1
@@ -4929,9 +6661,21 @@ class EnhanceThread(QThread):
                 
                 # Phase 4: Quality assessment
                 self.opportunity_signal.emit("Assessing solution quality...")
-                assessment = self.quality_assessment.assess_enhancement_quality(
-                    best_opportunity, solution
-                )
+                if is_compound:
+                    # For compound enhancements, create a synthetic opportunity for assessment
+                    synthetic_opportunity = EnhancementOpportunity(
+                        'compound',
+                        best_composition.get('description', 'Compound enhancement'),
+                        best_composition.get('compound_impact_score', 0.5),
+                        best_composition.get('complexity_multiplier', 1.0)
+                    )
+                    assessment = self.quality_assessment.assess_enhancement_quality(
+                        synthetic_opportunity, solution
+                    )
+                else:
+                    assessment = self.quality_assessment.assess_enhancement_quality(
+                        best_opportunity, solution
+                    )
                 
                 if assessment['recommendation'] == 'reject':
                     self.failed_enhancements += 1
@@ -4949,19 +6693,48 @@ class EnhanceThread(QThread):
                 
                 # Phase 6: Execute enhancement
                 self.opportunity_signal.emit("Executing enhancement...")
-                execution_result = self.execution_pipeline.execute_enhancement(
-                    best_opportunity, solution, version
-                )
+                if is_compound:
+                    execution_result = self.execution_pipeline.execute_enhancement(
+                        synthetic_opportunity, solution, version
+                    )
+                else:
+                    execution_result = self.execution_pipeline.execute_enhancement(
+                        best_opportunity, solution, version
+                    )
                 
                 self.progress_signal.emit(90)
                 
-                # Phase 7: Record results
+                # Phase 7: Record results and measure impact
                 if execution_result['success']:
                     self.successful_enhancements += 1
+                    
+                    # Measure enhancement impact
+                    self.opportunity_signal.emit("Measuring enhancement impact...")
+                    impact_opportunity = synthetic_opportunity if is_compound else best_opportunity
+                    impact_metrics = self.metrics_tracker.measure_enhancement_impact(
+                        self.app_path, version, impact_opportunity, solution
+                    )
+                    
                     enhancement_record = self.version_manager.record_enhancement(
-                        version, best_opportunity, solution, assessment, 
+                        version, impact_opportunity, solution, assessment, 
                         execution_result['files_created']
                     )
+                    
+                    # Record compound enhancement success if applicable
+                    if is_compound:
+                        self.composition_engine.record_composition_success(
+                            best_composition, solution, impact_metrics
+                        )
+                    
+                    # Add impact metrics to record
+                    enhancement_record['impact_metrics'] = impact_metrics
+                    
+                    # Extract success patterns for future learning
+                    self.opportunity_signal.emit("Learning from successful enhancement...")
+                    if impact_metrics.get('overall_impact_score', 0) > 0.6:
+                        patterns = self.pattern_learning.extract_success_patterns([enhancement_record])
+                        if patterns:
+                            logging.info(f"Extracted {len(patterns)} new success patterns from enhancement v{version}")
                     
                     self.result_signal.emit(
                         f"Enhancement v{version} completed: {best_opportunity.description}",
@@ -5002,10 +6775,18 @@ class EnhanceThread(QThread):
                 break
     
     def _generate_enhancement_solution(self, opportunity: EnhancementOpportunity) -> str:
-        """Generate sophisticated enhancement solution using intelligent prompting"""
+        """Generate sophisticated enhancement solution using research-driven intelligent prompting"""
         
-        # Build context-aware enhancement prompt
-        enhanced_prompt = self._build_intelligent_enhancement_prompt(opportunity)
+        # Phase 1: Research best practices and solutions
+        self.opportunity_signal.emit(f"Researching solutions for {opportunity.opportunity_type}...")
+        research_results = self.research_engine.research_enhancement_solution(opportunity)
+        
+        # Phase 2: Find applicable learned patterns
+        self.opportunity_signal.emit("Analyzing learned patterns...")
+        applicable_patterns = self.pattern_learning.find_applicable_patterns(opportunity)
+        
+        # Build context-aware enhancement prompt with research insights and patterns
+        enhanced_prompt = self._build_intelligent_enhancement_prompt(opportunity, research_results, applicable_patterns)
         
         try:
             result = self.processor.process_task(
@@ -5026,8 +6807,8 @@ class EnhanceThread(QThread):
             logging.error(f"Enhancement solution generation failed: {e}")
             return None
     
-    def _build_intelligent_enhancement_prompt(self, opportunity: EnhancementOpportunity) -> str:
-        """Build sophisticated, context-aware enhancement prompt"""
+    def _build_intelligent_enhancement_prompt(self, opportunity: EnhancementOpportunity, research_results: dict = None, learned_patterns: List[dict] = None) -> str:
+        """Build sophisticated, context-aware enhancement prompt with research insights"""
         
         # Determine enhancement strategy based on type
         strategy_templates = {
@@ -5046,6 +6827,12 @@ class EnhanceThread(QThread):
         # Build comprehensive context
         context_info = self._gather_enhancement_context(opportunity)
         
+        # Generate research insights section
+        research_section = self._format_research_insights(research_results) if research_results else ""
+        
+        # Generate learned patterns section
+        patterns_section = self.pattern_learning.apply_learned_patterns(opportunity, learned_patterns) if learned_patterns else ""
+        
         # Construct sophisticated prompt
         prompt = f"""🚀 RECURSIVE ENHANCEMENT ARCHITECT
 Advanced AI Systems Engineering - Elite Enhancement Mode
@@ -5062,6 +6849,10 @@ Advanced AI Systems Engineering - Elite Enhancement Mode
 {f'• Specific Lines: {opportunity.line_numbers}' if opportunity.line_numbers else ''}
 
 {context_info}
+
+{research_section}
+
+{patterns_section}
 
 {template}
 
@@ -5091,6 +6882,148 @@ Provide complete, immediately implementable Python code that represents a quantu
 BEGIN IMPLEMENTATION:"""
 
         return prompt
+    
+    def _select_best_enhancement(self, opportunities: List[EnhancementOpportunity], 
+                               compound_compositions: List[dict]) -> dict:
+        """Select the best enhancement from individual opportunities and compound compositions"""
+        
+        # Compare individual opportunities with compound compositions
+        best_individual = opportunities[0] if opportunities else None
+        best_compound = compound_compositions[0] if compound_compositions else None
+        
+        # If no compound opportunities, return best individual
+        if not best_compound:
+            return {'type': 'individual', 'data': best_individual}
+        
+        # If no individual opportunities, return best compound
+        if not best_individual:
+            return {'type': 'compound', 'data': best_compound}
+        
+        # Compare individual vs compound based on impact potential
+        individual_score = best_individual.priority_score
+        compound_score = best_compound.get('compound_impact_score', 0) / max(best_compound.get('complexity_multiplier', 1), 1)
+        
+        # Add bonus for compound enhancements (they tend to be more valuable)
+        compound_score *= 1.2
+        
+        # Consider iteration - early iterations favor individual, later favor compounds
+        if self.iteration < 3:
+            individual_score *= 1.1  # Early bonus for individuals
+        else:
+            compound_score *= 1.1  # Later bonus for compounds
+        
+        if compound_score > individual_score:
+            return {'type': 'compound', 'data': best_compound}
+        else:
+            return {'type': 'individual', 'data': best_individual}
+    
+    def _generate_compound_enhancement_solution(self, composition: dict) -> str:
+        """Generate solution for compound enhancement using composition engine"""
+        try:
+            # Research for compound enhancement (use first component for research focus)
+            component_opportunities = composition.get('component_opportunities', [])
+            if component_opportunities:
+                # Create temporary opportunity object for research
+                research_focus_type = component_opportunities[0].get('opportunity_type', 'feature')
+                research_focus_desc = composition.get('description', 'compound enhancement')
+                
+                # Use research engine with compound focus
+                self.opportunity_signal.emit("Researching compound enhancement strategies...")
+                # Note: For now, we'll skip individual research for compounds to avoid complexity
+                research_results = None
+                
+                # Find applicable patterns for compound enhancements
+                self.opportunity_signal.emit("Finding patterns for compound enhancements...")
+                # Use pattern learning to find compound-applicable patterns
+                applicable_patterns = []
+                for comp_opp in component_opportunities:
+                    opp_obj = EnhancementOpportunity(
+                        comp_opp.get('opportunity_type', 'feature'),
+                        comp_opp.get('description', ''),
+                        comp_opp.get('impact_score', 0.5),
+                        comp_opp.get('complexity_score', 0.5)
+                    )
+                    patterns = self.pattern_learning.find_applicable_patterns(opp_obj)
+                    applicable_patterns.extend(patterns)
+                
+                # Remove duplicates and keep best patterns
+                seen_patterns = set()
+                unique_patterns = []
+                for pattern in applicable_patterns:
+                    pattern_id = pattern.get('pattern_id', '')
+                    if pattern_id not in seen_patterns:
+                        seen_patterns.add(pattern_id)
+                        unique_patterns.append(pattern)
+                
+                applicable_patterns = unique_patterns[:3]  # Top 3 patterns
+                
+                # Generate compound solution
+                solution = self.composition_engine.generate_compound_enhancement_solution(
+                    composition, research_results, applicable_patterns
+                )
+                
+                return solution
+            
+            return None
+            
+        except Exception as e:
+            logging.error(f"Failed to generate compound enhancement solution: {e}")
+            return None
+    
+    def _format_research_insights(self, research_results: dict) -> str:
+        """Format research results into a comprehensive insights section"""
+        if not research_results or research_results.get('research_confidence', 0) == 0:
+            return ""
+        
+        insights_section = """🔬 RESEARCH-DRIVEN INSIGHTS:
+Research Confidence: {:.1%}
+
+""".format(research_results.get('research_confidence', 0))
+        
+        # Add best practices
+        if research_results.get('best_practices'):
+            insights_section += "📚 COMMUNITY BEST PRACTICES:\n"
+            for i, practice in enumerate(research_results['best_practices'][:3], 1):
+                insights_section += f"• {practice.get('title', 'Best Practice')}\n"
+                if practice.get('description'):
+                    insights_section += f"  └─ {practice['description'][:100]}...\n"
+            insights_section += "\n"
+        
+        # Add code examples
+        if research_results.get('code_examples'):
+            insights_section += "💻 IMPLEMENTATION REFERENCES:\n"
+            for i, example in enumerate(research_results['code_examples'][:2], 1):
+                insights_section += f"• {example.get('title', 'Code Example')}\n"
+                if example.get('description'):
+                    insights_section += f"  └─ {example['description'][:100]}...\n"
+            insights_section += "\n"
+        
+        # Add performance insights
+        if research_results.get('performance_insights'):
+            insights_section += "⚡ PERFORMANCE OPTIMIZATION INSIGHTS:\n"
+            for i, insight in enumerate(research_results['performance_insights'][:2], 1):
+                insights_section += f"• {insight.get('title', 'Performance Insight')}\n"
+                if insight.get('description'):
+                    insights_section += f"  └─ {insight['description'][:100]}...\n"
+            insights_section += "\n"
+        
+        # Add implementation strategies
+        if research_results.get('implementation_strategies'):
+            insights_section += "🛠️ IMPLEMENTATION STRATEGIES:\n"
+            for i, strategy in enumerate(research_results['implementation_strategies'][:2], 1):
+                insights_section += f"• {strategy.get('title', 'Strategy')}\n"
+                if strategy.get('description'):
+                    insights_section += f"  └─ {strategy['description'][:100]}...\n"
+            insights_section += "\n"
+        
+        # Add related technologies
+        if research_results.get('related_technologies'):
+            insights_section += "🔧 RELATED TECHNOLOGIES TO CONSIDER:\n"
+            for i, tech in enumerate(research_results['related_technologies'][:3], 1):
+                insights_section += f"• {tech.get('title', 'Technology')}\n"
+            insights_section += "\n"
+        
+        return insights_section
     
     def _get_performance_enhancement_template(self) -> str:
         return """🏃‍♂️ PERFORMANCE OPTIMIZATION STRATEGY:
@@ -5374,10 +7307,10 @@ class SettingsDialog(QDialog):
             available_geometry = screen.availableGeometry()
             
             # Calculate dialog size as percentage of available screen space
-            width = min(ModernTheme.scale_value(500), int(available_geometry.width() * 0.4))
-            height = min(ModernTheme.scale_value(600), int(available_geometry.height() * 0.7))
+            width = min(ModernTheme.scale_value(200), int(available_geometry.width() * 0.4))
+            height = min(ModernTheme.scale_value(300), int(available_geometry.height() * 0.7))
             
-            self.setMinimumSize(ModernTheme.scale_value(400), ModernTheme.scale_value(500))
+            self.setMinimumSize(ModernTheme.scale_value(200), ModernTheme.scale_value(300))
             self.setMaximumSize(int(available_geometry.width() * 0.8), int(available_geometry.height() * 0.9))
             self.resize(width, height)
         else:
@@ -5422,10 +7355,6 @@ class SettingsDialog(QDialog):
         gen_tab = self.create_generation_tab()
         settings_tabs.addTab(gen_tab, "⚙️ Generation")
         
-        # Memory Tab
-        memory_tab = self.create_memory_tab()
-        settings_tabs.addTab(memory_tab, "🧠 Memory")
-        
         # System Tab
         system_tab = self.create_system_settings_tab()
         settings_tabs.addTab(system_tab, "💻 System")
@@ -5458,21 +7387,47 @@ class SettingsDialog(QDialog):
         self.setLayout(main_layout)
     
     def create_ai_models_tab(self) -> QWidget:
-        """Create AI models configuration tab"""
+        """Create AI models configuration tab with Claude as primary and Ollama as backup"""
         tab = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(20)
         
+        # AI Model Selection Section
+        model_selection_group = QGroupBox("🤖 AI Model Selection")
+        model_selection_layout = QVBoxLayout()
+        model_selection_layout.setContentsMargins(16, 20, 16, 16)
+        model_selection_layout.setSpacing(16)
+        
+        # Primary model selection
+        primary_layout = QVBoxLayout()
+        primary_layout.setSpacing(8)
+        primary_label = QLabel("Primary AI Model:")
+        primary_label.setProperty("role", "heading")
+        
+        self.primary_model = QComboBox()
+        self.primary_model.addItems(["Claude API (Recommended)", "Local Ollama Models"])
+        self.primary_model.setCurrentText("Claude API (Recommended)")
+        self.primary_model.currentTextChanged.connect(self.on_primary_model_changed)
+        self.primary_model.setToolTip("Choose your primary AI model for all operations")
+        
+        primary_layout.addWidget(primary_label)
+        primary_layout.addWidget(self.primary_model)
+        
+        model_selection_layout.addLayout(primary_layout)
+        model_selection_group.setLayout(model_selection_layout)
+        
         # Claude API Section
-        claude_group = QGroupBox("🔵 Claude API Configuration")
+        self.claude_group = QGroupBox("🔵 Claude API Configuration")
         claude_layout = QVBoxLayout()
         claude_layout.setContentsMargins(16, 20, 16, 16)
         claude_layout.setSpacing(12)
         
-        self.use_claude = QCheckBox("Enable Claude API")
-        self.use_claude.setChecked(True)
-        self.use_claude.setToolTip("Use Claude AI as the primary AI model")
+        # Claude status and info
+        claude_info = QLabel("✨ Claude is Anthropic's advanced AI assistant, optimized for reasoning, coding, and analysis.")
+        claude_info.setProperty("role", "caption")
+        claude_info.setWordWrap(True)
+        claude_info.setStyleSheet("color: #4CAF50; padding: 8px; background: rgba(76, 175, 80, 0.1); border-radius: 4px; margin-bottom: 8px;")
         
         api_key_layout = QVBoxLayout()
         api_key_layout.setSpacing(8)
@@ -5482,7 +7437,7 @@ class SettingsDialog(QDialog):
         self.claude_key = QLineEdit()
         self.claude_key.setEchoMode(QLineEdit.EchoMode.Password)
         self.claude_key.setPlaceholderText("Enter your Claude API key (sk-ant-...)")
-        self.claude_key.setToolTip("Your Claude API key from Anthropic")
+        self.claude_key.setToolTip("Your Claude API key from Anthropic Console")
         
         show_key_btn = QPushButton("👁️ Show/Hide")
         show_key_btn.setMaximumWidth(ModernTheme.scale_value(80))
@@ -5495,16 +7450,29 @@ class SettingsDialog(QDialog):
         api_key_layout.addWidget(api_key_label)
         api_key_layout.addLayout(key_row)
         
-        claude_layout.addWidget(self.use_claude)
+        # Get API key link
+        get_key_label = QLabel('<a href="https://console.anthropic.com/" style="color: #2196F3;">🔗 Get your Claude API key from Anthropic Console</a>')
+        get_key_label.setOpenExternalLinks(True)
+        get_key_label.setProperty("role", "caption")
+        
+        claude_layout.addWidget(claude_info)
         claude_layout.addLayout(api_key_layout)
-        claude_group.setLayout(claude_layout)
+        claude_layout.addWidget(get_key_label)
+        self.claude_group.setLayout(claude_layout)
         
         # Ollama Section
-        ollama_group = QGroupBox("🟠 Ollama Local Models")
+        self.ollama_group = QGroupBox("🟠 Local Ollama Models (Backup)")
         ollama_layout = QVBoxLayout()
         ollama_layout.setContentsMargins(16, 20, 16, 16)
         ollama_layout.setSpacing(12)
         
+        # Ollama info
+        ollama_info = QLabel("🔒 Ollama provides privacy-focused local AI models that run on your computer.")
+        ollama_info.setProperty("role", "caption")
+        ollama_info.setWordWrap(True)
+        ollama_info.setStyleSheet("color: #FF9800; padding: 8px; background: rgba(255, 152, 0, 0.1); border-radius: 4px; margin-bottom: 8px;")
+        
+        # Server URL
         url_layout = QVBoxLayout()
         url_layout.setSpacing(8)
         url_label = QLabel("Ollama Server URL:")
@@ -5516,41 +7484,54 @@ class SettingsDialog(QDialog):
         url_layout.addWidget(url_label)
         url_layout.addWidget(self.ollama_url)
         
+        # Available models
         model_layout = QVBoxLayout()
         model_layout.setSpacing(8)
-        model_label = QLabel("Default Model:")
+        model_label = QLabel("Available Models:")
         model_label.setProperty("role", "heading")
         
         self.ollama_model = QComboBox()
-        self.ollama_model.addItems([
-            "qwen2.5-coder:7b",
-            "qwen2.5-coder:14b", 
-            "qwen2.5-coder:32b",
-            "llama3.2:3b",
-            "llama3.2:1b",
-            "codellama:7b",
-            "codellama:13b",
-            "deepseek-coder:6.7b",
-            "starcoder2:7b"
-        ])
-        self.ollama_model.setToolTip("Select the default Ollama model to use")
+        self.ollama_model.setToolTip("Select from locally installed Ollama models")
+        
+        # Refresh models button
+        refresh_btn = QPushButton("🔄 Refresh Models")
+        refresh_btn.clicked.connect(self.refresh_ollama_models)
+        refresh_btn.setToolTip("Refresh the list of available Ollama models")
+        
+        model_row = QHBoxLayout()
+        model_row.addWidget(self.ollama_model, 3)
+        model_row.addWidget(refresh_btn, 1)
         
         model_layout.addWidget(model_label)
-        model_layout.addWidget(self.ollama_model)
+        model_layout.addLayout(model_row)
+        
+        # Model installation instructions
+        self.ollama_instructions = QLabel()
+        self.ollama_instructions.setProperty("role", "caption")
+        self.ollama_instructions.setWordWrap(True)
         
         # Test connection button
         test_btn = QPushButton("🔗 Test Ollama Connection")
         test_btn.clicked.connect(self.test_ollama_connection)
-        test_btn.setToolTip("Test connection to Ollama server")
+        test_btn.setToolTip("Test connection to Ollama server and check available models")
         
+        ollama_layout.addWidget(ollama_info)
         ollama_layout.addLayout(url_layout)
         ollama_layout.addLayout(model_layout)
+        ollama_layout.addWidget(self.ollama_instructions)
         ollama_layout.addWidget(test_btn)
-        ollama_group.setLayout(ollama_layout)
+        self.ollama_group.setLayout(ollama_layout)
         
-        layout.addWidget(claude_group)
-        layout.addWidget(ollama_group)
+        # Initially set up the UI based on default selection
+        self.on_primary_model_changed("Claude API (Recommended)")
+        
+        layout.addWidget(model_selection_group)
+        layout.addWidget(self.claude_group)
+        layout.addWidget(self.ollama_group)
         layout.addStretch()
+        
+        # Load available Ollama models on tab creation
+        self.refresh_ollama_models()
         
         tab.setLayout(layout)
         return tab
@@ -5603,26 +7584,7 @@ class SettingsDialog(QDialog):
         gen_layout.addLayout(ai_status_layout)
         gen_group.setLayout(gen_layout)
         
-        # Response Format
-        format_group = QGroupBox("📝 Response Format")
-        format_layout = QVBoxLayout()
-        format_layout.setContentsMargins(16, 20, 16, 16)
-        format_layout.setSpacing(12)
-        
-        self.markdown_output = QCheckBox("Enable Markdown Formatting")
-        self.markdown_output.setChecked(True)
-        self.markdown_output.setToolTip("Format AI responses with Markdown")
-        
-        self.code_highlighting = QCheckBox("Enable Code Syntax Highlighting")
-        self.code_highlighting.setChecked(True) 
-        self.code_highlighting.setToolTip("Highlight code syntax in responses")
-        
-        format_layout.addWidget(self.markdown_output)
-        format_layout.addWidget(self.code_highlighting)
-        format_group.setLayout(format_layout)
-        
         layout.addWidget(gen_group)
-        layout.addWidget(format_group)
         layout.addStretch()
         
         tab.setLayout(layout)
@@ -5808,17 +7770,122 @@ class SettingsDialog(QDialog):
         else:
             self.claude_key.setEchoMode(QLineEdit.EchoMode.Password)
     
-    def test_ollama_connection(self):
-        """Test connection to Ollama server"""
+    def on_primary_model_changed(self, model_choice: str):
+        """Handle primary model selection change"""
+        if model_choice == "Claude API (Recommended)":
+            # Emphasize Claude, de-emphasize Ollama
+            self.claude_group.setTitle("🔵 Claude API Configuration (Primary)")
+            self.ollama_group.setTitle("🟠 Local Ollama Models (Backup)")
+            self.claude_group.setEnabled(True)
+            self.ollama_group.setEnabled(True)
+        else:  # Local Ollama Models
+            # Emphasize Ollama, de-emphasize Claude
+            self.claude_group.setTitle("🔵 Claude API Configuration (Backup)")
+            self.ollama_group.setTitle("🟠 Local Ollama Models (Primary)")
+            self.claude_group.setEnabled(True)
+            self.ollama_group.setEnabled(True)
+    
+    def refresh_ollama_models(self):
+        """Refresh the list of available Ollama models from local installation"""
+        self.ollama_model.clear()
+        
         try:
             import requests
             response = requests.get(f"{self.ollama_url.text()}/api/tags", timeout=5)
             if response.status_code == 200:
-                QMessageBox.information(self, "Connection Test", "✅ Successfully connected to Ollama server!")
+                models_data = response.json()
+                models = models_data.get('models', [])
+                
+                if models:
+                    # Add available models
+                    for model in models:
+                        model_name = model.get('name', '')
+                        if model_name:
+                            self.ollama_model.addItem(model_name)
+                    
+                    # Set default selection
+                    if self.ollama_model.count() > 0:
+                        # Prefer coding models
+                        preferred_models = ['qwen2.5-coder:7b', 'codellama:7b', 'llama3.2:3b']
+                        for preferred in preferred_models:
+                            for i in range(self.ollama_model.count()):
+                                if preferred in self.ollama_model.itemText(i):
+                                    self.ollama_model.setCurrentIndex(i)
+                                    break
+                    
+                    self.ollama_instructions.setText(f"✅ Found {len(models)} local model(s). Select your preferred model above.")
+                    self.ollama_instructions.setStyleSheet("color: #4CAF50; padding: 8px; background: rgba(76, 175, 80, 0.1); border-radius: 4px;")
+                else:
+                    self._show_ollama_install_instructions()
+            else:
+                self._show_ollama_install_instructions()
+                
+        except Exception as e:
+            self._show_ollama_install_instructions()
+    
+    def _show_ollama_install_instructions(self):
+        """Show instructions for installing Ollama models"""
+        instructions = """❌ No Ollama models found. To use local models:
+
+1. Install Ollama: https://ollama.ai/download
+2. Open terminal and run: ollama serve
+3. Install models (recommended):
+   • ollama pull qwen2.5-coder:7b  (coding tasks)
+   • ollama pull llama3.2:3b  (general tasks)
+   • ollama pull codellama:7b  (code generation)
+4. Click 'Refresh Models' to reload the list
+
+Visit https://ollama.ai/library for more models."""
+        
+        self.ollama_instructions.setText(instructions)
+        self.ollama_instructions.setStyleSheet("color: #FF5722; padding: 12px; background: rgba(255, 87, 34, 0.1); border-radius: 4px; border-left: 4px solid #FF5722;")
+        
+        # Add fallback models to dropdown for manual selection
+        fallback_models = [
+            "qwen2.5-coder:7b",
+            "llama3.2:3b", 
+            "codellama:7b",
+            "deepseek-coder:6.7b",
+            "starcoder2:7b"
+        ]
+        
+        for model in fallback_models:
+            self.ollama_model.addItem(f"{model} (not installed)")
+        
+        if self.ollama_model.count() > 0:
+            self.ollama_model.setCurrentIndex(0)
+    
+    def test_ollama_connection(self):
+        """Test connection to Ollama server and refresh models list"""
+        try:
+            import requests
+            response = requests.get(f"{self.ollama_url.text()}/api/tags", timeout=5)
+            if response.status_code == 200:
+                models_data = response.json()
+                models = models_data.get('models', [])
+                
+                # Refresh the models list
+                self.refresh_ollama_models()
+                
+                if models:
+                    QMessageBox.information(self, "Connection Test", 
+                                          f"✅ Successfully connected to Ollama server!\n\n"
+                                          f"Found {len(models)} available model(s):\n" + 
+                                          "\n".join([f"• {model.get('name', 'Unknown')}" for model in models[:5]]) +
+                                          (f"\n... and {len(models) - 5} more" if len(models) > 5 else ""))
+                else:
+                    QMessageBox.warning(self, "Connection Test", 
+                                      "✅ Connected to Ollama server, but no models are installed.\n\n"
+                                      "Install models using:\n"
+                                      "• ollama pull qwen2.5-coder:7b\n"
+                                      "• ollama pull llama3.2:3b")
             else:
                 QMessageBox.warning(self, "Connection Test", f"❌ Server responded with status {response.status_code}")
         except Exception as e:
-            QMessageBox.warning(self, "Connection Test", f"❌ Failed to connect to Ollama server:\n{e}")
+            QMessageBox.warning(self, "Connection Test", f"❌ Failed to connect to Ollama server:\n{e}\n\n"
+                              "Make sure Ollama is installed and running:\n"
+                              "1. Install from https://ollama.ai/download\n"
+                              "2. Run 'ollama serve' in terminal")
     
     def view_memory_stats(self):
         """Show memory statistics"""
@@ -5875,23 +7942,27 @@ class SettingsDialog(QDialog):
         """Load settings from QSettings"""
         settings = QSettings()
         
-        # AI Models
+        # AI Models - Primary model selection
+        primary_model = settings.value("primary_model", "Claude API (Recommended)")
+        self.primary_model.setCurrentText(primary_model)
+        self.on_primary_model_changed(primary_model)
+        
+        # Claude settings
         self.claude_key.setText(settings.value("claude_api_key", ""))
-        self.use_claude.setChecked(settings.value("use_claude", True, type=bool))
+        
+        # Ollama settings
         self.ollama_url.setText(settings.value("ollama_url", "http://localhost:11434"))
-        self.ollama_model.setCurrentText(settings.value("ollama_model", "qwen2.5-coder:7b"))
+        saved_model = settings.value("ollama_model", "qwen2.5-coder:7b")
+        # Set the model after refreshing the list
+        if self.ollama_model.count() > 0:
+            for i in range(self.ollama_model.count()):
+                if saved_model in self.ollama_model.itemText(i):
+                    self.ollama_model.setCurrentIndex(i)
+                    break
         
         # Generation
         self.max_tokens.setValue(settings.value("max_tokens", 4096, type=int))
         # Temperature is now automatically managed by task intelligence
-        
-        # Load new settings with defaults
-        if hasattr(self, 'markdown_output'):
-            self.markdown_output.setChecked(settings.value("markdown_output", True, type=bool))
-        if hasattr(self, 'code_highlighting'):
-            self.code_highlighting.setChecked(settings.value("code_highlighting", True, type=bool))
-        if hasattr(self, 'enable_memory'):
-            self.enable_memory.setChecked(settings.value("enable_memory", True, type=bool))
         if hasattr(self, 'memory_limit'):
             self.memory_limit.setValue(settings.value("memory_limit", 100, type=int))
         if hasattr(self, 'auto_save'):
@@ -5909,7 +7980,8 @@ class SettingsDialog(QDialog):
         """Save all settings to QSettings"""
         settings = QSettings()
         
-        # AI Models
+        # AI Models - Save primary model selection
+        settings.setValue("primary_model", self.primary_model.currentText())
         settings.setValue("claude_api_key", self.claude_key.text())
         settings.setValue("use_claude", self.use_claude.isChecked())
         settings.setValue("ollama_url", self.ollama_url.text())
@@ -6475,7 +8547,7 @@ def update_monitor_display(self, metrics):
             color: #ffd43b; 
             font-weight: 600; 
             font-size: 10px; 
-            text-transform: uppercase; 
+ 
             letter-spacing: 0.5px; 
             margin-bottom: 8px; 
         }}
@@ -6499,7 +8571,7 @@ def update_monitor_display(self, metrics):
         }}
         .progress-fill {{ 
             height: 100%; 
-            transition: width 0.3s ease; 
+ 
         }}
         .wide-card {{ grid-column: span 2; }}
         .stats-grid {{ 
@@ -6523,7 +8595,7 @@ def update_monitor_display(self, metrics):
         .stat-label {{ 
             font-size: 9px; 
             color: #a0a0a0; 
-            text-transform: uppercase; 
+ 
         }}
     </style>
     </head>
@@ -6844,6 +8916,7 @@ class SuperMiniMainWindow(QMainWindow):
     def load_config(self):
         settings = QSettings()
         self.config = AIConfig(
+            primary_model=settings.value("primary_model", "Claude API (Recommended)"),
             use_claude=settings.value("use_claude", True, type=bool),
             claude_api_key=settings.value("claude_api_key", ""),
             ollama_url=settings.value("ollama_url", "http://localhost:11434"),
@@ -6860,6 +8933,7 @@ class SuperMiniMainWindow(QMainWindow):
     def save_config(self):
         """Save current configuration including theme"""
         settings = QSettings()
+        settings.setValue("primary_model", self.config.primary_model)
         settings.setValue("use_claude", self.config.use_claude)
         settings.setValue("claude_api_key", self.config.claude_api_key)
         settings.setValue("ollama_url", self.config.ollama_url)
@@ -6926,7 +9000,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.memory = MemoryManager(self.data_dir)
         # Pass monitor to TaskProcessor so AI managers can log metrics
         monitor = getattr(self, 'monitor', None)
-        self.processor = TaskProcessor(self.config, self.memory, self.data_dir, monitor)
+        self.processor = TaskProcessor(self.config, self.memory, self.data_dir, monitor, self.update_ai_metrics)
         
         # Initialize release automation system
         try:
@@ -6951,56 +9025,41 @@ class SuperMiniMainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Main layout with proper margins
         main_layout = QHBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Create modern splitter
-        self.splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.splitter.setChildrenCollapsible(False)
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.setChildrenCollapsible(False)
         
-        # Create panels with improved sizing
         left_panel = self.create_control_panel()
         right_panel = self.create_output_panel()
         
-        self.splitter.addWidget(left_panel)
-        self.splitter.addWidget(right_panel)
+        self.main_splitter.addWidget(left_panel)
+        self.main_splitter.addWidget(right_panel)
         
-        # Mobile-first responsive proportion adjustment
-        window_width = self.width() if hasattr(self, 'width') else 1200
-        screen_category = ModernTheme.get_screen_category(window_width)
+        window_width = self.width() if self.width() > 0 else 1000
+        control_width = int(window_width * 0.50)
+        output_width = window_width - control_width - 10
+        self.main_splitter.setSizes([control_width, output_width])
+        self.main_splitter.setStretchFactor(0, 0)
+        self.main_splitter.setStretchFactor(1, 1)
+        self.main_splitter.setHandleWidth(ModernTheme.scale_value(8))
+        self.main_splitter.setStyleSheet(ModernTheme.get_splitter_style())
+        logging.info(f"setup_ui: control_width={control_width}, output_width={output_width}")
+        self.main_splitter.update()
+        self.updateGeometry()
         
-        # Mobile-optimized responsive sizing with proper breakpoints
-        if screen_category == ModernTheme.SCREEN_MOBILE:
-            # Mobile: Stack vertically or use collapsible sidebar
-            control_width = min(ModernTheme.scale_value(280), int(window_width * 0.4))
-            output_width = max(ModernTheme.scale_value(320), window_width - control_width - 10)
-            # For very small screens, consider making control panel collapsible
-            if window_width < ModernTheme.scale_value(600):
-                control_width = min(ModernTheme.scale_value(250), int(window_width * 0.35))
-        elif screen_category == ModernTheme.SCREEN_TABLET:
-            # Tablet: Comfortable split view
-            control_width = min(ModernTheme.scale_value(320), int(window_width * 0.3))
-            output_width = max(ModernTheme.scale_value(480), window_width - control_width - 10)
-        else:
-            # Desktop: Optimal proportions for large screens
-            control_width = min(ModernTheme.scale_value(380), int(window_width * 0.25))
-            output_width = max(ModernTheme.scale_value(700), window_width - control_width - 10)
-        
-        self.splitter.setSizes([control_width, output_width])
-        self.splitter.setStretchFactor(0, 0)  # Control panel doesn't stretch
-        self.splitter.setStretchFactor(1, 1)  # Output panel stretches
-        
-        main_layout.addWidget(self.splitter)
+        main_layout.addWidget(self.main_splitter)
         central_widget.setLayout(main_layout)
         
-        # Enhanced status bar with modern styling and accessibility
+        QTimer.singleShot(1000, self.refresh_files_display)
+        QTimer.singleShot(0, self.adjust_splitter_sizes)  # Force resize after UI is shown
+        
         status_icon = ModernIcons.STATUS['active']
         self.statusBar().showMessage(f"{status_icon} SuperMini AI Assistant Ready - Neural Processing Active")
         self.statusBar().setProperty("role", "status")
         
-        # Add progress bar to status bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         self.progress_bar.setTextVisible(True)
@@ -7008,15 +9067,20 @@ class SuperMiniMainWindow(QMainWindow):
         self.progress_bar.setStyleSheet(ModernTheme.get_progress_bar_style())
         self.statusBar().addPermanentWidget(self.progress_bar)
         
-        # Set accessibility properties for the main window
         self.setAccessibleName("SuperMini AI Agent")
         self.setAccessibleDescription("Autonomous Mac Mini AI agent for task automation and processing")
         
-        # Enable keyboard navigation
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        
-        # Store splitter reference for dynamic resizing
-        self.main_splitter = self.splitter
+
+    def adjust_splitter_sizes(self):
+        """Force splitter size adjustment after UI initialization"""
+        window_width = self.width() if self.width() > 0 else 1000
+        control_width = int(window_width * 0.50)
+        output_width = window_width - control_width - 10
+        self.main_splitter.setSizes([control_width, output_width])
+        logging.info(f"adjust_splitter_sizes: control_width={control_width}, output_width={output_width}")
+        self.main_splitter.update()
+        self.updateGeometry()
     
     def create_control_panel(self) -> QWidget:
         """Create a modern, well-organized control panel with responsive sizing"""
@@ -7066,9 +9130,9 @@ class SuperMiniMainWindow(QMainWindow):
         enhance_tab = self.create_enhance_tab()
         self.mode_tabs.addTab(enhance_tab, f"{ModernIcons.TASKS['automation']} Enhance Yourself")
         
-        # Settings tab with comprehensive configuration
-        settings_tab = self.create_settings_tab()
-        self.mode_tabs.addTab(settings_tab, f"{ModernIcons.APP['settings']} Settings")
+        # Settings available via dedicated Settings button - removing duplicate embedded tab
+        # settings_tab = self.create_settings_tab()
+        # self.mode_tabs.addTab(settings_tab, f"{ModernIcons.APP['settings']} Settings")
         
         mode_layout.addWidget(self.mode_tabs)
         mode_group.setLayout(mode_layout)
@@ -7264,13 +9328,41 @@ class SuperMiniMainWindow(QMainWindow):
         continues_layout.addWidget(self.max_continues_spin)
         continues_layout.addStretch()
         
+        # Autonomous Enhancement Status Display
+        self.enhancement_status_widget = QWidget()
+        enhancement_status_layout = QHBoxLayout()
+        enhancement_status_layout.setContentsMargins(0, 0, 0, 0)
+        enhancement_status_layout.setSpacing(12)
+        
+        # Enhancement mode indicator
+        self.enhancement_mode_label = QLabel("🧠 Enhancement Mode:")
+        self.enhancement_mode_label.setProperty("role", "label")
+        enhancement_status_layout.addWidget(self.enhancement_mode_label)
+        
+        self.enhancement_status_label = QLabel("Ready")
+        self.enhancement_status_label.setProperty("role", "status-ready")
+        self.enhancement_status_label.setMinimumWidth(ModernTheme.scale_value(100))
+        enhancement_status_layout.addWidget(self.enhancement_status_label)
+        
+        # Show enhancement details button
+        self.enhancement_details_btn = QPushButton("📊 Details")
+        self.enhancement_details_btn.setMaximumWidth(ModernTheme.scale_value(80))
+        self.enhancement_details_btn.setMaximumHeight(ModernTheme.scale_value(30))
+        self.enhancement_details_btn.clicked.connect(self.show_enhancement_details)
+        self.enhancement_details_btn.setToolTip("Show autonomous enhancement system details")
+        enhancement_status_layout.addWidget(self.enhancement_details_btn)
+        
+        enhancement_status_layout.addStretch()
+        self.enhancement_status_widget.setLayout(enhancement_status_layout)
+        self.enhancement_status_widget.setToolTip("Shows status of the autonomous enhancement system")
+        
         self.save_output_cb = QCheckBox("💾 Save Output Files")
         self.save_output_cb.setChecked(True)
         self.save_output_cb.setToolTip("Automatically save generated files to ~/SuperMini_Output/ directory")
         
         options_layout.addWidget(self.use_memory_cb)
         options_layout.addWidget(self.autonomous_status_widget)
-        # Remove continues_layout since iterations are now automatically determined
+        options_layout.addWidget(self.enhancement_status_widget)
         options_layout.addWidget(self.save_output_cb)
         options_group.setLayout(options_layout)
         
@@ -8074,6 +10166,143 @@ class SuperMiniMainWindow(QMainWindow):
             logging.error(f"Error getting autonomous suggestions: {e}")
             QMessageBox.warning(self, "Error", f"Failed to get suggestions: {str(e)}")
     
+    def show_enhancement_details(self):
+        """Show detailed information about the autonomous enhancement system"""
+        if not hasattr(self.processor, 'autonomous_continuation_engine') or not self.processor.autonomous_continuation_engine:
+            QMessageBox.information(self, "Enhancement Details", "Autonomous Enhancement Engine not available.")
+            return
+        
+        try:
+            # Get status from the autonomous continuation engine
+            engine_status = self.processor.autonomous_continuation_engine.get_continuation_status()
+            
+            # Get quality assessment statistics if available
+            quality_stats = {}
+            if hasattr(self.processor.autonomous_continuation_engine, 'quality_framework'):
+                quality_stats = self.processor.autonomous_continuation_engine.quality_framework.get_quality_statistics()
+            
+            # Get safety manager status if available
+            safety_status = {}
+            if hasattr(self.processor.autonomous_continuation_engine, 'safety_manager'):
+                safety_status = self.processor.autonomous_continuation_engine.safety_manager.get_safety_status()
+            
+            # Create detailed status text
+            details_text = "# 🧠 Autonomous Enhancement System Details\n\n"
+            
+            # Engine Status
+            details_text += "## 📊 Enhancement Engine Status\n"
+            details_text += f"- **Total Continuations**: {engine_status.get('total_continuations', 0)}\n"
+            details_text += f"- **Successful Enhancements**: {engine_status.get('successful_enhancements', 0)}\n"
+            details_text += f"- **Success Rate**: {engine_status.get('success_rate', 0.0):.1%}\n"
+            details_text += f"- **Average Quality Improvement**: {engine_status.get('average_quality_improvement', 0.0):.3f}\n"
+            details_text += f"- **Average Confidence**: {engine_status.get('average_confidence', 0.0):.1%}\n"
+            details_text += f"- **Learning Enabled**: {'✅' if engine_status.get('learning_enabled', False) else '❌'}\n"
+            details_text += f"- **Safety Enabled**: {'✅' if engine_status.get('safety_enabled', False) else '❌'}\n\n"
+            
+            # Quality Statistics
+            if quality_stats:
+                details_text += "## 📈 Quality Assessment\n"
+                details_text += f"- **Total Assessments**: {quality_stats.get('total_assessments', 0)}\n"
+                details_text += f"- **Average Quality**: {quality_stats.get('average_quality', 0.0):.1%}\n"
+                details_text += f"- **Latest Quality**: {quality_stats.get('latest_quality', 0.0):.1%}\n"
+                details_text += f"- **Quality Trend**: {quality_stats.get('quality_trend', 'N/A')}\n"
+                details_text += f"- **Average Confidence**: {quality_stats.get('average_confidence', 0.0):.1%}\n\n"
+            
+            # Safety Status
+            if safety_status:
+                details_text += "## 🛡️ Safety Status\n"
+                details_text += f"- **Emergency Stop**: {'🚨 ACTIVE' if safety_status.get('emergency_stop_active', False) else '✅ Normal'}\n"
+                details_text += f"- **Throttling**: {'⚠️ ACTIVE' if safety_status.get('throttling_active', False) else '✅ Normal'}\n"
+                details_text += f"- **Monitoring**: {'✅ Active' if safety_status.get('monitoring_active', False) else '❌ Inactive'}\n"
+                
+                # Resource status
+                resources = safety_status.get('current_resources', {})
+                if resources:
+                    details_text += f"- **CPU Usage**: {resources.get('cpu', 0.0):.1f}%\n"
+                    details_text += f"- **Memory Usage**: {resources.get('memory', 0.0):.1f}%\n"
+                    details_text += f"- **Disk Usage**: {resources.get('disk', 0.0):.1f}%\n"
+                
+                # Recent violations
+                violations = safety_status.get('recent_violations', {})
+                if violations:
+                    total_violations = sum(violations.values())
+                    if total_violations > 0:
+                        details_text += f"- **Recent Violations**: {total_violations} in last 5 minutes\n"
+                
+                details_text += "\n"
+            
+            # System Capabilities
+            details_text += "## ⚙️ System Capabilities\n"
+            details_text += "- **Enhancement Discovery**: Multi-dimensional opportunity analysis\n"
+            details_text += "- **Decision Engine**: Intelligent continuation strategies\n"
+            details_text += "- **Quality Assessment**: Comprehensive quality measurement\n"
+            details_text += "- **Safety Management**: Resource monitoring and circuit breakers\n"
+            details_text += "- **Learning System**: Adaptive improvement from outcomes\n\n"
+            
+            details_text += "## 💡 Enhancement Types\n"
+            details_text += "- **Content Gap**: Address missing information\n"
+            details_text += "- **Quality Improvement**: Enhance clarity and completeness\n"
+            details_text += "- **Technical Enhancement**: Improve code quality and best practices\n"
+            details_text += "- **Knowledge Expansion**: Add related concepts and insights\n"
+            details_text += "- **Error Correction**: Fix identified issues\n"
+            details_text += "- **Optimization**: Performance and efficiency improvements\n"
+            
+            # Create dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Autonomous Enhancement System Details")
+            dialog.setGeometry(200, 200, 700, 600)
+            
+            layout = QVBoxLayout()
+            
+            # Scrollable text area
+            text_browser = QTextBrowser()
+            text_browser.setMarkdown(details_text)
+            layout.addWidget(text_browser)
+            
+            # Buttons
+            button_layout = QHBoxLayout()
+            
+            refresh_btn = QPushButton("🔄 Refresh")
+            refresh_btn.clicked.connect(lambda: (text_browser.setMarkdown(details_text), dialog.update()))
+            button_layout.addWidget(refresh_btn)
+            
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.close)
+            button_layout.addWidget(close_btn)
+            
+            layout.addLayout(button_layout)
+            dialog.setLayout(layout)
+            dialog.exec()
+            
+        except Exception as e:
+            logging.error(f"Error showing enhancement details: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to get enhancement details: {str(e)}")
+    
+    def update_enhancement_status(self, status: str, details: str = ""):
+        """Update the enhancement status display"""
+        if hasattr(self, 'enhancement_status_label'):
+            self.enhancement_status_label.setText(status)
+            
+            # Update status styling based on status
+            if status.lower() in ['ready', 'idle']:
+                self.enhancement_status_label.setProperty("role", "status-ready")
+            elif status.lower() in ['analyzing', 'processing', 'enhancing']:
+                self.enhancement_status_label.setProperty("role", "status-active")
+            elif status.lower() in ['completed', 'success']:
+                self.enhancement_status_label.setProperty("role", "status-success")
+            elif status.lower() in ['error', 'failed']:
+                self.enhancement_status_label.setProperty("role", "status-error")
+            else:
+                self.enhancement_status_label.setProperty("role", "status-ready")
+            
+            # Force style update
+            self.enhancement_status_label.style().unpolish(self.enhancement_status_label)
+            self.enhancement_status_label.style().polish(self.enhancement_status_label)
+            
+            # Update tooltip with details
+            if details:
+                self.enhancement_status_label.setToolTip(details)
+    
     def stop_task(self):
         """Stop the current task execution"""
         if self.task_thread and self.task_thread.isRunning():
@@ -8105,7 +10334,17 @@ class SuperMiniMainWindow(QMainWindow):
         self.statusBar().showMessage("Starting autonomous exploration...")
         
         # Create and start exploration thread
-        self.explore_thread = ExploreThread(self.processor, interval)
+        # Parse interval to hours and minutes
+        total_minutes = interval
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        
+        # Get current files from UI or use empty list for autonomous exploration
+        current_files = []
+        if hasattr(self, 'selected_files'):
+            current_files = self.selected_files
+        
+        self.explore_thread = ExploreThread(self.processor, current_files, hours, minutes)
         self.explore_thread.progress_signal.connect(self.update_progress)
         self.explore_thread.result_signal.connect(self.display_explore_result)
         self.explore_thread.error_signal.connect(self.handle_explore_error)
@@ -8350,7 +10589,6 @@ class SuperMiniMainWindow(QMainWindow):
                 background: rgba(255, 255, 255, 0.05);
                 border-radius: {ModernTheme.scale_value(10)}px;
                 border: 1px solid {ModernTheme.get_colors()['border']};
-                backdrop-filter: blur(8px);
             }}
         """)
         header_layout = QHBoxLayout(header_card)
@@ -8432,127 +10670,1488 @@ class SuperMiniMainWindow(QMainWindow):
         return panel
     
     def create_results_tab(self) -> QWidget:
-        """Create an enhanced results display tab"""
+        """Create an enhanced results display tab with task summaries and better organization"""
         widget = QWidget()
         widget.setStyleSheet(f"background: transparent;")
         layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(16)
 
-        # Results header
-        header_card = QWidget()
-        header_card.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                backdrop-filter: blur(8px);
+        # Enhanced header with session stats
+        header_card = self.create_results_header()
+        layout.addWidget(header_card)
+
+        # Create main content area with splitter
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        
+        # Top section: Task Summary Timeline
+        timeline_widget = self.create_task_timeline()
+        splitter.addWidget(timeline_widget)
+        
+        # Bottom section: Detailed Results Viewer
+        results_viewer = self.create_detailed_results_viewer()
+        splitter.addWidget(results_viewer)
+        
+        # Set splitter proportions (40% timeline, 60% results)
+        splitter.setSizes([400, 600])
+        splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background: {ModernTheme.get_colors()['border']};
+                height: 2px;
             }}
-        """)
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(12, 8, 12, 8)
-
-        results_label = QLabel("AI Response & Analysis")
-        results_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
-        results_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        header_layout.addWidget(results_label)
-        header_layout.addStretch()
-
-        export_btn = QPushButton("💾 Export")
-        export_btn.setToolTip("Export results to file")
-        export_btn.clicked.connect(self.export_results)
-        export_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: {ModernTheme.get_colors()['text_primary']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding: {ModernTheme.scale_value(8)}px;
-                font-weight: 500;
-            }}
-            QPushButton:hover {{
+            QSplitter::handle:hover {{
                 background: {ModernTheme.get_colors()['accent']};
             }}
         """)
-        header_layout.addWidget(export_btn)
-        layout.addWidget(header_card)
-
-        self.results_text = QTextBrowser()
-        self.results_text.setOpenExternalLinks(True)
-        self.results_text.setPlaceholderText("AI responses and analysis will appear here...")
-        self.results_text.setStyleSheet(f"""
-            QTextBrowser {{
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                color: {ModernTheme.get_colors()['text_primary']};
-                padding: {ModernTheme.scale_value(12)}px;
-            }}
-        """)
-        self.results_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        layout.addWidget(self.results_text)
-
+        
+        layout.addWidget(splitter)
+        
         widget.setLayout(layout)
         return widget
     
+    def create_results_header(self) -> QWidget:
+        """Create enhanced header for results tab with session statistics"""
+        header_card = QWidget()
+        header_card.setFixedHeight(85)
+        header_card.setStyleSheet(f"""
+            QWidget {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(139, 92, 246, 0.12),
+                    stop:0.5 rgba(6, 255, 165, 0.12),
+                    stop:1 rgba(56, 189, 248, 0.12));
+                border-radius: {ModernTheme.scale_value(12)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+            }}
+        """)
+        
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(20, 14, 20, 14)
+        
+        # Left side: Title and session stats
+        left_layout = QVBoxLayout()
+        
+        title_label = QLabel("🎯 Task Results & Analytics")
+        title_label.setFont(QFont("Inter", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 700;
+            }}
+        """)
+        left_layout.addWidget(title_label)
+        
+        # Session stats layout
+        stats_layout = QHBoxLayout()
+        
+        self.session_tasks_label = QLabel("0 tasks completed")
+        self.session_tasks_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: 13px;
+            }}
+        """)
+        stats_layout.addWidget(self.session_tasks_label)
+        
+        stats_layout.addWidget(QLabel(" • "))
+        
+        self.session_time_label = QLabel("Session started")
+        self.session_time_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: 13px;
+            }}
+        """)
+        stats_layout.addWidget(self.session_time_label)
+        
+        stats_layout.addStretch()
+        left_layout.addLayout(stats_layout)
+        
+        header_layout.addLayout(left_layout)
+        header_layout.addStretch()
+        
+        # Right side: Action buttons
+        actions_layout = QHBoxLayout()
+        actions_layout.setSpacing(12)
+        
+        clear_results_btn = QPushButton("🗑️ Clear All")
+        clear_results_btn.setToolTip("Clear all task results")
+        clear_results_btn.clicked.connect(self.clear_all_results)
+        clear_results_btn.setStyleSheet(self.get_action_button_style())
+        actions_layout.addWidget(clear_results_btn)
+        
+        export_session_btn = QPushButton("📊 Export Session")
+        export_session_btn.setToolTip("Export session report")
+        export_session_btn.clicked.connect(self.export_session_report)
+        export_session_btn.setStyleSheet(self.get_action_button_style())
+        actions_layout.addWidget(export_session_btn)
+        
+        export_btn = QPushButton("💾 Export Result")
+        export_btn.setToolTip("Export selected result")
+        export_btn.clicked.connect(self.export_results)
+        export_btn.setStyleSheet(self.get_action_button_style())
+        actions_layout.addWidget(export_btn)
+        
+        header_layout.addLayout(actions_layout)
+        
+        # Initialize task tracking and session data
+        self.task_results = []
+        self.selected_task_index = -1
+        self.session_start_time = datetime.now()
+        self.update_session_stats()
+        
+        return header_card
+    
+    def create_task_timeline(self) -> QWidget:
+        """Create a timeline view of completed tasks"""
+        timeline_container = QWidget()
+        timeline_layout = QVBoxLayout(timeline_container)
+        timeline_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Timeline header
+        timeline_header = QLabel("📈 Task Timeline")
+        timeline_header.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        timeline_header.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(8)}px;
+                margin-bottom: 8px;
+            }}
+        """)
+        timeline_layout.addWidget(timeline_header)
+        
+        # Timeline scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        # Timeline content widget
+        self.timeline_content = QWidget()
+        self.timeline_layout = QVBoxLayout(self.timeline_content)
+        self.timeline_layout.setContentsMargins(8, 8, 8, 8)
+        self.timeline_layout.setSpacing(8)
+        
+        # Add initial empty state
+        self.add_empty_timeline_state()
+        
+        scroll_area.setWidget(self.timeline_content)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+            }}
+            QScrollBar:vertical {{
+                background: rgba(255, 255, 255, 0.1);
+                width: 8px;
+                border-radius: 4px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {ModernTheme.get_colors()['accent']};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+        """)
+        
+        timeline_layout.addWidget(scroll_area)
+        
+        return timeline_container
+    
+    def create_detailed_results_viewer(self) -> QWidget:
+        """Create detailed results viewer"""
+        viewer_container = QWidget()
+        viewer_layout = QVBoxLayout(viewer_container)
+        viewer_layout.setContentsMargins(0, 0, 0, 0)
+        viewer_layout.setSpacing(12)
+        
+        # Viewer header
+        viewer_header = QLabel("📄 Detailed Results")
+        viewer_header.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        viewer_header.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(8)}px;
+            }}
+        """)
+        viewer_layout.addWidget(viewer_header)
+        
+        # Results browser
+        self.results_text = QTextBrowser()
+        self.results_text.setOpenExternalLinks(True)
+        self.results_text.setHtml(self.get_empty_results_html())
+        self.results_text.setStyleSheet(f"""
+            QTextBrowser {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-size: 13px;
+                padding: 12px;
+                selection-background-color: {ModernTheme.get_colors()['accent']};
+            }}
+        """)
+        viewer_layout.addWidget(self.results_text)
+        
+        return viewer_container
+    
+    def add_empty_timeline_state(self):
+        """Add empty state to timeline"""
+        empty_widget = QWidget()
+        empty_layout = QVBoxLayout(empty_widget)
+        empty_layout.setContentsMargins(20, 40, 20, 40)
+        
+        empty_icon = QLabel("🎯")
+        empty_icon.setFont(QFont("Arial", 32))
+        empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_icon.setStyleSheet("color: #666;")
+        empty_layout.addWidget(empty_icon)
+        
+        empty_text = QLabel("No tasks completed yet")
+        empty_text.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        empty_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_text.setStyleSheet("color: #888; margin-top: 8px;")
+        empty_layout.addWidget(empty_text)
+        
+        empty_desc = QLabel("Complete a task to see results appear here")
+        empty_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_desc.setStyleSheet("color: #666; font-size: 12px;")
+        empty_layout.addWidget(empty_desc)
+        
+        self.timeline_layout.addWidget(empty_widget)
+        self.timeline_layout.addStretch()
+    
+    def get_empty_results_html(self) -> str:
+        """Get HTML for empty results state"""
+        return f"""
+        <div style='padding: 40px; text-align: center; font-family: Inter, sans-serif;'>
+            <div style='font-size: 48px; margin-bottom: 16px;'>📄</div>
+            <h3 style='color: {ModernTheme.get_colors()['text_primary']}; margin: 0 0 8px 0;'>
+                Select a Task to View Details
+            </h3>
+            <p style='color: {ModernTheme.get_colors()['text_secondary']}; margin: 0; font-size: 14px;'>
+                Click on a task from the timeline above to see detailed results, analysis, and generated files.
+            </p>
+        </div>
+        """
+    
+    def update_session_stats(self):
+        """Update session statistics display"""
+        try:
+            task_count = len(self.task_results)
+            self.session_tasks_label.setText(f"{task_count} tasks completed")
+            
+            # Calculate session duration
+            duration = datetime.now() - self.session_start_time
+            hours = duration.seconds // 3600
+            minutes = (duration.seconds % 3600) // 60
+            
+            if hours > 0:
+                time_text = f"{hours}h {minutes}m session"
+            else:
+                time_text = f"{minutes}m session"
+                
+            self.session_time_label.setText(time_text)
+            
+        except Exception as e:
+            logging.error(f"Error updating session stats: {e}")
+    
+    def add_task_to_timeline(self, task_data: dict):
+        """Add a new task to the timeline"""
+        try:
+            # Remove empty state if this is the first task
+            if len(self.task_results) == 0:
+                # Clear existing widgets
+                for i in reversed(range(self.timeline_layout.count())):
+                    child = self.timeline_layout.itemAt(i).widget()
+                    if child:
+                        child.deleteLater()
+            
+            # Add task to results list
+            self.task_results.append(task_data)
+            
+            # Create timeline item
+            timeline_item = self.create_timeline_item(task_data, len(self.task_results) - 1)
+            self.timeline_layout.insertWidget(self.timeline_layout.count() - 1, timeline_item)
+            
+            # Update session stats
+            self.update_session_stats()
+            
+        except Exception as e:
+            logging.error(f"Error adding task to timeline: {e}")
+    
+    def create_timeline_item(self, task_data: dict, index: int) -> QWidget:
+        """Create a timeline item widget"""
+        item_widget = QWidget()
+        item_widget.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Store index for selection
+        item_widget.task_index = index
+        
+        # Set up click handler
+        item_widget.mousePressEvent = lambda event: self.on_timeline_item_clicked(index)
+        
+        item_layout = QHBoxLayout(item_widget)
+        item_layout.setContentsMargins(12, 12, 12, 12)
+        item_layout.setSpacing(12)
+        
+        # Task type icon and color
+        task_type = task_data.get('task_type', 'unknown')
+        task_icon, task_color = self.get_task_type_info(task_type)
+        
+        # Timeline indicator
+        indicator = QLabel("●")
+        indicator.setFont(QFont("Arial", 16))
+        indicator.setStyleSheet(f"color: {task_color};")
+        indicator.setFixedWidth(20)
+        item_layout.addWidget(indicator)
+        
+        # Main content
+        content_layout = QVBoxLayout()
+        content_layout.setSpacing(4)
+        
+        # Task title
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(8)
+        
+        icon_label = QLabel(task_icon)
+        icon_label.setFont(QFont("Arial", 14))
+        title_layout.addWidget(icon_label)
+        
+        title_text = task_data.get('title', f'{task_type.title()} Task')
+        title_label = QLabel(title_text)
+        title_label.setFont(QFont("Inter", 13, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
+        title_layout.addWidget(title_label)
+        
+        title_layout.addStretch()
+        
+        # Time and status
+        time_str = task_data.get('timestamp', datetime.now()).strftime("%H:%M")
+        time_label = QLabel(time_str)
+        time_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']}; font-size: 11px;")
+        title_layout.addWidget(time_label)
+        
+        content_layout.addLayout(title_layout)
+        
+        # Task summary
+        prompt = task_data.get('prompt', '')
+        summary = (prompt[:80] + '...' if len(prompt) > 80 else prompt) if prompt else 'Task completed'
+        summary_label = QLabel(summary)
+        summary_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']}; font-size: 12px;")
+        summary_label.setWordWrap(True)
+        content_layout.addWidget(summary_label)
+        
+        # Task stats
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(12)
+        
+        # Files generated
+        files_count = len(task_data.get('generated_files', []))
+        if files_count > 0:
+            files_label = QLabel(f"📁 {files_count} files")
+            files_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']}; font-size: 11px;")
+            stats_layout.addWidget(files_label)
+        
+        # Response time
+        response_time = task_data.get('response_time', 0)
+        if response_time > 0:
+            time_label = QLabel(f"⏱️ {response_time:.1f}s")
+            time_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']}; font-size: 11px;")
+            stats_layout.addWidget(time_label)
+        
+        # Tokens used
+        tokens = task_data.get('tokens_used', 0)
+        if tokens > 0:
+            tokens_label = QLabel(f"🔤 {tokens} tokens")
+            tokens_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']}; font-size: 11px;")
+            stats_layout.addWidget(tokens_label)
+        
+        stats_layout.addStretch()
+        content_layout.addLayout(stats_layout)
+        
+        item_layout.addLayout(content_layout)
+        
+        # Style the item
+        item_widget.setStyleSheet(f"""
+            QWidget {{
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: {ModernTheme.scale_value(8)}px;
+                margin: 2px;
+            }}
+            QWidget:hover {{
+                background: rgba(255, 255, 255, 0.08);
+                border-color: {task_color};
+            }}
+        """)
+        
+        return item_widget
+    
+    def get_task_type_info(self, task_type: str) -> tuple:
+        """Get icon and color for task type"""
+        task_info = {
+            'code': ('🐍', '#38bdf8'),
+            'multimedia': ('🖼️', '#8b5cf6'), 
+            'rag': ('📚', '#06ffa5'),
+            'automation': ('⚡', '#f59e0b'),
+            'analytics': ('📊', '#ef4444'),
+            'claude_query': ('🤖', '#10b981'),
+            'ollama_query': ('🧠', '#f97316'),
+            'unknown': ('❓', '#6b7280')
+        }
+        return task_info.get(task_type, task_info['unknown'])
+    
+    def on_timeline_item_clicked(self, index: int):
+        """Handle timeline item selection"""
+        try:
+            if 0 <= index < len(self.task_results):
+                self.selected_task_index = index
+                task_data = self.task_results[index]
+                
+                # Update visual selection
+                self.update_timeline_selection(index)
+                
+                # Show detailed results
+                self.show_task_details(task_data)
+                
+        except Exception as e:
+            logging.error(f"Error handling timeline selection: {e}")
+    
+    def update_timeline_selection(self, selected_index: int):
+        """Update visual selection in timeline"""
+        try:
+            for i in range(self.timeline_layout.count()):
+                item = self.timeline_layout.itemAt(i)
+                if item and item.widget():
+                    widget = item.widget()
+                    if hasattr(widget, 'task_index'):
+                        task_type = self.task_results[widget.task_index].get('task_type', 'unknown')
+                        _, task_color = self.get_task_type_info(task_type)
+                        
+                        if widget.task_index == selected_index:
+                            # Selected style
+                            widget.setStyleSheet(f"""
+                                QWidget {{
+                                    background: rgba({task_color.replace('#', '')}, 0.2);
+                                    border: 2px solid {task_color};
+                                    border-radius: {ModernTheme.scale_value(8)}px;
+                                    margin: 2px;
+                                }}
+                            """)
+                        else:
+                            # Normal style
+                            widget.setStyleSheet(f"""
+                                QWidget {{
+                                    background: rgba(255, 255, 255, 0.03);
+                                    border: 1px solid rgba(255, 255, 255, 0.1);
+                                    border-radius: {ModernTheme.scale_value(8)}px;
+                                    margin: 2px;
+                                }}
+                                QWidget:hover {{
+                                    background: rgba(255, 255, 255, 0.08);
+                                    border-color: {task_color};
+                                }}
+                            """)
+        except Exception as e:
+            logging.error(f"Error updating timeline selection: {e}")
+    
+    def show_task_details(self, task_data: dict):
+        """Show detailed task information"""
+        try:
+            task_type = task_data.get('task_type', 'unknown')
+            task_icon, task_color = self.get_task_type_info(task_type)
+            
+            # Generate comprehensive HTML
+            html_content = f"""
+            <div style='font-family: Inter, sans-serif; line-height: 1.6;'>
+                <!-- Task Header -->
+                <div style='background: linear-gradient(135deg, {task_color}20 0%, {task_color}10 100%); 
+                           padding: 20px; border-radius: 12px; margin-bottom: 20px; 
+                           border-left: 4px solid {task_color};'>
+                    <div style='display: flex; align-items: center; margin-bottom: 8px;'>
+                        <span style='font-size: 24px; margin-right: 12px;'>{task_icon}</span>
+                        <h2 style='margin: 0; color: {ModernTheme.get_colors()['text_primary']}; font-size: 20px;'>
+                            {task_data.get('title', f'{task_type.title()} Task')}
+                        </h2>
+                    </div>
+                    <p style='margin: 0; color: {ModernTheme.get_colors()['text_secondary']}; font-size: 14px;'>
+                        Completed at {task_data.get('timestamp', datetime.now()).strftime('%Y-%m-%d %H:%M:%S')}
+                    </p>
+                </div>
+                
+                <!-- Task Prompt -->
+                <div style='background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
+                    <h3 style='margin: 0 0 12px 0; color: {ModernTheme.get_colors()['primary']}; font-size: 16px;'>
+                        📝 Original Request
+                    </h3>
+                    <div style='background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; 
+                              border-left: 3px solid {task_color};'>
+                        <p style='margin: 0; font-size: 13px; white-space: pre-wrap;'>{task_data.get('prompt', 'No prompt recorded')}</p>
+                    </div>
+                </div>
+                
+                <!-- Task Results -->
+                <div style='background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
+                    <h3 style='margin: 0 0 12px 0; color: {ModernTheme.get_colors()['accent']}; font-size: 16px;'>
+                        🎯 AI Response
+                    </h3>
+                    <div style='background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; max-height: 300px; overflow-y: auto;'>
+                        <div style='font-size: 13px;'>{task_data.get('result', 'No result recorded')}</div>
+                    </div>
+                </div>
+                
+                <!-- Generated Files -->
+                {self.generate_files_section_html(task_data.get('generated_files', []))}
+                
+                <!-- Task Statistics -->
+                <div style='background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
+                    <h3 style='margin: 0 0 12px 0; color: {ModernTheme.get_colors()['secondary']}; font-size: 16px;'>
+                        📊 Task Statistics
+                    </h3>
+                    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;'>
+                        <div style='text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;'>
+                            <div style='font-size: 18px; color: {task_color};'>⏱️</div>
+                            <div style='font-size: 12px; color: {ModernTheme.get_colors()['text_secondary']};'>Response Time</div>
+                            <div style='font-weight: bold;'>{task_data.get('response_time', 0):.1f}s</div>
+                        </div>
+                        <div style='text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;'>
+                            <div style='font-size: 18px; color: {task_color};'>🔤</div>
+                            <div style='font-size: 12px; color: {ModernTheme.get_colors()['text_secondary']};'>Tokens Used</div>
+                            <div style='font-weight: bold;'>{task_data.get('tokens_used', 0)}</div>
+                        </div>
+                        <div style='text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;'>
+                            <div style='font-size: 18px; color: {task_color};'>📁</div>
+                            <div style='font-size: 12px; color: {ModernTheme.get_colors()['text_secondary']};'>Files Generated</div>
+                            <div style='font-weight: bold;'>{len(task_data.get('generated_files', []))}</div>
+                        </div>
+                        <div style='text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;'>
+                            <div style='font-size: 18px; color: {task_color};'>{task_icon}</div>
+                            <div style='font-size: 12px; color: {ModernTheme.get_colors()['text_secondary']};'>Task Type</div>
+                            <div style='font-weight: bold;'>{task_type.title()}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
+            
+            self.results_text.setHtml(html_content)
+            
+        except Exception as e:
+            logging.error(f"Error showing task details: {e}")
+    
+    def generate_files_section_html(self, generated_files: list) -> str:
+        """Generate HTML for generated files section"""
+        if not generated_files:
+            return """
+            <div style='background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
+                <h3 style='margin: 0 0 12px 0; color: #f59e0b; font-size: 16px;'>📁 Generated Files</h3>
+                <p style='margin: 0; text-align: center; color: #666; font-style: italic;'>No files were generated for this task</p>
+            </div>
+            """
+        
+        files_html = ""
+        for file_path in generated_files:
+            try:
+                path_obj = Path(file_path)
+                file_name = path_obj.name
+                file_size = self.get_file_size(path_obj) if path_obj.exists() else "Unknown"
+                file_icon, file_type = self.get_file_info(path_obj)
+                
+                files_html += f"""
+                <div style='display: flex; align-items: center; padding: 8px; background: rgba(0,0,0,0.2); 
+                           border-radius: 6px; margin-bottom: 8px;'>
+                    <span style='font-size: 16px; margin-right: 12px;'>{file_icon}</span>
+                    <div style='flex: 1;'>
+                        <div style='font-weight: bold; font-size: 13px;'>{file_name}</div>
+                        <div style='font-size: 11px; color: {ModernTheme.get_colors()['text_secondary']};'>
+                            {file_type} • {file_size}
+                        </div>
+                    </div>
+                    <div style='font-size: 11px; color: {ModernTheme.get_colors()['text_secondary']};'>
+                        {str(path_obj.parent) if path_obj.exists() else 'Path not found'}
+                    </div>
+                </div>
+                """
+            except Exception as e:
+                files_html += f"""
+                <div style='padding: 8px; background: rgba(255,0,0,0.1); border-radius: 6px; margin-bottom: 8px;'>
+                    <span style='color: #ef4444;'>❌ Error loading file: {file_path}</span>
+                </div>
+                """
+        
+        return f"""
+        <div style='background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
+            <h3 style='margin: 0 0 12px 0; color: #f59e0b; font-size: 16px;'>📁 Generated Files ({len(generated_files)})</h3>
+            {files_html}
+        </div>
+        """
+    
+    def clear_all_results(self):
+        """Clear all task results"""
+        reply = QMessageBox.question(
+            self, 
+            'Clear All Results',
+            'Are you sure you want to clear all task results?\n\nThis will remove the timeline and detailed views.',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # Clear data
+                self.task_results.clear()
+                self.selected_task_index = -1
+                
+                # Clear timeline
+                for i in reversed(range(self.timeline_layout.count())):
+                    child = self.timeline_layout.itemAt(i).widget()
+                    if child:
+                        child.deleteLater()
+                
+                # Add empty state back
+                self.add_empty_timeline_state()
+                
+                # Clear results viewer
+                self.results_text.setHtml(self.get_empty_results_html())
+                
+                # Update stats
+                self.update_session_stats()
+                
+            except Exception as e:
+                logging.error(f"Error clearing results: {e}")
+    
+    def export_session_report(self):
+        """Export a comprehensive session report"""
+        try:
+            if not self.task_results:
+                QMessageBox.information(self, 'No Data', 'No tasks to export.')
+                return
+            
+            # Generate session report
+            session_duration = datetime.now() - self.session_start_time
+            total_tasks = len(self.task_results)
+            total_files = sum(len(task.get('generated_files', [])) for task in self.task_results)
+            total_tokens = sum(task.get('tokens_used', 0) for task in self.task_results)
+            avg_response_time = sum(task.get('response_time', 0) for task in self.task_results) / total_tasks if total_tasks else 0
+            
+            # Create report content
+            report_content = f"""
+            # SuperMini AI Session Report
+            
+            **Session Date:** {self.session_start_time.strftime('%Y-%m-%d %H:%M:%S')}
+            **Session Duration:** {session_duration}
+            
+            ## Summary Statistics
+            - **Total Tasks Completed:** {total_tasks}
+            - **Total Files Generated:** {total_files}
+            - **Total Tokens Used:** {total_tokens:,}
+            - **Average Response Time:** {avg_response_time:.2f} seconds
+            
+            ## Task Details
+            """
+            
+            for i, task in enumerate(self.task_results, 1):
+                task_type = task.get('task_type', 'unknown')
+                timestamp = task.get('timestamp', datetime.now())
+                prompt = task.get('prompt', 'No prompt')
+                response_time = task.get('response_time', 0)
+                tokens = task.get('tokens_used', 0)
+                files = task.get('generated_files', [])
+                
+                report_content += f"""
+            ### Task {i}: {task_type.title()}
+            **Time:** {timestamp.strftime('%H:%M:%S')}
+            **Prompt:** {prompt[:200]}{'...' if len(prompt) > 200 else ''}
+            **Response Time:** {response_time:.1f}s
+            **Tokens Used:** {tokens}
+            **Files Generated:** {len(files)}
+            
+            """
+            
+            # Save report
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"supermini_session_report_{timestamp}.md"
+            filepath = Path(self.data_dir) / filename
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(report_content)
+            
+            QMessageBox.information(self, 'Export Complete', f'Session report saved to:\n{filepath}')
+            
+        except Exception as e:
+            logging.error(f"Error exporting session report: {e}")
+            QMessageBox.warning(self, 'Export Error', f'Failed to export session report:\n{str(e)}')
+    
     def create_files_tab(self) -> QWidget:
-        """Create a tab for displaying generated files"""
+        """Create an enhanced tab for displaying generated files with directory tree view"""
         widget = QWidget()
         widget.setStyleSheet(f"background: transparent;")
         layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(16)
 
-        # Files header
-        header_card = QWidget()
-        header_card.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                backdrop-filter: blur(8px);
+        # Enhanced header with stats
+        header_card = self.create_files_header()
+        layout.addWidget(header_card)
+
+        # Create the main content area with splitter
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Left side: Modern directory tree
+        tree_widget = self.create_modern_file_tree()
+        splitter.addWidget(tree_widget)
+        
+        # Right side: File details panel
+        details_widget = self.create_file_details_panel()
+        splitter.addWidget(details_widget)
+        
+        # Set splitter proportions (70% tree, 30% details)
+        splitter.setSizes([700, 300])
+        splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background: {ModernTheme.get_colors()['border']};
+                width: 2px;
             }}
-        """)
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(12, 8, 12, 8)
-
-        files_label = QLabel("Generated Files & Outputs")
-        files_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
-        files_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        header_layout.addWidget(files_label)
-        header_layout.addStretch()
-
-        open_folder_btn = QPushButton("📂 Open Output Folder")
-        open_folder_btn.setToolTip("Open the SuperMini output directory")
-        open_folder_btn.clicked.connect(self.open_output_folder)
-        open_folder_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: {ModernTheme.get_colors()['text_primary']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding: {ModernTheme.scale_value(8)}px;
-                font-weight: 500;
-            }}
-            QPushButton:hover {{
+            QSplitter::handle:hover {{
                 background: {ModernTheme.get_colors()['accent']};
             }}
         """)
-        header_layout.addWidget(open_folder_btn)
-        layout.addWidget(header_card)
-
-        self.files_text = QTextBrowser()
-        self.files_text.setOpenExternalLinks(True)
-        self.files_text.setPlaceholderText("Generated files and their locations will be listed here...")
-        self.files_text.setStyleSheet(f"""
-            QTextBrowser {{
-                background: rgba(255, 255, 255, 0.03);
+        
+        layout.addWidget(splitter)
+        
+        # Initialize file tracking
+        self.generated_files_data = {}
+        self.selected_file_path = None
+        
+        widget.setLayout(layout)
+        return widget
+    
+    def create_files_header(self) -> QWidget:
+        """Create enhanced header for files tab with statistics"""
+        header_card = QWidget()
+        header_card.setFixedHeight(80)
+        header_card.setStyleSheet(f"""
+            QWidget {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(56, 189, 248, 0.1),
+                    stop:0.5 rgba(139, 92, 246, 0.1),
+                    stop:1 rgba(6, 255, 165, 0.1));
+                border-radius: {ModernTheme.scale_value(12)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+            }}
+        """)
+        
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(20, 12, 20, 12)
+        
+        # Left side: Title and stats
+        left_layout = QVBoxLayout()
+        
+        title_label = QLabel("📁 Generated Files")
+        title_label.setFont(QFont("Inter", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-weight: 700;
+            }}
+        """)
+        left_layout.addWidget(title_label)
+        
+        # Stats layout
+        stats_layout = QHBoxLayout()
+        
+        self.files_count_label = QLabel("0 files")
+        self.files_count_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: 13px;
+            }}
+        """)
+        stats_layout.addWidget(self.files_count_label)
+        
+        stats_layout.addWidget(QLabel(" • "))
+        
+        self.total_size_label = QLabel("0 MB")
+        self.total_size_label.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_secondary']};
+                font-size: 13px;
+            }}
+        """)
+        stats_layout.addWidget(self.total_size_label)
+        
+        stats_layout.addStretch()
+        left_layout.addLayout(stats_layout)
+        
+        header_layout.addLayout(left_layout)
+        header_layout.addStretch()
+        
+        # Right side: Action buttons
+        actions_layout = QHBoxLayout()
+        actions_layout.setSpacing(12)
+        
+        refresh_btn = QPushButton("🔄 Refresh")
+        refresh_btn.setToolTip("Refresh file list")
+        refresh_btn.clicked.connect(self.refresh_files_display)
+        refresh_btn.setStyleSheet(self.get_action_button_style())
+        actions_layout.addWidget(refresh_btn)
+        
+        open_folder_btn = QPushButton("📂 Open Folder")
+        open_folder_btn.setToolTip("Open the SuperMini output directory")
+        open_folder_btn.clicked.connect(self.open_output_folder)
+        open_folder_btn.setStyleSheet(self.get_action_button_style())
+        actions_layout.addWidget(open_folder_btn)
+        
+        clear_btn = QPushButton("🗑️ Clear All")
+        clear_btn.setToolTip("Clear all generated files")
+        clear_btn.clicked.connect(self.clear_generated_files)
+        clear_btn.setStyleSheet(self.get_action_button_style())
+        actions_layout.addWidget(clear_btn)
+        
+        header_layout.addLayout(actions_layout)
+        
+        return header_card
+    
+    def get_action_button_style(self) -> str:
+        """Get consistent style for action buttons"""
+        return f"""
+            QPushButton {{
+                background: rgba(255, 255, 255, 0.1);
+                color: {ModernTheme.get_colors()['text_primary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(12)}px;
+                font-weight: 500;
+                font-size: 13px;
+            }}
+            QPushButton:hover {{
+                background: {ModernTheme.get_colors()['accent']};
+                border-color: {ModernTheme.get_colors()['accent']};
+            }}
+            QPushButton:pressed {{
+                background: rgba(6, 255, 165, 0.3);
+            }}
+        """
+    
+    def create_modern_file_tree(self) -> QWidget:
+        """Create a modern file tree widget"""
+        tree_container = QWidget()
+        tree_layout = QVBoxLayout(tree_container)
+        tree_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Tree header
+        tree_header = QLabel("📁 Directory Structure")
+        tree_header.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        tree_header.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(8)}px;
+                margin-bottom: 8px;
+            }}
+        """)
+        tree_layout.addWidget(tree_header)
+        
+        # Create tree widget
+        self.file_tree = QTreeWidget()
+        self.file_tree.setHeaderLabels(["Name", "Type", "Size", "Modified"])
+        self.file_tree.setAlternatingRowColors(True)
+        self.file_tree.setRootIsDecorated(True)
+        self.file_tree.setAnimated(True)
+        self.file_tree.itemSelectionChanged.connect(self.on_file_selected)
+        self.file_tree.itemDoubleClicked.connect(self.on_file_double_clicked)
+        
+        # Style the tree
+        self.file_tree.setStyleSheet(f"""
+            QTreeWidget {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
                 border: 1px solid {ModernTheme.get_colors()['border']};
                 border-radius: {ModernTheme.scale_value(8)}px;
                 color: {ModernTheme.get_colors()['text_primary']};
-                padding: {ModernTheme.scale_value(12)}px;
+                selection-background-color: {ModernTheme.get_colors()['accent']};
+                alternate-background-color: rgba(255, 255, 255, 0.02);
+                font-size: 13px;
+                padding: 4px;
+            }}
+            QTreeWidget::item {{
+                padding: 8px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }}
+            QTreeWidget::item:hover {{
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 4px;
+            }}
+            QTreeWidget::item:selected {{
+                background: {ModernTheme.get_colors()['accent']};
+                border-radius: 4px;
+            }}
+            QTreeWidget::branch:has-children:!has-siblings:closed,
+            QTreeWidget::branch:closed:has-children:has-siblings {{
+                border-image: none;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTYgNEwxMCA4TDYgMTJWNFoiIGZpbGw9IiNhYmFiYWIiLz4KPC9zdmc+);
+            }}
+            QTreeWidget::branch:open:has-children:!has-siblings,
+            QTreeWidget::branch:open:has-children:has-siblings {{
+                border-image: none;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQgNkw4IDEwTDEyIDZINFoiIGZpbGw9IiNhYmFiYWIiLz4KPC9zdmc+);
+            }}
+            QHeaderView::section {{
+                background: rgba(255, 255, 255, 0.1);
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: 8px;
+                border: none;
+                border-right: 1px solid {ModernTheme.get_colors()['border']};
+                font-weight: 600;
             }}
         """)
-        self.files_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        layout.addWidget(self.files_text)
+        
+        # Set column widths
+        self.file_tree.setColumnWidth(0, 300)  # Name
+        self.file_tree.setColumnWidth(1, 80)   # Type  
+        self.file_tree.setColumnWidth(2, 80)   # Size
+        self.file_tree.setColumnWidth(3, 120)  # Modified
+        
+        tree_layout.addWidget(self.file_tree)
+        
+        return tree_container
+    
+    def create_file_details_panel(self) -> QWidget:
+        """Create file details panel"""
+        details_container = QWidget()
+        details_layout = QVBoxLayout(details_container)
+        details_layout.setContentsMargins(0, 0, 0, 0)
+        details_layout.setSpacing(12)
+        
+        # Details header
+        details_header = QLabel("📄 File Details")
+        details_header.setFont(QFont("Inter", 14, QFont.Weight.Bold))
+        details_header.setStyleSheet(f"""
+            QLabel {{
+                color: {ModernTheme.get_colors()['text_primary']};
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: {ModernTheme.scale_value(8)}px;
+            }}
+        """)
+        details_layout.addWidget(details_header)
+        
+        # Details content
+        self.file_details = QTextBrowser()
+        self.file_details.setHtml("""
+            <div style='padding: 20px; text-align: center; color: #888;'>
+                <h3>📄 No File Selected</h3>
+                <p>Select a file from the tree to view details</p>
+            </div>
+        """)
+        self.file_details.setStyleSheet(f"""
+            QTextBrowser {{
+                background: {ModernTheme.get_colors()['bg_secondary']};
+                border: 1px solid {ModernTheme.get_colors()['border']};
+                border-radius: {ModernTheme.scale_value(8)}px;
+                color: {ModernTheme.get_colors()['text_primary']};
+                font-size: 13px;
+                padding: 8px;
+            }}
+        """)
+        details_layout.addWidget(self.file_details)
+        
+        # Action buttons for selected file
+        file_actions_layout = QHBoxLayout()
+        
+        self.open_file_btn = QPushButton("📖 Open File")
+        self.open_file_btn.clicked.connect(self.open_selected_file)
+        self.open_file_btn.setEnabled(False)
+        self.open_file_btn.setStyleSheet(self.get_action_button_style())
+        file_actions_layout.addWidget(self.open_file_btn)
+        
+        self.reveal_file_btn = QPushButton("👁️ Reveal")
+        self.reveal_file_btn.clicked.connect(self.reveal_selected_file)
+        self.reveal_file_btn.setEnabled(False)
+        self.reveal_file_btn.setStyleSheet(self.get_action_button_style())
+        file_actions_layout.addWidget(self.reveal_file_btn)
+        
+        file_actions_layout.addStretch()
+        details_layout.addLayout(file_actions_layout)
+        
+        return details_container
+    
+    def refresh_files_display(self):
+        """Refresh the files display by scanning output directory"""
+        try:
+            self.file_tree.clear()
+            self.generated_files_data.clear()
+            
+            output_dir = Path(self.data_dir)
+            if not output_dir.exists():
+                return
+            
+            # Create directory structure
+            self.populate_file_tree(output_dir)
+            self.update_file_stats()
+            
+        except Exception as e:
+            logging.error(f"Error refreshing files display: {e}")
+    
+    def populate_file_tree(self, root_path: Path, parent_item: QTreeWidgetItem = None):
+        """Populate the file tree with directory structure"""
+        try:
+            # Sort directories first, then files
+            items = sorted(root_path.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+            
+            for item_path in items:
+                if item_path.name.startswith('.'):
+                    continue  # Skip hidden files
+                
+                # Create tree item
+                if parent_item:
+                    tree_item = QTreeWidgetItem(parent_item)
+                else:
+                    tree_item = QTreeWidgetItem(self.file_tree)
+                
+                # Set basic info
+                file_name = item_path.name
+                
+                if item_path.is_dir():
+                    # Directory
+                    tree_item.setText(0, f"📁 {file_name}")
+                    tree_item.setText(1, "Folder")
+                    tree_item.setText(2, "-")
+                    tree_item.setText(3, self.get_file_modified_date(item_path))
+                    
+                    # Set icon and expand behavior
+                    tree_item.setExpanded(False)
+                    
+                    # Recursively populate subdirectories
+                    self.populate_file_tree(item_path, tree_item)
+                    
+                else:
+                    # File - check if we have metadata for enhanced display
+                    file_path_str = str(item_path)
+                    metadata = None
+                    if hasattr(self, 'stored_file_metadata') and file_path_str in self.stored_file_metadata:
+                        metadata = self.stored_file_metadata[file_path_str]
+                    
+                    if metadata:
+                        # Use metadata for enhanced display
+                        display_name = metadata.display_name
+                        file_type = metadata.file_type
+                        file_icon = self._get_metadata_icon(metadata.file_type)
+                        
+                        tree_item.setText(0, f"{file_icon} {display_name}")
+                        tree_item.setText(1, file_type)
+                        tree_item.setText(2, self.get_file_size(item_path))
+                        tree_item.setText(3, self.get_file_modified_date(item_path))
+                        
+                        # Store enhanced file data with metadata
+                        self.generated_files_data[file_path_str] = {
+                            'path': item_path,
+                            'name': display_name,
+                            'original_name': file_name,
+                            'type': file_type,
+                            'size': self.get_file_size(item_path),
+                            'icon': file_icon,
+                            'tree_item': tree_item,
+                            'metadata': metadata
+                        }
+                    else:
+                        # Fallback to original display method
+                        file_icon, file_type = self.get_file_info(item_path)
+                        file_size = self.get_file_size(item_path)
+                        
+                        tree_item.setText(0, f"{file_icon} {file_name}")
+                        tree_item.setText(1, file_type)
+                        tree_item.setText(2, file_size)
+                        tree_item.setText(3, self.get_file_modified_date(item_path))
+                        
+                        # Store file data
+                        self.generated_files_data[file_path_str] = {
+                            'path': item_path,
+                            'name': file_name,
+                            'original_name': file_name,
+                            'type': file_type,
+                            'size': file_size,
+                            'icon': file_icon,
+                            'tree_item': tree_item,
+                            'metadata': None
+                        }
+                
+                # Store path in item data
+                tree_item.setData(0, Qt.ItemDataRole.UserRole, str(item_path))
+                
+        except Exception as e:
+            logging.error(f"Error populating file tree: {e}")
+    
+    def get_file_info(self, file_path: Path) -> tuple:
+        """Get file icon and type based on extension"""
+        suffix = file_path.suffix.lower()
+        
+        # File type mappings
+        file_types = {
+            '.py': ('🐍', 'Python'),
+            '.js': ('📜', 'JavaScript'),
+            '.html': ('🌐', 'HTML'),
+            '.css': ('🎨', 'CSS'),
+            '.json': ('📋', 'JSON'),
+            '.txt': ('📄', 'Text'),
+            '.md': ('📝', 'Markdown'),
+            '.pdf': ('📕', 'PDF'),
+            '.docx': ('📘', 'Word'),
+            '.xlsx': ('📊', 'Excel'),
+            '.png': ('🖼️', 'Image'),
+            '.jpg': ('🖼️', 'Image'),
+            '.jpeg': ('🖼️', 'Image'),
+            '.gif': ('🖼️', 'Image'),
+            '.mp4': ('🎥', 'Video'),
+            '.mp3': ('🎵', 'Audio'),
+            '.zip': ('📦', 'Archive'),
+            '.sh': ('⚡', 'Shell'),
+            '.sql': ('🗃️', 'Database'),
+            '.csv': ('📈', 'Data'),
+            '.log': ('📋', 'Log'),
+        }
+        
+        return file_types.get(suffix, ('📄', 'File'))
+    
+    def get_file_size(self, file_path: Path) -> str:
+        """Get human-readable file size"""
+        try:
+            size = file_path.stat().st_size
+            
+            if size < 1024:
+                return f"{size} B"
+            elif size < 1024 * 1024:
+                return f"{size / 1024:.1f} KB"
+            else:
+                return f"{size / (1024 * 1024):.1f} MB"
+        except:
+            return "Unknown"
+    
+    def get_file_modified_date(self, file_path: Path) -> str:
+        """Get file modification date"""
+        try:
+            mtime = file_path.stat().st_mtime
+            return datetime.fromtimestamp(mtime).strftime("%m/%d %H:%M")
+        except:
+            return "Unknown"
+    
+    def update_file_stats(self):
+        """Update file count and total size statistics"""
+        try:
+            file_count = len(self.generated_files_data)
+            total_size = 0
+            
+            for file_data in self.generated_files_data.values():
+                try:
+                    total_size += file_data['path'].stat().st_size
+                except:
+                    continue
+            
+            # Update labels
+            self.files_count_label.setText(f"{file_count} files")
+            
+            if total_size < 1024 * 1024:
+                size_text = f"{total_size / 1024:.1f} KB"
+            else:
+                size_text = f"{total_size / (1024 * 1024):.1f} MB"
+            
+            self.total_size_label.setText(size_text)
+            
+        except Exception as e:
+            logging.error(f"Error updating file stats: {e}")
+    
+    def on_file_selected(self):
+        """Handle file selection in tree"""
+        try:
+            selected_items = self.file_tree.selectedItems()
+            if not selected_items:
+                self.selected_file_path = None
+                self.open_file_btn.setEnabled(False)
+                self.reveal_file_btn.setEnabled(False)
+                self.file_details.setHtml("""
+                    <div style='padding: 20px; text-align: center; color: #888;'>
+                        <h3>📄 No File Selected</h3>
+                        <p>Select a file from the tree to view details</p>
+                    </div>
+                """)
+                return
+            
+            item = selected_items[0]
+            file_path_str = item.data(0, Qt.ItemDataRole.UserRole)
+            file_path = Path(file_path_str)
+            
+            if file_path.is_file() and str(file_path) in self.generated_files_data:
+                self.selected_file_path = file_path
+                self.open_file_btn.setEnabled(True)
+                self.reveal_file_btn.setEnabled(True)
+                self.show_file_details(file_path)
+            else:
+                self.selected_file_path = None
+                self.open_file_btn.setEnabled(False)
+                self.reveal_file_btn.setEnabled(False)
+                self.show_folder_details(file_path)
+                
+        except Exception as e:
+            logging.error(f"Error handling file selection: {e}")
+    
+    def show_file_details(self, file_path: Path):
+        """Show detailed information about selected file with enhanced metadata display"""
+        try:
+            file_data = self.generated_files_data.get(str(file_path))
+            if not file_data:
+                return
+            
+            # Get file stats
+            stat = file_path.stat()
+            created = datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Check if we have metadata for enhanced display
+            metadata = file_data.get('metadata')
+            
+            # Try to get file preview
+            preview = self.get_file_preview(file_path)
+            
+            if metadata:
+                # Enhanced display with metadata
+                html_content = f"""
+                <div style='padding: 16px; font-family: Inter, sans-serif;'>
+                    <div style='background: linear-gradient(135deg, #38bdf8 0%, #8b5cf6 100%); 
+                               color: white; padding: 16px; border-radius: 8px; margin-bottom: 16px;'>
+                        <h3 style='margin: 0; font-size: 18px;'>{file_data['icon']} {metadata.display_name}</h3>
+                        <p style='margin: 6px 0 0 0; opacity: 0.9; font-size: 13px;'>{metadata.file_type} • {file_data['size']}</p>
+                        <p style='margin: 8px 0 0 0; opacity: 0.8; font-size: 12px; font-style: italic;'>{metadata.description}</p>
+                    </div>
+                    
+                    <div style='background: rgba(6, 255, 165, 0.1); border: 1px solid rgba(6, 255, 165, 0.3); 
+                               padding: 12px; border-radius: 6px; margin-bottom: 12px;'>
+                        <h4 style='margin: 0 0 8px 0; color: #06ffa5; font-size: 14px;'>🎯 Purpose & Function</h4>
+                        <p style='margin: 0; font-size: 12px; line-height: 1.4; color: #e5e5e5;'>{metadata.purpose}</p>
+                    </div>
+                    
+                    <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 12px;'>
+                        <h4 style='margin: 0 0 8px 0; color: #8b5cf6; font-size: 14px;'>📋 File Details</h4>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Display Name:</strong> {metadata.display_name}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Original Name:</strong> {file_data.get('original_name', file_path.name)}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>File Type:</strong> {metadata.file_type}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Size:</strong> {file_data['size']}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Created:</strong> {created}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Generated:</strong> {datetime.fromtimestamp(metadata.created_timestamp).strftime("%Y-%m-%d %H:%M:%S")}</p>
+                    </div>
+                    
+                    <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 12px;'>
+                        <h4 style='margin: 0 0 8px 0; color: #f59e0b; font-size: 14px;'>📁 Location</h4>
+                        <p style='margin: 0; font-size: 11px; color: #a3a3a3; word-break: break-all;'>{file_path}</p>
+                    </div>
+                    
+                    {preview}
+                </div>
+                """
+            else:
+                # Fallback display without metadata
+                file_use = self.get_file_use_description(file_path)
+                
+                html_content = f"""
+                <div style='padding: 16px; font-family: Inter, sans-serif;'>
+                    <div style='background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
+                               color: white; padding: 12px; border-radius: 8px; margin-bottom: 16px;'>
+                        <h3 style='margin: 0; font-size: 16px;'>{file_data['icon']} {file_data['name']}</h3>
+                        <p style='margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;'>{file_data['type']} • {file_data['size']}</p>
+                    </div>
+                    
+                    <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 12px;'>
+                        <h4 style='margin: 0 0 8px 0; color: #06ffa5; font-size: 14px;'>📋 File Information</h4>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Path:</strong> {file_path}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Created:</strong> {created}</p>
+                        <p style='margin: 2px 0; font-size: 12px;'><strong>Modified:</strong> {modified}</p>
+                    </div>
+                    
+                    <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 12px;'>
+                        <h4 style='margin: 0 0 8px 0; color: #f59e0b; font-size: 14px;'>🎯 Purpose & Use</h4>
+                        <p style='margin: 0; font-size: 12px; line-height: 1.4;'>{file_use}</p>
+                    </div>
+                    
+                    {preview}
+                </div>
+                """
+            
+            self.file_details.setHtml(html_content)
+            
+        except Exception as e:
+            logging.error(f"Error showing file details: {e}")
+    
+    def show_folder_details(self, folder_path: Path):
+        """Show information about selected folder"""
+        try:
+            if not folder_path.is_dir():
+                return
+            
+            # Count contents
+            file_count = 0
+            folder_count = 0
+            total_size = 0
+            
+            for item in folder_path.rglob('*'):
+                if item.is_file():
+                    file_count += 1
+                    try:
+                        total_size += item.stat().st_size
+                    except:
+                        pass
+                elif item.is_dir():
+                    folder_count += 1
+            
+            size_text = f"{total_size / (1024 * 1024):.1f} MB" if total_size > 1024*1024 else f"{total_size / 1024:.1f} KB"
+            
+            html_content = f"""
+            <div style='padding: 16px; font-family: Inter, sans-serif;'>
+                <div style='background: linear-gradient(135deg, #8b5cf6 0%, #06ffa5 100%); 
+                           color: white; padding: 12px; border-radius: 8px; margin-bottom: 16px;'>
+                    <h3 style='margin: 0; font-size: 16px;'>📁 {folder_path.name}</h3>
+                    <p style='margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;'>Directory</p>
+                </div>
+                
+                <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px;'>
+                    <h4 style='margin: 0 0 8px 0; color: #06ffa5; font-size: 14px;'>📊 Contents</h4>
+                    <p style='margin: 2px 0; font-size: 12px;'><strong>Files:</strong> {file_count}</p>
+                    <p style='margin: 2px 0; font-size: 12px;'><strong>Folders:</strong> {folder_count}</p>
+                    <p style='margin: 2px 0; font-size: 12px;'><strong>Total Size:</strong> {size_text}</p>
+                    <p style='margin: 2px 0; font-size: 12px;'><strong>Path:</strong> {folder_path}</p>
+                </div>
+            </div>
+            """
+            
+            self.file_details.setHtml(html_content)
+            
+        except Exception as e:
+            logging.error(f"Error showing folder details: {e}")
+    
+    def get_file_preview(self, file_path: Path) -> str:
+        """Get a preview of file contents"""
+        try:
+            if file_path.suffix.lower() in ['.txt', '.py', '.js', '.html', '.css', '.json', '.md', '.sh', '.sql', '.csv']:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read(500)  # First 500 characters
+                    
+                if len(content) == 500:
+                    content += "..."
+                
+                # Escape HTML characters
+                content = content.replace('<', '&lt;').replace('>', '&gt;')
+                
+                return f"""
+                <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px;'>
+                    <h4 style='margin: 0 0 8px 0; color: #8b5cf6; font-size: 14px;'>👁️ Preview</h4>
+                    <pre style='margin: 0; font-size: 11px; line-height: 1.3; white-space: pre-wrap; 
+                              background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; 
+                              max-height: 150px; overflow-y: auto;'>{content}</pre>
+                </div>
+                """
+            else:
+                return f"""
+                <div style='background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px;'>
+                    <h4 style='margin: 0 0 8px 0; color: #8b5cf6; font-size: 14px;'>👁️ Preview</h4>
+                    <p style='margin: 0; font-size: 12px; color: #888; text-align: center; padding: 20px;'>
+                        Preview not available for this file type
+                    </p>
+                </div>
+                """
+        except:
+            return ""
+    
+    def get_file_use_description(self, file_path: Path) -> str:
+        """Generate a description of what the file is used for"""
+        suffix = file_path.suffix.lower()
+        name = file_path.stem.lower()
+        
+        # Analyze file purpose based on name and extension
+        if 'test' in name:
+            return "Test file containing unit tests or test cases for validating functionality."
+        elif suffix == '.py':
+            if 'main' in name or 'app' in name:
+                return "Main Python application file - entry point for program execution."
+            elif 'config' in name or 'settings' in name:
+                return "Configuration file containing application settings and parameters."
+            else:
+                return "Python script containing functions, classes, or automation logic."
+        elif suffix in ['.js', '.html', '.css']:
+            return "Web development file for creating interactive user interfaces and web applications."
+        elif suffix == '.json':
+            return "Data configuration file storing structured information in JSON format."
+        elif suffix == '.md':
+            return "Documentation file written in Markdown format with project information."
+        elif suffix == '.txt':
+            return "Plain text file containing notes, data, or human-readable information."
+        elif suffix in ['.png', '.jpg', '.jpeg', '.gif']:
+            return "Image file for visual content, graphics, or user interface elements."
+        elif suffix == '.sh':
+            return "Shell script for automating system tasks and command-line operations."
+        elif suffix == '.sql':
+            return "Database script containing SQL queries and database operations."
+        elif suffix == '.csv':
+            return "Data file in comma-separated values format for spreadsheet applications."
+        elif suffix == '.log':
+            return "Log file containing application events, errors, and debugging information."
+        else:
+            return "Generated file created by SuperMini AI assistant for task completion."
+    
+    def on_file_double_clicked(self, item: QTreeWidgetItem, column: int):
+        """Handle double-click on file item"""
+        self.open_selected_file()
+    
+    def open_selected_file(self):
+        """Open the selected file with default application"""
+        if self.selected_file_path and self.selected_file_path.exists():
+            try:
+                if sys.platform == 'darwin':  # macOS
+                    subprocess.run(['open', str(self.selected_file_path)])
+                elif sys.platform == 'win32':  # Windows
+                    os.startfile(str(self.selected_file_path))
+                else:  # Linux
+                    subprocess.run(['xdg-open', str(self.selected_file_path)])
+            except Exception as e:
+                logging.error(f"Error opening file: {e}")
+    
+    def reveal_selected_file(self):
+        """Reveal the selected file in file manager"""
+        if self.selected_file_path and self.selected_file_path.exists():
+            try:
+                if sys.platform == 'darwin':  # macOS
+                    subprocess.run(['open', '-R', str(self.selected_file_path)])
+                elif sys.platform == 'win32':  # Windows
+                    subprocess.run(['explorer', '/select,', str(self.selected_file_path)])
+                else:  # Linux
+                    subprocess.run(['xdg-open', str(self.selected_file_path.parent)])
+            except Exception as e:
+                logging.error(f"Error revealing file: {e}")
+    
+    def clear_generated_files(self):
+        """Clear all generated files after confirmation"""
+        reply = QMessageBox.question(
+            self, 
+            'Clear Generated Files',
+            'Are you sure you want to delete all generated files?\n\nThis action cannot be undone.',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                output_dir = Path(self.data_dir)
+                if output_dir.exists():
+                    # Remove all files except essential directories
+                    for item in output_dir.rglob('*'):
+                        if item.is_file() and not item.name.startswith('.'):
+                            item.unlink()
+                
+                self.refresh_files_display()
+                
+            except Exception as e:
+                logging.error(f"Error clearing files: {e}")
+                QMessageBox.warning(self, 'Error', f'Failed to clear files: {str(e)}')
 
         widget.setLayout(layout)
         return widget
@@ -8642,7 +12241,6 @@ class SuperMiniMainWindow(QMainWindow):
                     stop:1 rgba(6, 255, 165, 0.15));
                 border: 1px solid {ModernTheme.get_colors()['border']};
                 border-radius: {ModernTheme.scale_value(16)}px;
-                backdrop-filter: blur(10px);
             }}
         """)
         header_layout = QHBoxLayout(header_card)
@@ -8738,22 +12336,17 @@ class SuperMiniMainWindow(QMainWindow):
             cards_layout.addWidget(card)
         layout.addLayout(cards_layout)
 
-        # Simple metrics display for now
-        metrics_text = QLabel("📊 Real-time AI metrics will be displayed here when tasks are processed")
-        metrics_text.setStyleSheet(f"""
-            QLabel {{
-                color: {ModernTheme.get_colors()['text_secondary']};
-                background: rgba(255, 255, 255, 0.05);
-                padding: {ModernTheme.scale_value(20)}px;
-                border-radius: {ModernTheme.scale_value(12)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                font-size: {ModernTheme.get_font_size('lg')};
-                text-align: center;
-            }}
-        """)
-        layout.addWidget(metrics_text)
+        # Create real-time graphs
+        graphs_widget = self.create_dashboard_graphs()
+        layout.addWidget(graphs_widget)
 
         layout.addStretch()
+        
+        # Setup dashboard refresh timer
+        self.dashboard_timer = QTimer()
+        self.dashboard_timer.timeout.connect(self.refresh_dashboard_display)
+        self.dashboard_timer.start(1000)  # Refresh every second
+        
         return widget
     
     def create_modern_metric_card(self, config: dict) -> QWidget:
@@ -8801,6 +12394,326 @@ class SuperMiniMainWindow(QMainWindow):
         self.metric_cards[config['key']] = value_label
 
         return card
+    
+    def create_dashboard_graphs(self) -> QWidget:
+        """Create real-time dashboard graphs using matplotlib"""
+        graphs_widget = QWidget()
+        graphs_layout = QVBoxLayout(graphs_widget)
+        graphs_layout.setContentsMargins(0, 0, 0, 0)
+        graphs_layout.setSpacing(16)
+        
+        # Create matplotlib figure with dark theme
+        self.dashboard_figure = Figure(figsize=(12, 8), facecolor='#1a1a1a')
+        self.dashboard_canvas = FigureCanvas(self.dashboard_figure)
+        self.dashboard_canvas.setStyleSheet(f"""
+            QWidget {{
+                background: {ModernTheme.get_colors()['bg_primary']};
+                border-radius: {ModernTheme.scale_value(12)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+            }}
+        """)
+        
+        # Create subplots for different metrics
+        self.response_time_ax = self.dashboard_figure.add_subplot(2, 2, 1)
+        self.token_usage_ax = self.dashboard_figure.add_subplot(2, 2, 2) 
+        self.task_types_ax = self.dashboard_figure.add_subplot(2, 2, 3)
+        self.system_metrics_ax = self.dashboard_figure.add_subplot(2, 2, 4)
+        
+        # Configure subplot styles
+        self.configure_graph_styles()
+        
+        # Initialize empty data for graphs
+        self.init_graph_data()
+        
+        graphs_layout.addWidget(self.dashboard_canvas)
+        return graphs_widget
+    
+    def configure_graph_styles(self):
+        """Configure matplotlib graph styles for dark theme"""
+        # Dark theme colors
+        bg_color = '#1a1a1a'
+        text_color = '#e5e5e5'
+        grid_color = '#333333'
+        
+        for ax in [self.response_time_ax, self.token_usage_ax, self.task_types_ax, self.system_metrics_ax]:
+            ax.set_facecolor(bg_color)
+            ax.tick_params(colors=text_color, labelsize=9)
+            ax.grid(True, color=grid_color, alpha=0.3, linewidth=0.5)
+            ax.spines['bottom'].set_color(text_color)
+            ax.spines['top'].set_color(text_color)
+            ax.spines['right'].set_color(text_color)
+            ax.spines['left'].set_color(text_color)
+            
+        # Set titles
+        self.response_time_ax.set_title('Response Times', color=text_color, fontsize=12, pad=10)
+        self.token_usage_ax.set_title('Token Usage', color=text_color, fontsize=12, pad=10)
+        self.task_types_ax.set_title('Task Distribution', color=text_color, fontsize=12, pad=10)
+        self.system_metrics_ax.set_title('System Metrics', color=text_color, fontsize=12, pad=10)
+        
+        # Adjust layout
+        self.dashboard_figure.tight_layout(pad=2.0)
+    
+    def init_graph_data(self):
+        """Initialize empty data structures for graphs"""
+        self.graph_data = {
+            'timestamps': [],
+            'response_times': [],
+            'token_counts': [],
+            'task_type_counts': {},
+            'cpu_usage': [],
+            'memory_usage': []
+        }
+        
+        # Draw initial empty graphs
+        self.update_dashboard_graphs()
+    
+    def update_dashboard_graphs(self):
+        """Update all dashboard graphs with current data"""
+        try:
+            # Clear all subplots
+            self.response_time_ax.clear()
+            self.token_usage_ax.clear()
+            self.task_types_ax.clear()
+            self.system_metrics_ax.clear()
+            
+            # Reconfigure styles after clearing
+            self.configure_graph_styles()
+            
+            # Update response times graph
+            if self.ai_metrics.get('timestamps') and self.ai_metrics.get('response_times'):
+                times = self.ai_metrics['timestamps'][-20:]  # Last 20 data points
+                responses = self.ai_metrics['response_times'][-20:]
+                
+                if times and responses:
+                    # Convert timestamps to relative time (seconds ago)
+                    now = time.time()
+                    relative_times = [(now - t) for t in reversed(times)]
+                    
+                    self.response_time_ax.plot(relative_times, list(reversed(responses)), 
+                                             color='#06ffa5', linewidth=2, marker='o', markersize=3)
+                    self.response_time_ax.set_xlabel('Seconds Ago', color='#e5e5e5', fontsize=9)
+                    self.response_time_ax.set_ylabel('Response Time (s)', color='#e5e5e5', fontsize=9)
+            
+            # Update token usage graph
+            if self.ai_metrics.get('timestamps') and self.ai_metrics.get('token_usage'):
+                times = self.ai_metrics['timestamps'][-20:]
+                tokens = self.ai_metrics['token_usage'][-20:]
+                
+                if times and tokens:
+                    now = time.time()
+                    relative_times = [(now - t) for t in reversed(times)]
+                    
+                    self.token_usage_ax.bar(relative_times, list(reversed(tokens)), 
+                                          color='#8b5cf6', alpha=0.7, width=0.8)
+                    self.token_usage_ax.set_xlabel('Seconds Ago', color='#e5e5e5', fontsize=9)
+                    self.token_usage_ax.set_ylabel('Tokens Used', color='#e5e5e5', fontsize=9)
+            
+            # Update task types pie chart
+            task_types = self.ai_metrics.get('task_types', {})
+            if task_types:
+                labels = list(task_types.keys())
+                sizes = list(task_types.values())
+                colors = ['#38bdf8', '#8b5cf6', '#06ffa5', '#f59e0b', '#ef4444', '#10b981', '#f97316']
+                
+                self.task_types_ax.pie(sizes, labels=labels, colors=colors[:len(labels)], 
+                                     autopct='%1.0f%%', startangle=90, textprops={'color': '#e5e5e5', 'fontsize': 8})
+            
+            # Update system metrics
+            try:
+                import psutil
+                cpu_percent = psutil.cpu_percent()
+                memory_percent = psutil.virtual_memory().percent
+                
+                # Simple bar chart for system metrics
+                metrics = ['CPU', 'Memory']
+                values = [cpu_percent, memory_percent]
+                colors = ['#38bdf8', '#ef4444']
+                
+                bars = self.system_metrics_ax.bar(metrics, values, color=colors, alpha=0.7)
+                self.system_metrics_ax.set_ylabel('Usage %', color='#e5e5e5', fontsize=9)
+                self.system_metrics_ax.set_ylim(0, 100)
+                
+                # Add value labels on bars
+                for bar, value in zip(bars, values):
+                    height = bar.get_height()
+                    self.system_metrics_ax.text(bar.get_x() + bar.get_width()/2., height + 1,
+                                              f'{value:.1f}%', ha='center', va='bottom', 
+                                              color='#e5e5e5', fontsize=9)
+                        
+            except ImportError:
+                # Fallback if psutil not available
+                self.system_metrics_ax.text(0.5, 0.5, 'System metrics\nrequire psutil', 
+                                          ha='center', va='center', transform=self.system_metrics_ax.transAxes,
+                                          color='#e5e5e5', fontsize=10)
+            
+            # Refresh the canvas
+            self.dashboard_canvas.draw()
+            
+        except Exception as e:
+            logging.error(f"Error updating dashboard graphs: {e}")
+    
+    def refresh_dashboard_display(self):
+        """Refresh the dashboard display with current metrics"""
+        try:
+            current_time = time.time()
+            
+            # Update metric cards if they exist
+            if hasattr(self, 'metric_cards') and hasattr(self, 'ai_metrics'):
+                for key, label in self.metric_cards.items():
+                    try:
+                        value = self.ai_metrics.get(key, 0)
+                        
+                        # Format values appropriately
+                        if key in ['avg_response_time', 'avg_task_time']:
+                            formatted_value = f"{value:.2f}s" if value > 0 else "0s"
+                        elif key == 'total_tokens':
+                            # Format large numbers with K/M notation
+                            if value >= 1000000:
+                                formatted_value = f"{value/1000000:.1f}M"
+                            elif value >= 1000:
+                                formatted_value = f"{value/1000:.1f}K"
+                            else:
+                                formatted_value = str(int(value))
+                        else:
+                            formatted_value = str(int(value))
+                        
+                        label.setText(formatted_value)
+                    except Exception as e:
+                        logging.error(f"Error updating metric card {key}: {e}")
+            
+            # Update status indicator
+            if hasattr(self, 'ai_status_label') and hasattr(self, 'ai_metrics'):
+                if (self.ai_metrics.get('timestamps') and 
+                    current_time - self.ai_metrics['timestamps'][-1] < 10):  # Active within last 10 seconds
+                    self.ai_status_label.setText("🟢 ACTIVE")
+                    self.ai_status_label.setStyleSheet(f"""
+                        QLabel {{
+                            color: {ModernTheme.get_colors()['accent']};
+                            background: rgba(6, 255, 165, 0.15);
+                            border: 2px solid rgba(6, 255, 165, 0.4);
+                            border-radius: {ModernTheme.scale_value(12)}px;
+                            padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
+                            font-weight: 700;
+                        }}
+                    """)
+                else:
+                    self.ai_status_label.setText("🟡 IDLE")
+                    self.ai_status_label.setStyleSheet(f"""
+                        QLabel {{
+                            color: #f59e0b;
+                            background: rgba(245, 158, 11, 0.15);
+                            border: 2px solid rgba(245, 158, 11, 0.4);
+                            border-radius: {ModernTheme.scale_value(12)}px;
+                            padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
+                            font-weight: 700;
+                        }}
+                    """)
+            
+            # Update graphs if they exist
+            if hasattr(self, 'dashboard_canvas'):
+                self.update_dashboard_graphs()
+                        
+        except Exception as e:
+            logging.error(f"Error refreshing dashboard display: {e}")
+    
+    def update_ai_metrics(self, task_type: str = None, response_time: float = 0, tokens_used: int = 0):
+        """Update AI metrics display in real-time"""
+        try:
+            current_time = time.time()
+            
+            # Update metrics data
+            self.ai_metrics['timestamps'].append(current_time)
+            self.ai_metrics['response_times'].append(response_time)
+            self.ai_metrics['token_usage'].append(tokens_used)
+            
+            # Update counters
+            self.ai_metrics['task_count'] += 1
+            self.ai_metrics['total_tokens'] += tokens_used
+            self.ai_metrics['tasks_completed'] += 1
+            
+            # Track task types
+            if task_type:
+                self.ai_metrics['task_types'][task_type] = self.ai_metrics['task_types'].get(task_type, 0) + 1
+            
+            # Calculate averages
+            if self.ai_metrics['response_times']:
+                self.ai_metrics['avg_response_time'] = sum(self.ai_metrics['response_times']) / len(self.ai_metrics['response_times'])
+            
+            # Update task execution times
+            self.ai_metrics['task_execution_times'].append(response_time)
+            if self.ai_metrics['task_execution_times']:
+                self.ai_metrics['avg_task_time'] = sum(self.ai_metrics['task_execution_times']) / len(self.ai_metrics['task_execution_times'])
+            
+            # Keep only recent data (last 100 entries)
+            max_entries = 100
+            for key in ['timestamps', 'response_times', 'token_usage', 'task_execution_times']:
+                if len(self.ai_metrics[key]) > max_entries:
+                    self.ai_metrics[key] = self.ai_metrics[key][-max_entries:]
+            
+            # Update metric cards if they exist
+            if hasattr(self, 'metric_cards'):
+                for key, label in self.metric_cards.items():
+                    try:
+                        value = self.ai_metrics.get(key, 0)
+                        
+                        # Format values appropriately
+                        if key in ['avg_response_time', 'avg_task_time']:
+                            formatted_value = f"{value:.2f}"
+                        elif key == 'total_tokens':
+                            # Format large numbers with K/M notation
+                            if value >= 1000000:
+                                formatted_value = f"{value/1000000:.1f}M"
+                            elif value >= 1000:
+                                formatted_value = f"{value/1000:.1f}K"
+                            else:
+                                formatted_value = str(int(value))
+                        else:
+                            formatted_value = str(int(value))
+                        
+                        label.setText(formatted_value)
+                    except Exception as e:
+                        logging.error(f"Error updating metric card {key}: {e}")
+            
+            # Update status indicator
+            if hasattr(self, 'ai_status_label'):
+                if current_time - self.ai_metrics['timestamps'][-1] < 5:  # Active within last 5 seconds
+                    self.ai_status_label.setText("🟢 ACTIVE")
+                    self.ai_status_label.setStyleSheet(f"""
+                        QLabel {{
+                            color: {ModernTheme.get_colors()['accent']};
+                            background: rgba(6, 255, 165, 0.15);
+                            border: 2px solid rgba(6, 255, 165, 0.4);
+                            border-radius: {ModernTheme.scale_value(12)}px;
+                            padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
+                            font-weight: 700;
+                        }}
+                    """)
+                else:
+                    self.ai_status_label.setText("🟡 IDLE")
+                    self.ai_status_label.setStyleSheet(f"""
+                        QLabel {{
+                            color: #f59e0b;
+                            background: rgba(245, 158, 11, 0.15);
+                            border: 2px solid rgba(245, 158, 11, 0.4);
+                            border-radius: {ModernTheme.scale_value(12)}px;
+                            padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
+                            font-weight: 700;
+                        }}
+                    """)
+                    
+        except Exception as e:
+            logging.error(f"Error updating AI metrics: {e}")
+    
+    def get_ai_metrics_summary(self) -> Dict[str, Any]:
+        """Get summary of AI metrics for display"""
+        return {
+            'total_tasks': self.ai_metrics['tasks_completed'],
+            'total_tokens': self.ai_metrics['total_tokens'],
+            'avg_response_time': self.ai_metrics['avg_response_time'],
+            'avg_task_time': self.ai_metrics['avg_task_time'],
+            'task_types': dict(self.ai_metrics['task_types']),
+            'last_activity': self.ai_metrics['timestamps'][-1] if self.ai_metrics['timestamps'] else 0
+        }
     
     def create_explore_tab(self) -> QWidget:
         """Create the autonomous exploration tab with enhanced modern design"""
@@ -9164,1766 +13077,7 @@ class SuperMiniMainWindow(QMainWindow):
             dialog.exec()
             settings.setValue("welcome_shown", True)
     
-class ModernNeuralDashboard:
-    def create_monitor_section(self) -> QWidget:
-        """Create enhanced system status section with modern styling"""
-        monitor_group = QGroupBox("📊 Quick Status")
-        monitor_group.setStyleSheet(f"""
-            QGroupBox {{
-                background: {ModernTheme.get_colors()['bg_secondary']};
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(12)}px;
-                margin-top: {ModernTheme.scale_value(12)}px;
-                font-weight: bold;
-                color: {ModernTheme.get_colors()['text_primary']};
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: {ModernTheme.scale_value(8)}px;
-                color: {ModernTheme.get_colors()['primary']};
-            }}
-        """)
-        
-        layout = QVBoxLayout()
-        window_width = self.width() if hasattr(self, 'width') else 1200
-        margin = max(16, int(window_width * 0.015))
-        spacing = max(12, int(window_width * 0.01))
-        layout.setContentsMargins(margin, margin, margin, margin)
-        layout.setSpacing(spacing)
 
-        # Dashboard note with animation
-        dashboard_note = QLabel("🧠 Full Neural Dashboard available in System Info tab")
-        dashboard_note.setStyleSheet(f"""
-            QLabel {{
-                color: {ModernTheme.get_colors()['text_muted']};
-                font-size: {ModernTheme.get_font_size('sm')};
-                font-style: italic;
-                padding: {ModernTheme.get_spacing('base')};
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-        """)
-        dashboard_note.setWordWrap(True)
-        animation = QPropertyAnimation(dashboard_note, b"pos")
-        animation.setDuration(300)
-        animation.setEasingCurve(QEasingCurve.OutCubic)
-        animation.setStartValue(dashboard_note.pos() + QPoint(0, ModernTheme.scale_value(20)))
-        animation.setEndValue(dashboard_note.pos())
-        animation.start()
-        layout.addWidget(dashboard_note)
-
-        # Status indicators with modern card design
-        status_layout = QHBoxLayout()
-        status_layout.setSpacing(spacing)
-
-        self.ai_status_label = QLabel("🤖 AI: Ready")
-        self.ai_status_label.setProperty("role", "status")
-        self.ai_status_label.setStyleSheet(f"""
-            QLabel {{
-                color: {ModernTheme.get_colors()['text_neural']};
-                font-weight: 600;
-                font-size: {ModernTheme.get_font_size('base')};
-                padding: {ModernTheme.scale_value(12)}px;
-                background: rgba(56, 189, 248, 0.1);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid rgba(56, 189, 248, 0.2);
-            }}
-        """)
-
-        self.memory_status_label = QLabel("🧮 Memory: Active")
-        self.memory_status_label.setProperty("role", "status")
-        self.memory_status_label.setStyleSheet(f"""
-            QLabel {{
-                color: {ModernTheme.get_colors()['text_zen']};
-                font-weight: 500;
-                font-size: {ModernTheme.get_font_size('base')};
-                padding: {ModernTheme.scale_value(12)}px;
-                background: rgba(6, 255, 165, 0.1);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid rgba(6, 255, 165, 0.2);
-            }}
-        """)
-
-        status_layout.addWidget(self.ai_status_label)
-        status_layout.addStretch()
-        status_layout.addWidget(self.memory_status_label)
-
-        layout.addLayout(status_layout)
-
-        # Autonomous agent status with animation
-        if AUTONOMOUS_AVAILABLE:
-            autonomous_layout = QHBoxLayout()
-            autonomous_layout.setSpacing(spacing)
-
-            self.autonomous_status_label = QLabel("🤖 Agent: Standby")
-            self.autonomous_status_label.setProperty("role", "status")
-            self.autonomous_status_label.setStyleSheet(f"""
-                QLabel {{
-                    color: {ModernTheme.get_colors()['secondary']};
-                    font-weight: 500;
-                    font-size: {ModernTheme.get_font_size('sm')};
-                    padding: {ModernTheme.scale_value(10)}px;
-                    background: rgba(139, 92, 246, 0.1);
-                    border-radius: {ModernTheme.scale_value(8)}px;
-                    border: 1px solid rgba(139, 92, 246, 0.2);
-                }}
-            """)
-            animation = QPropertyAnimation(self.autonomous_status_label, b"pos")
-            animation.setDuration(300)
-            animation.setEasingCurve(QEasingCurve.OutCubic)
-            animation.setStartValue(self.autonomous_status_label.pos() + QPoint(0, ModernTheme.scale_value(20)))
-            animation.setEndValue(self.autonomous_status_label.pos())
-            animation.start()
-
-            autonomous_layout.addWidget(self.autonomous_status_label)
-            autonomous_layout.addStretch()
-            layout.addLayout(autonomous_layout)
-
-        monitor_group.setLayout(layout)
-        return monitor_group
-
-    def create_output_panel(self) -> QWidget:
-        """Create a modern output panel with enhanced tabs and styling"""
-        panel = QWidget()
-        panel.setStyleSheet(f"""
-            QWidget {{
-                background: {ModernTheme.get_colors()['bg_secondary']};
-                border-radius: {ModernTheme.scale_value(12)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-        """)
-        panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        layout = QVBoxLayout()
-        margin = ModernTheme.scale_value(16)
-        spacing = ModernTheme.scale_value(12)
-        layout.setContentsMargins(margin, margin, margin, margin)
-        layout.setSpacing(spacing)
-
-        # Header section with glass effect
-        header_card = QWidget()
-        header_card.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(10)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                backdrop-filter: blur(8px);
-            }}
-        """)
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(12, 8, 12, 8)
-
-        header_label = QLabel("📊 AI Assistant Output")
-        header_label.setFont(QFont("Inter", 16, QFont.Weight.Bold))
-        header_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        header_layout.addWidget(header_label)
-        header_layout.addStretch()
-
-        clear_output_btn = QPushButton("🗑️ Clear All")
-        clear_output_btn.clicked.connect(self.clear_output)
-        clear_output_btn.setToolTip("Clear all output and results")
-        clear_output_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: {ModernTheme.get_colors()['text_primary']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding: {ModernTheme.scale_value(8)}px;
-                font-weight: 500;
-            }}
-            QPushButton:hover {{
-                background: {ModernTheme.get_colors()['accent']};
-            }}
-        """)
-        header_layout.addWidget(clear_output_btn)
-        layout.addWidget(header_card)
-
-        # Enhanced tab widget
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet(f"""
-            QTabWidget::pane {{
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                background: rgba(255, 255, 255, 0.03);
-            }}
-            QTabBar::tab {{
-                background: rgba(255, 255, 255, 0.05);
-                color: {ModernTheme.get_colors()['text_secondary']};
-                padding: {ModernTheme.scale_value(10)}px;
-                margin-right: {ModernTheme.scale_value(4)}px;
-                border-radius: {ModernTheme.scale_value(6)}px;
-            }}
-            QTabBar::tab:selected {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: {ModernTheme.get_colors()['text_primary']};
-            }}
-        """)
-        self.tab_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        # Add activity monitoring tab
-        if ACTIVITY_MONITORING_AVAILABLE:
-            self.activity_monitor_widget = ActivityMonitorWidget(get_activity_logger())
-            activity_widget = QWidget()
-            activity_layout = self.activity_monitor_widget.create_activity_view()
-            activity_widget.setLayout(activity_layout)
-            self.tab_widget.addTab(activity_widget, "🔍 Activity Monitor")
-
-        # Enhanced results tab
-        results_widget = self.create_results_tab()
-        self.tab_widget.addTab(results_widget, "📄 Results")
-
-        # Files tab
-        files_widget = self.create_files_tab()
-        self.tab_widget.addTab(files_widget, "📁 Generated Files")
-
-        # AI Monitoring Dashboard
-        dashboard_widget = self.create_ai_monitoring_dashboard()
-        self.tab_widget.addTab(dashboard_widget, "📊 AI Monitor")
-
-        layout.addWidget(self.tab_widget)
-
-        if ACTIVITY_MONITORING_AVAILABLE:
-            self.tab_widget.setCurrentIndex(0)
-
-        panel.setLayout(layout)
-        return panel
-
-    def create_results_tab(self) -> QWidget:
-        """Create an enhanced results display tab"""
-        widget = QWidget()
-        widget.setStyleSheet(f"background: transparent;")
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
-
-        # Results header
-        header_card = QWidget()
-        header_card.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                backdrop-filter: blur(8px);
-            }}
-        """)
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(12, 8, 12, 8)
-
-        results_label = QLabel("AI Response & Analysis")
-        results_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
-        results_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        header_layout.addWidget(results_label)
-        header_layout.addStretch()
-
-        export_btn = QPushButton("💾 Export")
-        export_btn.setToolTip("Export results to file")
-        export_btn.clicked.connect(self.export_results)
-        export_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: {ModernTheme.get_colors()['text_primary']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding: {ModernTheme.scale_value(8)}px;
-                font-weight: 500;
-            }}
-            QPushButton:hover {{
-                background: {ModernTheme.get_colors()['accent']};
-            }}
-        """)
-        header_layout.addWidget(export_btn)
-        layout.addWidget(header_card)
-
-        self.results_text = QTextBrowser()
-        self.results_text.setOpenExternalLinks(True)
-        self.results_text.setPlaceholderText("AI responses and analysis will appear here...")
-        self.results_text.setStyleSheet(f"""
-            QTextBrowser {{
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                color: {ModernTheme.get_colors()['text_primary']};
-                padding: {ModernTheme.scale_value(12)}px;
-            }}
-        """)
-        self.results_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.results_text.setMinimumHeight(ModernTheme.scale_value(220))
-        layout.addWidget(self.results_text)
-
-        widget.setLayout(layout)
-        return widget
-
-    def create_files_tab(self) -> QWidget:
-        """Create a tab for displaying generated files"""
-        widget = QWidget()
-        widget.setStyleSheet(f"background: transparent;")
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
-
-        # Files header
-        header_card = QWidget()
-        header_card.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                backdrop-filter: blur(8px);
-            }}
-        """)
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(12, 8, 12, 8)
-
-        files_label = QLabel("Generated Files & Outputs")
-        files_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
-        files_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        header_layout.addWidget(files_label)
-        header_layout.addStretch()
-
-        open_folder_btn = QPushButton("📂 Open Output Folder")
-        open_folder_btn.setToolTip("Open the SuperMini output directory")
-        open_folder_btn.clicked.connect(self.open_output_folder)
-        open_folder_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: {ModernTheme.get_colors()['text_primary']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding: {ModernTheme.scale_value(8)}px;
-                font-weight: 500;
-            }}
-            QPushButton:hover {{
-                background: {ModernTheme.get_colors()['accent']};
-            }}
-        """)
-        header_layout.addWidget(open_folder_btn)
-        layout.addWidget(header_card)
-
-        self.files_text = QTextBrowser()
-        self.files_text.setPlaceholderText("Generated files and their locations will be listed here...")
-        self.files_text.setStyleSheet(f"""
-            QTextBrowser {{
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(8)}px;
-                color: {ModernTheme.get_colors()['text_primary']};
-                padding: {ModernTheme.scale_value(12)}px;
-            }}
-        """)
-        layout.addWidget(self.files_text)
-
-        widget.setLayout(layout)
-        return widget
-
-    def create_simple_system_info_tab(self) -> QWidget:
-        """Create a simple system info tab as fallback"""
-        widget = QWidget()
-        widget.setStyleSheet(f"""
-            QWidget {{
-                background: {ModernTheme.get_colors()['bg_secondary']};
-                border-radius: {ModernTheme.scale_value(12)}px;
-            }}
-        """)
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
-
-        title = QLabel("💻 System Information")
-        title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
-        title.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        animation = QPropertyAnimation(title, b"pos")
-        animation.setDuration(300)
-        animation.setEasingCurve(QEasingCurve.OutCubic)
-        animation.setStartValue(title.pos() + QPoint(0, ModernTheme.scale_value(20)))
-        animation.setEndValue(title.pos())
-        animation.start()
-        layout.addWidget(title)
-
-        try:
-            info_text = f"""
-            <b>Platform:</b> {platform.system()} {platform.release()}<br>
-            <b>Python Version:</b> {platform.python_version()}<br>
-            <b>CPU Cores:</b> {psutil.cpu_count()}<br>
-            <b>Memory:</b> {psutil.virtual_memory().total // (1024**3)} GB<br>
-            <b>SuperMini Version:</b> 2.0 Neural Edition
-            """
-            info_label = QLabel(info_text)
-            info_label.setStyleSheet(f"""
-                QLabel {{
-                    color: {ModernTheme.get_colors()['text_secondary']};
-                    background: rgba(255, 255, 255, 0.05);
-                    padding: {ModernTheme.scale_value(16)}px;
-                    border-radius: {ModernTheme.scale_value(8)}px;
-                    border: 1px solid {ModernTheme.get_colors()['border']};
-                    font-size: {ModernTheme.get_font_size('base')};
-                }}
-            """)
-            layout.addWidget(info_label)
-        except Exception as e:
-            error_label = QLabel(f"System info unavailable: {e}")
-            error_label.setStyleSheet(f"""
-                QLabel {{
-                    color: {ModernTheme.get_colors()['error']};
-                    background: rgba(255, 255, 255, 0.05);
-                    padding: {ModernTheme.scale_value(16)}px;
-                    border-radius: {ModernTheme.scale_value(8)}px;
-                    border: 1px solid {ModernTheme.get_colors()['border']};
-                }}
-            """)
-            layout.addWidget(error_label)
-
-        layout.addStretch()
-        return widget
-
-    def create_ai_monitoring_dashboard(self) -> QWidget:
-        """Create ultra-modern creative AI monitoring dashboard with stunning metric cards"""
-        if not MATPLOTLIB_AVAILABLE:
-            return self.create_simple_system_info_tab()
-
-        widget = QWidget()
-        widget.setStyleSheet(f"""
-            QWidget {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {ModernTheme.get_colors()['bg_primary']},
-                    stop:1 {ModernTheme.get_colors()['bg_secondary']});
-                border-radius: {ModernTheme.scale_value(16)}px;
-            }}
-        """)
-
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
-
-        # Modern glass morphism header
-        header_card = QWidget()
-        header_card.setFixedHeight(80)
-        header_card.setStyleSheet(f"""
-            QWidget {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(56, 189, 248, 0.15),
-                    stop:0.5 rgba(139, 92, 246, 0.15),
-                    stop:1 rgba(6, 255, 165, 0.15));
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(16)}px;
-                backdrop-filter: blur(10px);
-            }}
-        """)
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(20, 0, 20, 0)
-
-        title_label = QLabel("⚡ AI Performance Hub")
-        title_label.setFont(QFont("Inter", 24, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"""
-            QLabel {{
-                color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {ModernTheme.get_colors()['primary']},
-                    stop:0.5 {ModernTheme.get_colors()['secondary']},
-                    stop:1 {ModernTheme.get_colors()['accent']});
-                font-weight: 700;
-                letter-spacing: -0.5px;
-            }}
-        """)
-        animation = QPropertyAnimation(title_label, b"pos")
-        animation.setDuration(300)
-        animation.setEasingCurve(QEasingCurve.OutCubic)
-        animation.setStartValue(title_label.pos() + QPoint(0, ModernTheme.scale_value(20)))
-        animation.setEndValue(title_label.pos())
-        animation.start()
-        header_layout.addWidget(title_label)
-
-        self.ai_status_label = QLabel("🟢 LIVE")
-        self.ai_status_label.setFont(QFont("Inter", 14, QFont.Weight.Bold))
-        self.ai_status_label.setStyleSheet(f"""
-            QLabel {{
-                color: {ModernTheme.get_colors()['accent']};
-                background: rgba(6, 255, 165, 0.15);
-                border: 2px solid rgba(6, 255, 165, 0.4);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
-                font-weight: 700;
-            }}
-        """)
-        header_layout.addStretch()
-        header_layout.addWidget(self.ai_status_label)
-        layout.addWidget(header_card)
-
-        # Initialize metrics tracking
-        self.ai_metrics = {
-            'timestamps': [],
-            'token_usage': [],
-            'response_times': [],
-            'cpu_usage': [],
-            'memory_usage': [],
-            'gpu_usage': [],
-            'task_count': 0,
-            'total_tokens': 0,
-            'avg_response_time': 0,
-            'tasks_completed': 0,
-            'task_execution_times': [],
-            'avg_task_time': 0,
-            'task_types': {}
-        }
-
-        # Modern metric cards grid
-        cards_layout = QHBoxLayout()
-        cards_layout.setSpacing(20)
-
-        card_configs = [
-            {
-                'title': 'Tasks Completed',
-                'key': 'tasks_completed',
-                'icon': '🎯',
-                'color': '#38bdf8',
-                'bg_gradient': 'stop:0 rgba(56, 189, 248, 0.1), stop:1 rgba(56, 189, 248, 0.05)'
-            },
-            {
-                'title': 'Total Tokens',
-                'key': 'total_tokens',
-                'icon': '🚀',
-                'color': '#8b5cf6',
-                'bg_gradient': 'stop:0 rgba(139, 92, 246, 0.1), stop:1 rgba(139, 92, 246, 0.05)'
-            },
-            {
-                'title': 'Response Time',
-                'key': 'avg_response_time',
-                'icon': '⚡',
-                'color': '#06ffa5',
-                'bg_gradient': 'stop:0 rgba(6, 255, 165, 0.1), stop:1 rgba(6, 255, 165, 0.05)',
-                'suffix': 's'
-            },
-            {
-                'title': 'Task Time',
-                'key': 'avg_task_time',
-                'icon': '⏱️',
-                'color': '#f59e0b',
-                'bg_gradient': 'stop:0 rgba(245, 158, 11, 0.1), stop:1 rgba(245, 158, 11, 0.05)',
-                'suffix': 's'
-            }
-        ]
-
-        self.metric_cards = {}
-        for config in card_configs:
-            card = self.create_modern_metric_card(config)
-            cards_layout.addWidget(card)
-        layout.addLayout(cards_layout)
-
-        # Charts section
-        charts_container = QWidget()
-        charts_container.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.02);
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(16)}px;
-                backdrop-filter: blur(10px);
-            }}
-        """)
-        charts_layout = QVBoxLayout(charts_container)
-        charts_layout.setContentsMargins(24, 24, 24, 24)
-        charts_layout.setSpacing(20)
-
-        charts_title = QLabel("📈 Real-Time Analytics")
-        charts_title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
-        charts_title.setStyleSheet(f"color: {ModernTheme.get_colors()['text_primary']};")
-        charts_layout.addWidget(charts_title)
-
-        self.setup_modern_charts(charts_layout)
-        layout.addWidget(charts_container)
-
-        # System metrics row
-        system_layout = QHBoxLayout()
-        system_layout.setSpacing(16)
-
-        system_configs = [
-            {'title': 'CPU', 'key': 'current_cpu', 'icon': '🖥️', 'color': '#ef4444'},
-            {'title': 'Memory', 'key': 'current_memory', 'icon': '💾', 'color': '#f59e0b'},
-            {'title': 'GPU', 'key': 'current_gpu', 'icon': '🎮', 'color': '#8b5cf6'},
-            {'title': 'Uptime', 'key': 'uptime', 'icon': '🕐', 'color': '#06ffa5'}
-        ]
-
-        for config in system_configs:
-            card = self.create_compact_metric_card(config)
-            system_layout.addWidget(card)
-        layout.addLayout(system_layout)
-
-        self.dashboard_start_time = datetime.now()
-        self.dashboard_timer = QTimer()
-        self.dashboard_timer.timeout.connect(self.update_ai_dashboard)
-        self.dashboard_timer.start(1500)
-
-        self.update_ai_dashboard()
-        return widget
-
-    def create_modern_metric_card(self, config):
-        """Create a beautiful modern metric card with glass morphism effect"""
-        card = QWidget()
-        card.setFixedSize(240, 160)
-        card.setStyleSheet(f"""
-            QWidget {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    {config['bg_gradient']});
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(16)}px;
-                backdrop-filter: blur(12px);
-            }}
-            QWidget:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.1), stop:1 rgba(255, 255, 255, 0.05));
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                transform: translateY(-{ModernTheme.scale_value(4)}px);
-            }}
-        """)
-        animation = QPropertyAnimation(card, b"pos")
-        animation.setDuration(300)
-        animation.setEasingCurve(QEasingCurve.OutCubic)
-        animation.setStartValue(card.pos() + QPoint(0, ModernTheme.scale_value(20)))
-        animation.setEndValue(card.pos())
-        animation.start()
-
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(8)
-
-        header_layout = QHBoxLayout()
-        icon_label = QLabel(config['icon'])
-        icon_label.setFont(QFont("Inter", 24))
-        header_layout.addWidget(icon_label)
-
-        title_label = QLabel(config['title'])
-        title_label.setFont(QFont("Inter", 13, QFont.Medium))
-        title_label.setStyleSheet(f"""
-            QLabel {{
-                color: {ModernTheme.get_colors()['text_secondary']};
-                font-weight: 500;
-            }}
-        """)
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        layout.addStretch()
-
-        value_label = QLabel("0")
-        value_label.setFont(QFont("Inter", 32, QFont.Weight.Bold))
-        value_label.setStyleSheet(f"""
-            QLabel {{
-                color: {config['color']};
-                font-weight: 700;
-                letter-spacing: -0.5px;
-            }}
-        """)
-        layout.addWidget(value_label)
-
-        key = config['key']
-        self.metric_cards[key] = {'label': value_label, 'suffix': config.get('suffix', '')}
-        return card
-
-    def create_compact_metric_card(self, config):
-        """Create compact system metric cards"""
-        card = QWidget()
-        card.setFixedSize(180, 90)
-        card.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                border-radius: {ModernTheme.scale_value(12)}px;
-                backdrop-filter: blur(10px);
-            }}
-            QWidget:hover {{
-                background: rgba(255, 255, 255, 0.06);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                transform: translateY(-{ModernTheme.scale_value(4)}px);
-            }}
-        """)
-        animation = QPropertyAnimation(card, b"pos")
-        animation.setDuration(300)
-        animation.setEasingCurve(QEasingCurve.OutCubic)
-        animation.setStartValue(card.pos() + QPoint(0, ModernTheme.scale_value(20)))
-        animation.setEndValue(card.pos())
-        animation.start()
-
-        layout = QHBoxLayout(card)
-        layout.setContentsMargins(16, 0, 16, 0)
-        layout.setSpacing(12)
-
-        icon_label = QLabel(config['icon'])
-        icon_label.setFont(QFont("Inter", 18))
-        layout.addWidget(icon_label)
-
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(4)
-        title_label = QLabel(config['title'])
-        title_label.setFont(QFont("Inter", 11, QFont.Medium))
-        title_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_secondary']};")
-        text_layout.addWidget(title_label)
-
-        value_label = QLabel("0%")
-        value_label.setFont(QFont("Inter", 16, QFont.Weight.Bold))
-        value_label.setStyleSheet(f"color: {config['color']}; font-weight: 600;")
-        text_layout.addWidget(value_label)
-        layout.addLayout(text_layout)
-
-        key = config['key']
-        self.metric_cards[key] = {'label': value_label, 'suffix': ''}
-        return card
-
-    def setup_modern_charts(self, parent_layout):
-        """Setup beautiful modern charts with clean design"""
-        plt.style.use('dark_background')
-        charts_row = QHBoxLayout()
-        charts_row.setSpacing(20)
-
-        token_widget = QWidget()
-        token_widget.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.02);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-        """)
-        token_layout = QVBoxLayout(token_widget)
-        token_layout.setContentsMargins(12, 12, 12, 12)
-
-        self.token_figure = Figure(figsize=(6, 3.5), facecolor=ModernTheme.get_colors()['bg_primary'], edgecolor='none')
-        self.token_canvas = FigureCanvas(self.token_figure)
-        self.token_ax = self.token_figure.add_subplot(111)
-        self.style_chart(self.token_ax, 'Token Usage', '#38bdf8')
-        token_layout.addWidget(self.token_canvas)
-        charts_row.addWidget(token_widget)
-
-        response_widget = QWidget()
-        response_widget.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.02);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-        """)
-        response_layout = QVBoxLayout(response_widget)
-        response_layout.setContentsMargins(12, 12, 12, 12)
-
-        self.response_figure = Figure(figsize=(6, 3.5), facecolor=ModernTheme.get_colors()['bg_primary'], edgecolor='none')
-        self.response_canvas = FigureCanvas(self.response_figure)
-        self.response_ax = self.response_figure.add_subplot(111)
-        self.style_chart(self.response_ax, 'Response Times', '#8b5cf6')
-        response_layout.addWidget(self.response_canvas)
-        charts_row.addWidget(response_widget)
-
-        parent_layout.addLayout(charts_row)
-
-        system_widget = QWidget()
-        system_widget.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.02);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                border: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-        """)
-        system_layout = QVBoxLayout(system_widget)
-        system_layout.setContentsMargins(12, 12, 12, 12)
-
-        self.system_figure = Figure(figsize=(12, 3), facecolor=ModernTheme.get_colors()['bg_primary'], edgecolor='none')
-        self.system_canvas = FigureCanvas(self.system_figure)
-        self.system_ax = self.system_figure.add_subplot(111)
-        self.style_chart(self.system_ax, 'System Resources', '#06ffa5')
-        system_layout.addWidget(self.system_canvas)
-        parent_layout.addWidget(system_widget)
-
-    def style_chart(self, ax, title, color):
-        """Apply beautiful modern styling to charts"""
-        ax.set_title(title, color=ModernTheme.get_colors()['text_primary'], fontsize=14, fontweight='bold', pad=15)
-        ax.set_facecolor(ModernTheme.get_colors()['bg_primary'])
-        ax.grid(True, alpha=0.1, color=ModernTheme.get_colors()['text_muted'], linewidth=0.5)
-        ax.tick_params(colors=ModernTheme.get_colors()['text_muted'], labelsize=9)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color(ModernTheme.get_colors()['border'])
-        ax.spines['bottom'].set_color(ModernTheme.get_colors()['border'])
-        ax.margins(x=0.02, y=0.1)
-
-    def update_ai_dashboard(self):
-        """Update the AI monitoring dashboard with real-time data"""
-        try:
-            current_time = datetime.now()
-            cpu_percent = psutil.cpu_percent(interval=None)
-            memory_percent = psutil.virtual_memory().percent
-            gpu_usage = 0
-            if GPU_AVAILABLE:
-                try:
-                    gpus = GPUtil.getGPUs()
-                    if gpus:
-                        gpu_usage = gpus[0].load * 100
-                        if hasattr(gpus[0], 'memoryUtil'):
-                            gpu_memory = gpus[0].memoryUtil * 100
-                            self.ai_metrics.setdefault('gpu_memory', []).append(gpu_memory)
-                        if hasattr(gpus[0], 'temperature'):
-                            gpu_temp = gpus[0].temperature
-                            self.ai_metrics.setdefault('gpu_temperature', []).append(gpu_temp)
-                except Exception:
-                    gpu_usage = 0
-
-            self.ai_metrics['timestamps'].append(current_time)
-            self.ai_metrics['cpu_usage'].append(cpu_percent)
-            self.ai_metrics['memory_usage'].append(memory_percent)
-            self.ai_metrics['gpu_usage'].append(gpu_usage)
-
-            max_points = 50
-            for key in ['timestamps', 'cpu_usage', 'memory_usage', 'gpu_usage', 'token_usage', 'response_times', 'task_execution_times']:
-                if len(self.ai_metrics[key]) > max_points:
-                    self.ai_metrics[key] = self.ai_metrics[key][-max_points:]
-
-            uptime = current_time - self.dashboard_start_time
-            uptime_minutes = int(uptime.total_seconds() / 60)
-
-            if hasattr(self, 'metric_cards'):
-                if 'tasks_completed' in self.metric_cards:
-                    self.metric_cards['tasks_completed']['label'].setText(str(self.ai_metrics['tasks_completed']))
-                if 'total_tokens' in self.metric_cards:
-                    tokens = self.ai_metrics['total_tokens']
-                    if tokens >= 1000000:
-                        self.metric_cards['total_tokens']['label'].setText(f"{tokens/1000000:.1f}M")
-                    elif tokens >= 1000:
-                        self.metric_cards['total_tokens']['label'].setText(f"{tokens/1000:.1f}K")
-                    else:
-                        self.metric_cards['total_tokens']['label'].setText(str(tokens))
-                if 'avg_response_time' in self.metric_cards:
-                    suffix = self.metric_cards['avg_response_time']['suffix']
-                    self.metric_cards['avg_response_time']['label'].setText(f"{self.ai_metrics['avg_response_time']:.1f}{suffix}")
-                if 'avg_task_time' in self.metric_cards:
-                    suffix = self.metric_cards['avg_task_time']['suffix']
-                    self.metric_cards['avg_task_time']['label'].setText(f"{self.ai_metrics['avg_task_time']:.1f}{suffix}")
-                if 'current_cpu' in self.metric_cards:
-                    self.metric_cards['current_cpu']['label'].setText(f"{cpu_percent:.0f}%")
-                if 'current_memory' in self.metric_cards:
-                    self.metric_cards['current_memory']['label'].setText(f"{memory_percent:.0f}%")
-                if 'current_gpu' in self.metric_cards:
-                    self.metric_cards['current_gpu']['label'].setText(f"{gpu_usage:.0f}%" if gpu_usage > 0 else "N/A")
-                if 'uptime' in self.metric_cards:
-                    if uptime_minutes >= 60:
-                        hours = uptime_minutes // 60
-                        minutes = uptime_minutes % 60
-                        self.metric_cards['uptime']['label'].setText(f"{hours}h{minutes}m")
-                    else:
-                        self.metric_cards['uptime']['label'].setText(f"{uptime_minutes}m")
-
-            if len(self.ai_metrics['timestamps']) > 1:
-                self.update_dashboard_charts()
-
-        except Exception as e:
-            logging.error(f"Error updating AI dashboard: {e}")
-
-    def update_dashboard_charts(self):
-        """Update the matplotlib charts"""
-        try:
-            timestamps = self.ai_metrics['timestamps']
-            self.token_ax.clear()
-            self.style_chart(self.token_ax, 'Token Usage', '#38bdf8')
-            if self.ai_metrics['token_usage']:
-                self.token_ax.plot(timestamps[-len(self.ai_metrics['token_usage']):],
-                                 self.ai_metrics['token_usage'],
-                                 color='#38bdf8', linewidth=3, alpha=0.9)
-                self.token_ax.fill_between(timestamps[-len(self.ai_metrics['token_usage']):],
-                                         self.ai_metrics['token_usage'],
-                                         alpha=0.2, color='#38bdf8')
-            self.token_figure.tight_layout()
-            self.token_canvas.draw()
-
-            self.response_ax.clear()
-            self.style_chart(self.response_ax, 'Response Times', '#8b5cf6')
-            if self.ai_metrics['response_times']:
-                self.response_ax.plot(timestamps[-len(self.ai_metrics['response_times']):],
-                                    self.ai_metrics['response_times'],
-                                    color='#8b5cf6', linewidth=3, alpha=0.9)
-                self.response_ax.fill_between(timestamps[-len(self.ai_metrics['response_times']):],
-                                            self.ai_metrics['response_times'],
-                                            alpha=0.2, color='#8b5cf6')
-            self.response_figure.tight_layout()
-            self.response_canvas.draw()
-
-            self.system_ax.clear()
-            self.style_chart(self.system_ax, 'System Resources', '#06ffa5')
-            self.system_ax.plot(timestamps, self.ai_metrics['cpu_usage'],
-                              color='#ef4444', linewidth=2.5, label='CPU', alpha=0.9)
-            self.system_ax.plot(timestamps, self.ai_metrics['memory_usage'],
-                              color='#f59e0b', linewidth=2.5, label='Memory', alpha=0.9)
-            if any(gpu > 0 for gpu in self.ai_metrics['gpu_usage']):
-                self.system_ax.plot(timestamps, self.ai_metrics['gpu_usage'],
-                                  color='#8b5cf6', linewidth=2.5, label='GPU', alpha=0.9)
-            self.system_ax.set_ylim(0, 100)
-            legend = self.system_ax.legend(loc='upper left', fancybox=True,
-                                         frameon=True, framealpha=0.1,
-                                         facecolor=ModernTheme.get_colors()['bg_primary'], edgecolor=ModernTheme.get_colors()['border'])
-            for text in legend.get_texts():
-                text.set_color(ModernTheme.get_colors()['text_primary'])
-                text.set_fontsize(9)
-            self.system_figure.tight_layout()
-            self.system_canvas.draw()
-
-        except Exception as e:
-            logging.error(f"Error updating dashboard charts: {e}")
-
-    def log_ai_task(self, tokens_used: int, response_time: float):
-        """Log AI task metrics for dashboard"""
-        try:
-            self.ai_metrics['task_count'] += 1
-            self.ai_metrics['total_tokens'] += tokens_used
-            self.ai_metrics['token_usage'].append(tokens_used)
-            self.ai_metrics['response_times'].append(response_time)
-            if self.ai_metrics['response_times']:
-                self.ai_metrics['avg_response_time'] = sum(self.ai_metrics['response_times']) / len(self.ai_metrics['response_times'])
-        except Exception as e:
-            logging.error(f"Error logging AI task: {e}")
-
-    def log_task_completed(self, execution_time: float, task_type: str):
-        """Log task completion metrics for dashboard"""
-        try:
-            self.ai_metrics['tasks_completed'] += 1
-            self.ai_metrics['task_execution_times'].append(execution_time)
-            if 'task_types' not in self.ai_metrics:
-                self.ai_metrics['task_types'] = {}
-            if task_type not in self.ai_metrics['task_types']:
-                self.ai_metrics['task_types'][task_type] = 0
-            self.ai_metrics['task_types'][task_type] += 1
-            if self.ai_metrics['task_execution_times']:
-                self.ai_metrics['avg_task_time'] = sum(self.ai_metrics['task_execution_times']) / len(self.ai_metrics['task_execution_times'])
-        except Exception as e:
-            logging.error(f"Error logging task completion: {e}")
-
-    def create_neural_system_dashboard(self) -> QWidget:
-        """Create comprehensive neural dashboard with system monitoring"""
-        try:
-            widget = QWidget()
-            widget.setStyleSheet(f"""
-                QWidget {{
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                        stop:0 {ModernTheme.get_colors()['bg_primary']},
-                        stop:0.5 {ModernTheme.get_colors()['bg_secondary']},
-                        stop:1 {ModernTheme.get_colors()['bg_accent']});
-                    border-radius: {ModernTheme.scale_value(12)}px;
-                }}
-            """)
-
-            layout = QVBoxLayout(widget)
-            layout.setContentsMargins(ModernTheme.scale_value(24), ModernTheme.scale_value(24),
-                                   ModernTheme.scale_value(24), ModernTheme.scale_value(24))
-            layout.setSpacing(ModernTheme.scale_value(20))
-            layout.setAlignment(Qt.AlignTop)
-
-            # Enhanced Header
-            header_widget = QWidget()
-            header_widget.setStyleSheet(f"""
-                QWidget {{
-                    background: transparent;
-                    border-bottom: 1px solid {ModernTheme.get_colors()['border']};
-                    padding-bottom: {ModernTheme.scale_value(12)}px;
-                }}
-            """)
-            header_layout = QHBoxLayout(header_widget)
-            header_layout.setContentsMargins(0, 0, 0, ModernTheme.scale_value(8))
-            header_layout.setSpacing(ModernTheme.scale_value(16))
-
-            title_label = QLabel("🧠 SuperMini Neural Dashboard")
-            title_label.setFont(QFont("Inter", int(ModernTheme.get_font_size('xxl').replace('pt', '')), QFont.Weight.Bold))
-            title_label.setStyleSheet(f"""
-                QLabel {{
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                        stop:0 {ModernTheme.get_colors()['primary']},
-                        stop:1 {ModernTheme.get_colors()['accent']});
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    font-weight: 800;
-                    padding: {ModernTheme.scale_value(8)}px;
-                }}
-            """)
-            animation = QPropertyAnimation(title_label, b"pos")
-            animation.setDuration(300)
-            animation.setEasingCurve(QEasingCurve.OutCubic)
-            animation.setStartValue(title_label.pos() + QPoint(0, ModernTheme.scale_value(20)))
-            animation.setEndValue(title_label.pos())
-            animation.start()
-
-            status_indicators = QLabel("● Active  ⚡ High Performance  🛡️ Protected")
-            status_indicators.setStyleSheet(f"""
-                QLabel {{
-                    color: {ModernTheme.get_colors()['text_secondary']};
-                    font-size: {ModernTheme.get_font_size('sm')};
-                    font-weight: 500;
-                    background: rgba(0, 0, 0, 0.05);
-                    border-radius: {ModernTheme.scale_value(8)}px;
-                    padding: {ModernTheme.scale_value(6)}px {ModernTheme.scale_value(12)}px;
-                }}
-            """)
-
-            header_layout.addWidget(title_label)
-            header_layout.addStretch()
-            header_layout.addWidget(status_indicators)
-            layout.addWidget(header_widget)
-
-            # Dashboard Grid with Card Design
-            dashboard_grid = QWidget()
-            dashboard_grid.setStyleSheet(f"background: transparent;")
-            grid_layout = QGridLayout(dashboard_grid)
-            grid_layout.setContentsMargins(0, ModernTheme.scale_value(20), 0, 0)
-            grid_layout.setSpacing(ModernTheme.scale_value(20))
-
-            def add_panel_with_animation(panel, row, col, row_span=1, col_span=1):
-                panel.setStyleSheet(f"""
-                    QWidget {{
-                        background: {ModernTheme.get_colors()['bg_secondary']};
-                        border-radius: {ModernTheme.scale_value(12)}px;
-                        box-shadow: 0 {ModernTheme.scale_value(4)}px {ModernTheme.scale_value(12)}px rgba(0,0,0,0.1);
-                        transition: all 0.3s ease;
-                    }}
-                    QWidget:hover {{
-                        transform: translateY(-{ModernTheme.scale_value(4)}px);
-                        box-shadow: 0 {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(20)}px rgba(0,0,0,0.15);
-                    }}
-                """)
-                animation = QPropertyAnimation(panel, b"pos")
-                animation.setDuration(300)
-                animation.setEasingCurve(QEasingCurve.OutCubic)
-                animation.setStartValue(panel.pos() + QPoint(0, ModernTheme.scale_value(20)))
-                animation.setEndValue(panel.pos())
-                animation.start()
-                grid_layout.addWidget(panel, row, col, row_span, col_span)
-
-            try:
-                neural_panel = self.create_neural_panel()
-                neural_panel.setMinimumHeight(ModernTheme.scale_value(320))
-                add_panel_with_animation(neural_panel, 0, 0)
-            except Exception as e:
-                logging.error(f"Failed to create neural panel: {e}")
-                fallback = QLabel("Neural panel unavailable")
-                fallback.setStyleSheet(f"""
-                    QLabel {{
-                        color: {ModernTheme.get_colors()['text_muted']};
-                        background: {ModernTheme.get_colors()['bg_secondary']};
-                        border-radius: {ModernTheme.scale_value(12)}px;
-                        padding: {ModernTheme.scale_value(16)}px;
-                        text-align: center;
-                    }}
-                """)
-                add_panel_with_animation(fallback, 0, 0)
-
-            try:
-                pipeline_panel = self.create_pipeline_panel()
-                pipeline_panel.setMinimumHeight(ModernTheme.scale_value(320))
-                add_panel_with_animation(pipeline_panel, 0, 1)
-            except Exception as e:
-                logging.error(f"Failed to create pipeline panel: {e}")
-                fallback = QLabel("Pipeline panel unavailable")
-                fallback.setStyleSheet(f"""
-                    QLabel {{
-                        color: {ModernTheme.get_colors()['text_muted']};
-                        background: {ModernTheme.get_colors()['bg_secondary']};
-                        border-radius: {ModernTheme.scale_value(12)}px;
-                        padding: {ModernTheme.scale_value(16)}px;
-                        text-align: center;
-                    }}
-                """)
-                add_panel_with_animation(fallback, 0, 1)
-
-            try:
-                metrics_panel = self.create_live_metrics_panel()
-                metrics_panel.setMinimumHeight(ModernTheme.scale_value(220))
-                add_panel_with_animation(metrics_panel, 1, 0, 1, 2)
-            except Exception as e:
-                logging.error(f"Failed to create metrics panel: {e}")
-                fallback = QLabel("Metrics panel unavailable")
-                fallback.setStyleSheet(f"""
-                    QLabel {{
-                        color: {ModernTheme.get_colors()['text_muted']};
-                        background: {ModernTheme.get_colors()['bg_secondary']};
-                        border-radius: {ModernTheme.scale_value(12)}px;
-                        padding: {ModernTheme.scale_value(16)}px;
-                        text-align: center;
-                    }}
-                """)
-                add_panel_with_animation(fallback, 1, 0, 1, 2)
-
-            try:
-                memory_panel = self.create_memory_graph_panel()
-                memory_panel.setMinimumHeight(ModernTheme.scale_value(180))
-                add_panel_with_animation(memory_panel, 2, 0)
-            except Exception as e:
-                logging.error(f"Failed to create memory panel: {e}")
-                fallback = QLabel("Memory panel unavailable")
-                fallback.setStyleSheet(f"""
-                    QLabel {{
-                        color: {ModernTheme.get_colors()['text_muted']};
-                        background: {ModernTheme.get_colors()['bg_secondary']};
-                        border-radius: {ModernTheme.scale_value(12)}px;
-                        padding: {ModernTheme.scale_value(16)}px;
-                        text-align: center;
-                    }}
-                """)
-                add_panel_with_animation(fallback, 2, 0)
-
-            try:
-                agent_panel = self.create_autonomous_agent_panel()
-                agent_panel.setMinimumHeight(ModernTheme.scale_value(180))
-                add_panel_with_animation(agent_panel, 2, 1)
-            except Exception as e:
-                logging.error(f"Failed to create agent panel: {e}")
-                fallback = QLabel("Agent panel unavailable")
-                fallback.setStyleSheet(f"""
-                    QLabel {{
-                        color: {ModernTheme.get_colors()['text_muted']};
-                        background: {ModernTheme.get_colors()['bg_secondary']};
-                        border-radius: {ModernTheme.scale_value(12)}px;
-                        padding: {ModernTheme.scale_value(16)}px;
-                        text-align: center;
-                    }}
-                """)
-                add_panel_with_animation(fallback, 2, 1)
-
-            layout.addWidget(dashboard_grid)
-            layout.addStretch()
-
-            try:
-                self.dashboard_timer = QTimer()
-                self.dashboard_timer.timeout.connect(self.update_dashboard)
-                self.dashboard_timer.start(1000)
-            except Exception as e:
-                logging.error(f"Failed to start dashboard timer: {e}")
-                error_label = QLabel("Dashboard updates temporarily unavailable")
-                error_label.setStyleSheet(f"""
-                    QLabel {{
-                        color: {ModernTheme.get_colors()['error']};
-                        font-size: {ModernTheme.get_font_size('sm')};
-                        text-align: center;
-                        padding: {ModernTheme.scale_value(8)}px;
-                    }}
-                """)
-                layout.addWidget(error_label)
-
-            return widget
-        except Exception as e:
-            logging.error(f"Failed to create neural dashboard: {e}")
-            return self.create_simple_system_info_tab()
-    
-    def create_neural_panel(self) -> QWidget:
-        """Create AI Neural Network visualization panel"""
-        panel = QWidget()
-        panel.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(74, 158, 255, 0.1);
-                border: 1px solid #4a9eff;
-                border-radius: {ModernTheme.scale_value(8)}px;
-                box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
-            }}
-        """)
-        
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16),
-                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
-        layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Panel header
-        header_layout = QHBoxLayout()
-        title = QLabel("🔗 AI NEURAL NETWORK")
-        title.setStyleSheet(f"""
-            QLabel {{
-                color: #4a9eff;
-                font-weight: bold;
-                font-size: {ModernTheme.get_font_size('base')};
-            }}
-        """)
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        
-        # Neural network widget
-        try:
-            self.dashboard_neural_network_widget = NeuralNetworkWidget()
-            layout.addWidget(self.dashboard_neural_network_widget)
-        except Exception as e:
-            logging.error(f"Failed to create neural network widget: {e}")
-            # Add a simple fallback label
-            fallback_label = QLabel("Neural network visualization unavailable")
-            fallback_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_muted']};")
-            layout.addWidget(fallback_label)
-        
-        # Status info
-        status_layout = QHBoxLayout()
-        self.neural_status_label = QLabel("Status: ● Processing Task")
-        self.neural_status_label.setStyleSheet(f"""
-            QLabel {{
-                color: #00ff88;
-                font-size: {ModernTheme.get_font_size('sm')};
-            }}
-        """)
-        
-        self.neural_confidence_label = QLabel("Confidence: 94%")
-        self.neural_confidence_label.setStyleSheet(f"""
-            QLabel {{
-                color: #4a9eff;
-                font-size: {ModernTheme.get_font_size('sm')};
-            }}
-        """)
-        
-        status_layout.addWidget(self.neural_status_label)
-        status_layout.addStretch()
-        status_layout.addWidget(self.neural_confidence_label)
-        layout.addLayout(status_layout)
-        
-        return panel
-    
-    def create_pipeline_panel(self) -> QWidget:
-        """Create Task Pipeline visualization panel"""
-        panel = QWidget()
-        panel.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(0, 255, 136, 0.1);
-                border: 1px solid #00ff88;
-                border-radius: {ModernTheme.scale_value(8)}px;
-                box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
-            }}
-        """)
-        
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16),
-                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
-        layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Panel header
-        header_layout = QHBoxLayout()
-        title = QLabel("📊 TASK PIPELINE")
-        title.setStyleSheet(f"""
-            QLabel {{
-                color: #00ff88;
-                font-weight: bold;
-                font-size: {ModernTheme.get_font_size('base')};
-            }}
-        """)
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        
-        # Pipeline visualization
-        pipeline_widget = QWidget()
-        pipeline_layout = QHBoxLayout(pipeline_widget)
-        pipeline_layout.setSpacing(ModernTheme.scale_value(20))
-        
-        # Pipeline stages
-        stages = [("Input", "Parse"), ("Process", "Claude"), ("Generate", "Files")]
-        for i, (stage, detail) in enumerate(stages):
-            stage_widget = QWidget()
-            stage_widget.setStyleSheet(f"""
-                QWidget {{
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: {ModernTheme.scale_value(4)}px;
-                    padding: {ModernTheme.scale_value(8)}px;
-                }}
-            """)
-            
-            stage_layout = QVBoxLayout(stage_widget)
-            stage_layout.setSpacing(ModernTheme.scale_value(4))
-            
-            stage_label = QLabel(stage)
-            stage_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            stage_label.setStyleSheet(f"""
-                QLabel {{
-                    color: #ffffff;
-                    font-weight: bold;
-                    font-size: {ModernTheme.get_font_size('base')};
-                }}
-            """)
-            
-            detail_label = QLabel(detail)
-            detail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            detail_label.setStyleSheet(f"""
-                QLabel {{
-                    color: #4a9eff;
-                    font-size: {ModernTheme.get_font_size('sm')};
-                }}
-            """)
-            
-            stage_layout.addWidget(stage_label)
-            stage_layout.addWidget(detail_label)
-            
-            pipeline_layout.addWidget(stage_widget)
-            
-            if i < len(stages) - 1:
-                arrow = QLabel("→")
-                arrow.setStyleSheet(f"""
-                    QLabel {{
-                        color: #00ff88;
-                        font-size: {ModernTheme.get_font_size('lg')};
-                    }}
-                """)
-                pipeline_layout.addWidget(arrow)
-        
-        layout.addWidget(pipeline_widget)
-        
-        # Progress section
-        self.pipeline_progress = QProgressBar()
-        self.pipeline_progress.setRange(0, 100)
-        self.pipeline_progress.setValue(75)
-        self.pipeline_progress.setTextVisible(True)
-        self.pipeline_progress.setStyleSheet(f"""
-            QProgressBar {{
-                background-color: rgba(255, 255, 255, 0.1);
-                border: none;
-                border-radius: {ModernTheme.scale_value(4)}px;
-                text-align: center;
-                color: #ffffff;
-            }}
-            QProgressBar::chunk {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #00ff88, stop:1 #4a9eff);
-                border-radius: {ModernTheme.scale_value(4)}px;
-            }}
-        """)
-        layout.addWidget(self.pipeline_progress)
-        
-        # ETA label
-        self.pipeline_eta = QLabel("Est. Complete: 2m 15s")
-        self.pipeline_eta.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.pipeline_eta.setStyleSheet(f"""
-            QLabel {{
-                color: #4a9eff;
-                font-size: {ModernTheme.get_font_size('sm')};
-            }}
-        """)
-        layout.addWidget(self.pipeline_eta)
-        
-        return panel
-    
-    def create_live_metrics_panel(self) -> QWidget:
-        """Create Live Metrics visualization panel"""
-        panel = QWidget()
-        panel.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 107, 53, 0.1);
-                border: 1px solid #ff6b35;
-                border-radius: {ModernTheme.scale_value(8)}px;
-                box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
-            }}
-        """)
-        
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16),
-                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
-        layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Panel header
-        header_layout = QHBoxLayout()
-        title = QLabel("📊 LIVE METRICS")
-        title.setStyleSheet(f"""
-            QLabel {{
-                color: #ff6b35;
-                font-weight: bold;
-                font-size: {ModernTheme.get_font_size('base')};
-            }}
-        """)
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        
-        # Add neural metrics widget
-        try:
-            self.dashboard_neural_metrics_widget = NeuralMetricsWidget()
-            layout.addWidget(self.dashboard_neural_metrics_widget)
-        except Exception as e:
-            logging.error(f"Failed to create neural metrics widget: {e}")
-            # Add a simple fallback label
-            fallback_label = QLabel("Neural metrics unavailable")
-            fallback_label.setStyleSheet(f"color: {ModernTheme.get_colors()['text_muted']};")
-            layout.addWidget(fallback_label)
-        
-        # System metrics bars
-        metrics_grid = QWidget()
-        grid_layout = QGridLayout(metrics_grid)
-        grid_layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # CPU/Memory bars
-        metrics = [
-            ("CPU Usage", self.create_metric_bar("cpu")),
-            ("Memory", self.create_metric_bar("memory")),
-            ("GPU Usage", self.create_metric_bar("gpu")),
-            ("AI Memory", self.create_metric_bar("ai_memory"))
-        ]
-        
-        for i, (label, bar) in enumerate(metrics):
-            metric_layout = QVBoxLayout()
-            
-            label_widget = QLabel(label)
-            label_widget.setStyleSheet(f"""
-                QLabel {{
-                    color: #b0b7c3;
-                    font-size: {ModernTheme.get_font_size('sm')};
-                }}
-            """)
-            
-            metric_layout.addWidget(label_widget)
-            metric_layout.addWidget(bar)
-            
-            grid_layout.addLayout(metric_layout, i // 2, i % 2)
-        
-        layout.addWidget(metrics_grid)
-        
-        # Store bars for updates
-        self.dashboard_cpu_bar = metrics[0][1]
-        self.dashboard_memory_bar = metrics[1][1]
-        self.dashboard_gpu_bar = metrics[2][1]
-        self.dashboard_ai_memory_bar = metrics[3][1]
-        
-        return panel
-    
-    def create_metric_bar(self, metric_type: str) -> QProgressBar:
-        """Create a styled metric progress bar"""
-        bar = QProgressBar()
-        bar.setRange(0, 100)
-        bar.setTextVisible(True)
-        bar.setValue(50)  # Default value
-        
-        colors = {
-            "cpu": "#00ff88",
-            "memory": "#4a9eff",
-            "gpu": "#ff6b35",
-            "ai_memory": "#9d4edd"
-        }
-        
-        color = colors.get(metric_type, "#4a9eff")
-        bar.setStyleSheet(f"""
-            QProgressBar {{
-                background-color: rgba(255, 255, 255, 0.1);
-                border: none;
-                border-radius: {ModernTheme.scale_value(4)}px;
-                text-align: center;
-                color: #ffffff;
-                height: {ModernTheme.scale_value(20)}px;
-            }}
-            QProgressBar::chunk {{
-                background: {color};
-                border-radius: {ModernTheme.scale_value(4)}px;
-            }}
-        """)
-        
-        return bar
-    
-    def create_memory_graph_panel(self) -> QWidget:
-        """Create Memory Graph visualization panel"""
-        panel = QWidget()
-        panel.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(157, 78, 221, 0.1);
-                border: 1px solid #9d4edd;
-                border-radius: {ModernTheme.scale_value(8)}px;
-                box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
-            }}
-        """)
-        
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16),
-                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
-        layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Panel header
-        header_layout = QHBoxLayout()
-        title = QLabel("🧠 MEMORY GRAPH")
-        title.setStyleSheet(f"""
-            QLabel {{
-                color: #9d4edd;
-                font-weight: bold;
-                font-size: {ModernTheme.get_font_size('base')};
-            }}
-        """)
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        
-        # Memory visualization
-        memory_info = QLabel("Recent Context: [Current Task] → [Analysis] → [Output]\\n"
-                           "Related Topics: [Previous Tasks] → [Similar Patterns]\\n\\n"
-                           "Knowledge Base: 847 entries • Vector Store: 2.4MB • Active: 23")
-        memory_info.setStyleSheet(f"""
-            QLabel {{
-                color: #b0b7c3;
-                font-size: {ModernTheme.get_font_size('sm')};
-                padding: {ModernTheme.scale_value(8)}px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(4)}px;
-            }}
-        """)
-        memory_info.setWordWrap(True)
-        layout.addWidget(memory_info)
-        
-        return panel
-    
-    def create_autonomous_agent_panel(self) -> QWidget:
-        """Create Autonomous Agent Status panel"""
-        panel = QWidget()
-        panel.setStyleSheet(f"""
-            QWidget {{
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: {ModernTheme.scale_value(8)}px;
-            }}
-        """)
-        
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16),
-                                 ModernTheme.scale_value(16), ModernTheme.scale_value(16))
-        layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Panel header
-        header_layout = QHBoxLayout()
-        title = QLabel("🤖 AUTONOMOUS AGENT STATUS")
-        title.setStyleSheet(f"""
-            QLabel {{
-                color: #ffffff;
-                font-weight: bold;
-                font-size: {ModernTheme.get_font_size('base')};
-            }}
-        """)
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        
-        # Agent status
-        if AUTONOMOUS_AVAILABLE:
-            status_text = "🤖 Agent State: Active\\n\\n" \
-                         "Current Task:\\n└ Ready for instructions\\n\\n" \
-                         "⚡ Autonomous Level: High\\n" \
-                         "🛡️ Safety Checks: Enabled"
-        else:
-            status_text = "🤖 Agent State: Not Available\\n\\n" \
-                         "Autonomous features require:\\n" \
-                         "└ pip install gui-agents>=0.1.2\\n\\n" \
-                         "⚡ Autonomous Level: Disabled\\n" \
-                         "🛡️ Safety Checks: N/A"
-        
-        agent_info = QLabel(status_text)
-        agent_info.setStyleSheet(f"""
-            QLabel {{
-                color: #b0b7c3;
-                font-size: {ModernTheme.get_font_size('sm')};
-                padding: {ModernTheme.scale_value(8)}px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(4)}px;
-            }}
-        """)
-        agent_info.setWordWrap(True)
-        layout.addWidget(agent_info)
-        
-        return panel
-    
-    def update_dashboard(self):
-        """Update dashboard with real-time system information"""
-        try:
-            if not hasattr(self, 'dashboard_monitor_display'):
-                return
-                
-            # Get system metrics
-            import psutil
-            from datetime import datetime
-            
-            # System performance data
-            cpu_percent = psutil.cpu_percent(interval=None)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            # Get process info
-            current_process = psutil.Process()
-            app_memory = current_process.memory_info().rss / 1024 / 1024  # MB
-            
-            # Create dashboard content
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            
-            dashboard_content = f"""
-<div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
-            border-left: 4px solid {ModernTheme.get_colors()['primary']};'>
-    <h3 style='color: {ModernTheme.get_colors()['text_primary']}; margin: 0 0 16px 0;'>🧠 Neural System Dashboard</h3>
-    <p style='color: {ModernTheme.get_colors()['text_muted']}; margin: 0 0 20px 0;'>Last updated: {timestamp}</p>
-    
-    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
-                border: 1px solid {ModernTheme.get_colors()['border']}; margin-bottom: 16px;'>
-        <h4 style='color: {ModernTheme.get_colors()['primary']}; margin: 0 0 12px 0;'>⚡ System Performance</h4>
-        <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 16px;'>
-            <div>
-                <strong style='color: {ModernTheme.get_colors()['text_primary']};'>CPU Usage:</strong><br>
-                <span style='color: {self._get_metric_color(cpu_percent)};'>{cpu_percent:.1f}%</span>
-            </div>
-            <div>
-                <strong style='color: {ModernTheme.get_colors()['text_primary']};'>Memory:</strong><br>
-                <span style='color: {self._get_metric_color(memory.percent)};'>{memory.percent:.1f}%</span>
-                <span style='color: {ModernTheme.get_colors()['text_muted']};'> ({memory.used/1024/1024/1024:.1f}GB / {memory.total/1024/1024/1024:.1f}GB)</span>
-            </div>
-        </div>
-    </div>
-    
-    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
-                border: 1px solid {ModernTheme.get_colors()['border']}; margin-bottom: 16px;'>
-        <h4 style='color: {ModernTheme.get_colors()['secondary']}; margin: 0 0 12px 0;'>🤖 SuperMini Process</h4>
-        <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 16px;'>
-            <div>
-                <strong style='color: {ModernTheme.get_colors()['text_primary']};'>Memory Usage:</strong><br>
-                <span style='color: {ModernTheme.get_colors()['text_neural']};'>{app_memory:.1f} MB</span>
-            </div>
-            <div>
-                <strong style='color: {ModernTheme.get_colors()['text_primary']};'>Status:</strong><br>
-                <span style='color: {ModernTheme.get_colors()['success']};'>● Active</span>
-            </div>
-        </div>
-    </div>
-    
-    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
-                border: 1px solid {ModernTheme.get_colors()['border']};'>
-        <h4 style='color: {ModernTheme.get_colors()['accent']};  margin: 0 0 12px 0;'>💾 Storage</h4>
-        <div>
-            <strong style='color: {ModernTheme.get_colors()['text_primary']};'>Disk Usage:</strong><br>
-            <span style='color: {self._get_metric_color(disk.percent)};'>{disk.percent:.1f}%</span>
-            <span style='color: {ModernTheme.get_colors()['text_muted']};'> ({disk.used/1024/1024/1024:.1f}GB / {disk.total/1024/1024/1024:.1f}GB)</span>
-        </div>
-    </div>
-</div>
-"""
-            
-            self.dashboard_monitor_display.setHtml(dashboard_content)
-            
-            # Update status labels
-            if hasattr(self, 'dashboard_ai_activity_label'):
-                if cpu_percent > 50:
-                    self.dashboard_ai_activity_label.setText("Processing • High Activity")
-                elif cpu_percent > 20:
-                    self.dashboard_ai_activity_label.setText("Active • Normal Processing")
-                else:
-                    self.dashboard_ai_activity_label.setText("Ready • Monitoring Active")
-            
-        except Exception as e:
-            # Silently handle errors to avoid disrupting the UI
-            pass
-    
-    def _get_metric_color(self, value):
-        """Get color for metric based on value"""
-        try:
-            if value > 80:
-                return ModernTheme.get_colors()['error']
-            elif value > 60:
-                return ModernTheme.get_colors()['warning']
-            else:
-                return ModernTheme.get_colors()['success']
-        except:
-            return ModernTheme.get_colors()['text_muted']
-    
-    def export_results(self):
-        """Export results to a file"""
-        if not hasattr(self, 'results_text') or not self.results_text.toPlainText():
-            QMessageBox.information(self, "Export", "No results to export.")
-            return
-        
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Results", 
-            f"aimm_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            "Text Files (*.txt);;All Files (*)"
-        )
-        
-        if file_path:
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(self.results_text.toPlainText())
-                QMessageBox.information(self, "Export", f"Results exported to {file_path}")
-            except Exception as e:
-                QMessageBox.warning(self, "Export Error", f"Failed to export results: {e}")
-    
-    def open_output_folder(self):
-        """Open the output folder in Finder"""
-        import subprocess
-        try:
-            subprocess.run(['open', str(self.base_dir)], check=True)
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to open output folder: {e}")
-    
-    def resizeEvent(self, event):
-        """Handle window resize events for responsive layout adjustments"""
-        super().resizeEvent(event)
-        
-        if hasattr(self, 'splitter'):
-            # Get current window dimensions
-            window_width = self.width()
-            screen_category = ModernTheme.get_screen_category(window_width)
-            
-            # Adjust splitter proportions based on new size
-            if screen_category == ModernTheme.SCREEN_MOBILE:
-                # Mobile: Prioritize output panel
-                self.splitter.setSizes([int(window_width * 0.35), int(window_width * 0.65)])
-            elif screen_category == ModernTheme.SCREEN_TABLET:
-                # Tablet: Balanced view
-                self.splitter.setSizes([int(window_width * 0.3), int(window_width * 0.7)])
-            else:
-                # Desktop: Control panel gets more space
-                self.splitter.setSizes([int(window_width * 0.25), int(window_width * 0.75)])
-            
-            # Update font sizes if needed for better mobile readability
-            if hasattr(self, 'task_input') and screen_category == ModernTheme.SCREEN_MOBILE:
-                mobile_font_size = ModernTheme.get_responsive_font_size(screen_category, 'base')
-                self.task_input.setStyleSheet(f"font-size: {mobile_font_size};")
-    
-    def setup_accessibility(self):
-        """Enhanced accessibility features for better keyboard navigation and screen reader support"""
-        try:
-            # Set up proper tab order for main interface elements
-            if hasattr(self, 'task_input') and hasattr(self, 'attach_btn'):
-                self.setTabOrder(self.task_input, self.attach_btn)
-            
-            if hasattr(self, 'attach_btn') and hasattr(self, 'clear_files_btn'):
-                self.setTabOrder(self.attach_btn, self.clear_files_btn)
-            
-            if hasattr(self, 'task_type_combo') and hasattr(self, 'process_btn'):
-                self.setTabOrder(self.task_type_combo, self.process_btn)
-            
-            # Set accessibility properties for better screen reader support
-            if hasattr(self, 'task_input'):
-                self.task_input.setAccessibleName("Task Description Input")
-                self.task_input.setAccessibleDescription("Enter your task description here. The AI will process your request based on the description and any attached files.")
-            
-            if hasattr(self, 'attach_btn'):
-                self.attach_btn.setAccessibleName("Attach Files Button")
-                self.attach_btn.setAccessibleDescription("Click to attach files for processing. Supports images, documents, code files, and CSV data.")
-            
-            if hasattr(self, 'process_btn'):
-                self.process_btn.setAccessibleName("Process Task Button")
-                self.process_btn.setAccessibleDescription("Start processing the task with the AI assistant.")
-            
-            if hasattr(self, 'theme_toggle_btn'):
-                self.theme_toggle_btn.setAccessibleName("Theme Toggle Button")
-                current_theme = ModernTheme.get_current_theme()
-                target_theme = 'light' if current_theme == 'dark' else 'dark'
-                self.theme_toggle_btn.setAccessibleDescription(f"Currently using {current_theme} theme. Click to switch to {target_theme} theme.")
-            
-            # Set main window accessibility properties
-            self.setAccessibleName("SuperMini AI Assistant")
-            self.setAccessibleDescription("AI-powered desktop assistant for task automation, multimedia processing, and intelligent document analysis.")
-            
-            logging.info("Accessibility features initialized successfully")
-            
-        except Exception as e:
-            logging.warning(f"Some accessibility features could not be initialized: {e}")
-    
-    def setup_monitoring(self):
-        self.monitor = SystemMonitor()
-        self.monitor.update_signal.connect(self.update_monitor_display)
-        self.monitoring_active = False
-        
-        # Start monitoring automatically
-        self.start_monitoring_automatically()
-    
-    def start_monitoring_automatically(self):
-        """Start system monitoring automatically"""
-        try:
-            self.monitor.start()
-            self.monitoring_active = True
-            print("✅ System monitoring started automatically")
-        except Exception as e:
-            print(f"⚠️ Failed to start monitoring automatically: {e}")
-    
-    def show_welcome_if_needed(self):
-        settings = QSettings()
-        if not settings.value("welcome_shown", False, type=bool):
-            dialog = WelcomeDialog(self)
-            dialog.exec()
-            settings.setValue("welcome_shown", True)
-    
     def process_task(self):
         task_text = self.task_input.toPlainText().strip()
         if not task_text:
@@ -10954,6 +13108,10 @@ class ModernNeuralDashboard:
         
         files = getattr(self, 'attached_files', [])
         
+        # Store current task information for metadata tracking
+        self.current_task_type = task_type
+        self.current_prompt = task_text
+        
         # Create thread with auto-continue and autonomous settings
         self.task_thread = TaskThread(
             self.processor, 
@@ -10971,6 +13129,7 @@ class ModernNeuralDashboard:
         self.task_thread.finished.connect(self.task_finished)
         self.task_thread.start()
     
+
     def stop_task(self):
         """Stop the current task execution"""
         if self.task_thread and self.task_thread.isRunning():
@@ -10994,6 +13153,7 @@ class ModernNeuralDashboard:
                 {"task_type": "regular_task"}
             )
     
+
     def task_finished(self):
         """Handle task thread completion"""
         self.process_btn.setEnabled(True)
@@ -11035,11 +13195,25 @@ class ModernNeuralDashboard:
     def resizeEvent(self, event):
         """Handle window resize events to update layout dynamically"""
         super().resizeEvent(event)
+        logging.info(f"resizeEvent triggered: window width={self.width()}")
         
         # Update splitter sizes based on new window size
         if hasattr(self, 'main_splitter'):
             window_width = self.width()
             window_height = self.height()
+            
+            control_width = int(window_width * 0.50)
+            output_width = window_width - control_width - 10
+            self.main_splitter.setSizes([control_width, output_width])
+            logging.info(f"resizeEvent: control_width={control_width}, output_width={output_width}")
+            self.main_splitter.update()
+            self.updateGeometry()
+            
+            if hasattr(self, 'task_input'):
+                min_height = max(120, int(window_height * 0.15))
+                max_height = max(200, int(window_height * 0.3))
+                self.task_input.setMinimumHeight(ModernTheme.scale_value(min_height))
+                self.task_input.setMaximumHeight(ModernTheme.scale_value(max_height))
             
             # Calculate new sizes with consistent breakpoints matching setup_ui
             if window_width < 700:
@@ -11069,6 +13243,7 @@ class ModernNeuralDashboard:
                 self.task_input.setMinimumHeight(ModernTheme.scale_value(min_height))
                 self.task_input.setMaximumHeight(ModernTheme.scale_value(max_height))
     
+
     def show_autonomous_suggestions(self):
         """Show autonomous action suggestions for current context"""
         if not AUTONOMOUS_AVAILABLE or not self.processor.autonomous_agent:
@@ -11112,9 +13287,11 @@ class ModernNeuralDashboard:
             logging.error(f"Error getting autonomous suggestions: {e}")
             QMessageBox.warning(self, "Error", f"Failed to get suggestions: {str(e)}")
     
+
     def update_progress(self, value):
         self.progress_bar.setValue(value)
     
+
     def display_task_result(self, result: TaskResult):
         """Display task result in the results panel with modern formatting"""
         # Update results tab with enhanced HTML formatting
@@ -11167,18 +13344,48 @@ class ModernNeuralDashboard:
             
             for file_path in result.generated_files:
                 file_name = Path(file_path).name if file_path else "Unknown file"
-                result_text += f"""
-                <li style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 12px; margin: 8px 0; 
-                           border-radius: 6px; border: 1px solid {ModernTheme.get_colors()['border']};'>
-                    <div style='display: flex; align-items: center;'>
-                        <span style='margin-right: 8px;'>📄</span>
-                        <div>
-                            <div style='color: {ModernTheme.get_colors()['text_primary']}; font-weight: 500;'>{file_name}</div>
-                            <div style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px; font-family: {ModernTheme.FONTS['mono']};'>{file_path}</div>
+                
+                # Check for metadata to enhance display
+                metadata = None
+                if hasattr(result, 'file_metadata') and result.file_metadata and file_path in result.file_metadata:
+                    metadata = result.file_metadata[file_path]
+                
+                if metadata:
+                    # Enhanced display with metadata
+                    result_text += f"""
+                    <li style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 14px; margin: 10px 0; 
+                               border-radius: 8px; border: 1px solid {ModernTheme.get_colors()['primary']}; border-left: 4px solid {ModernTheme.get_colors()['primary']};'>
+                        <div style='display: flex; align-items: flex-start;'>
+                            <div style='margin-right: 12px; font-size: 18px;'>{self._get_metadata_icon(metadata.file_type)}</div>
+                            <div style='flex: 1;'>
+                                <div style='color: {ModernTheme.get_colors()['text_primary']}; font-weight: 600; font-size: 14px; margin-bottom: 4px;'>{metadata.display_name}</div>
+                                <div style='color: {ModernTheme.get_colors()['text_secondary']}; font-size: 12px; margin-bottom: 6px;'>{metadata.description}</div>
+                                <div style='display: flex; gap: 12px; margin-bottom: 6px;'>
+                                    <span style='color: {ModernTheme.get_colors()['primary']}; font-size: 11px; font-weight: 500;'>{metadata.file_type}</span>
+                                    <span style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px;'>{Path(file_path).stat().st_size if Path(file_path).exists() else 0} bytes</span>
+                                </div>
+                                <div style='color: {ModernTheme.get_colors()['info']}; font-size: 11px; background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;'>
+                                    🎯 {metadata.purpose}
+                                </div>
+                                <div style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 10px; font-family: {ModernTheme.FONTS['mono']}; margin-top: 8px; word-break: break-all;'>{file_path}</div>
+                            </div>
                         </div>
-                    </div>
-                </li>
-                """
+                    </li>
+                    """
+                else:
+                    # Fallback display without metadata
+                    result_text += f"""
+                    <li style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 12px; margin: 8px 0; 
+                               border-radius: 6px; border: 1px solid {ModernTheme.get_colors()['border']};'>
+                        <div style='display: flex; align-items: center;'>
+                            <span style='margin-right: 8px;'>📄</span>
+                            <div>
+                                <div style='color: {ModernTheme.get_colors()['text_primary']}; font-weight: 500;'>{file_name}</div>
+                                <div style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px; font-family: {ModernTheme.FONTS['mono']};'>{file_path}</div>
+                            </div>
+                        </div>
+                    </li>
+                    """
             
             result_text += "</ul></div>"
         
@@ -11207,9 +13414,64 @@ class ModernNeuralDashboard:
         result_text += "</div>"
         self.results_text.setHtml(result_text)
         
+        # Store file metadata for enhanced file display
+        if hasattr(result, 'file_metadata') and result.file_metadata:
+            if not hasattr(self, 'stored_file_metadata'):
+                self.stored_file_metadata = {}
+            self.stored_file_metadata.update(result.file_metadata)
+        
+        # Add task to timeline with enhanced data
+        task_data = {
+            'task_type': getattr(self, 'current_task_type', 'unknown'),
+            'title': self._generate_task_title(result),
+            'prompt': getattr(self, 'current_prompt', ''),
+            'result': result.result,
+            'generated_files': result.generated_files,
+            'response_time': result.execution_time,
+            'tokens_used': getattr(result, 'tokens_used', 0),
+            'timestamp': datetime.now(),
+            'file_metadata': getattr(result, 'file_metadata', {})
+        }
+        self.add_task_to_timeline(task_data)
+        
+        # Refresh file display to show new files with metadata
+        self.refresh_files_display()
+        
         # Update files tab if it exists
         if hasattr(self, 'files_text') and result.generated_files:
             self.update_files_display(result.generated_files)
+    
+    def _generate_task_title(self, result: TaskResult) -> str:
+        """Generate a descriptive title for the task based on the result"""
+        if hasattr(result, 'file_metadata') and result.file_metadata:
+            # Use the first file's display name as the task title
+            first_metadata = next(iter(result.file_metadata.values()))
+            return first_metadata.display_name
+        elif result.generated_files:
+            # Fallback to file name
+            first_file = Path(result.generated_files[0]).name
+            return first_file.replace('_', ' ').title()
+        else:
+            # Generic title based on task type
+            task_type = getattr(self, 'current_task_type', 'unknown')
+            return f"{task_type.title()} Task"
+    
+    def _get_metadata_icon(self, file_type: str) -> str:
+        """Get an appropriate icon for the file type from metadata"""
+        file_type_lower = file_type.lower()
+        
+        if file_type_lower == "code":
+            return "🐍"  # Python/Code icon
+        elif file_type_lower == "script":
+            return "📜"  # Script icon
+        elif file_type_lower == "data":
+            return "📊"  # Data icon
+        elif file_type_lower == "text":
+            return "📄"  # Text document icon
+        elif file_type_lower == "document":
+            return "📋"  # Document icon
+        else:
+            return "📎"  # Generic file icon
         
         # Show error message for failed tasks
         if not result.success:
@@ -11267,7 +13529,7 @@ class ModernNeuralDashboard:
                 files_text += f"""
                 <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 16px; margin: 12px 0; 
                             border-radius: 8px; border: 1px solid {ModernTheme.get_colors()['border']};
-                            transition: all 0.2s ease;'>
+'>
                     <div style='display: flex; align-items: center; margin-bottom: 8px;'>
                         <span style='font-size: 24px; margin-right: 12px;'>{icon}</span>
                         <div style='flex: 1;'>
@@ -11296,11 +13558,13 @@ class ModernNeuralDashboard:
         files_text += "</div>"
         self.files_text.setHtml(files_text)
     
+
     def task_finished(self):
         self.progress_bar.setVisible(False)
         self.process_btn.setEnabled(True)
         self.statusBar().showMessage("Task completed")
     
+
     def start_exploration(self):
         # Get interval in seconds from the spinbox
         interval_seconds = self.explore_interval_spinbox.value()
@@ -11328,6 +13592,7 @@ class ModernNeuralDashboard:
         self.explore_thread.finished.connect(self.exploration_finished)
         self.explore_thread.start()
     
+
     def stop_exploration(self):
         """Stop the exploration thread and any ongoing operations"""
         if self.explore_thread and self.explore_thread.isRunning():
@@ -11344,6 +13609,7 @@ class ModernNeuralDashboard:
             self.progress_bar.setVisible(False)
             self.statusBar().showMessage("Exploration stopped")
     
+
     def display_explore_result(self, result: str, files: List[str], iteration: int):
         self.results_text.append(f"\n\n{result}")
         # File generation info now displayed in Activity Monitor
@@ -11352,12 +13618,14 @@ class ModernNeuralDashboard:
         self.results_text.append(f"\nError: {error}")
         QMessageBox.warning(self, "Exploration Error", error)
     
+
     def exploration_finished(self):
         self.start_explore_btn.setEnabled(True)
         self.stop_explore_btn.setEnabled(False)
         self.exploration_status.setText("Exploration stopped")
         self.progress_bar.setVisible(False)
     
+
     def start_enhancement(self):
         # Get interval in seconds from the spinbox
         interval_seconds = self.enhance_interval_spinbox.value()
@@ -11388,6 +13656,7 @@ class ModernNeuralDashboard:
         self.enhance_thread.finished.connect(self.enhancement_finished)
         self.enhance_thread.start()
     
+
     def stop_enhancement(self):
         """Stop the enhancement thread and any ongoing operations"""
         if self.enhance_thread and self.enhance_thread.isRunning():

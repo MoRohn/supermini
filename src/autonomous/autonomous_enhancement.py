@@ -1005,7 +1005,7 @@ class CodeModificationEngine:
             return ""
 
 class AutonomousEnhancementLoop:
-    """Main autonomous enhancement system with GitHub integration"""
+    """Main autonomous enhancement system with GitHub integration and advanced pipeline"""
     
     def __init__(self, target_files: List[str], output_dir: Path, claude_manager, ollama_manager, 
                  github_integration: bool = False, repo_owner: str = None, repo_name: str = None):
@@ -1017,6 +1017,35 @@ class AutonomousEnhancementLoop:
         # Initialize components
         self.analyzer = SelfAnalyzer(target_files, output_dir)
         self.modifier = CodeModificationEngine(output_dir / "backups")
+        
+        # Initialize enhanced components
+        from .enhancement_research_engine import EnhancementResearchEngine
+        from .enhancement_discovery_engine import EnhancementDiscoveryEngine
+        from .enhancement_metrics_tracker import EnhancementMetricsTracker
+        from .enhancement_pipeline import MultiStageEnhancementPipeline
+        
+        # Enhanced enhancement system
+        self.research_engine = EnhancementResearchEngine(
+            output_dir / "research_cache",
+            config={
+                'google_enabled': True,
+                'github_enabled': True,
+                'stackoverflow_enabled': True,
+                'arxiv_enabled': True,
+                'max_concurrent_searches': 5
+            }
+        )
+        
+        self.discovery_engine = EnhancementDiscoveryEngine(output_dir / "discovery_cache")
+        self.metrics_tracker = EnhancementMetricsTracker(output_dir / "metrics_cache")
+        
+        self.enhancement_pipeline = MultiStageEnhancementPipeline(
+            output_dir / "pipeline_cache",
+            self.discovery_engine,
+            self.research_engine,
+            self.metrics_tracker,
+            self
+        )
         
         # GitHub integration
         self.github_integration = github_integration
@@ -1030,6 +1059,7 @@ class AutonomousEnhancementLoop:
         self.enhancement_enabled = True
         self.stop_requested = False
         self.autonomous_pr_enabled = True
+        self.pipeline_mode = True  # Use advanced pipeline by default
         
         # Thread safety
         self.enhancement_lock = Lock()
@@ -1045,47 +1075,182 @@ class AutonomousEnhancementLoop:
         logging.info("Autonomous enhancement loop started")
         return enhancement_thread
         
+    async def run_enhanced_pipeline(self, enhancement_goals: List[str] = None, constraints: Dict[str, Any] = None):
+        """Run the enhanced multi-stage pipeline"""
+        if not self.pipeline_mode:
+            return await self._legacy_enhancement_cycle()
+            
+        try:
+            logging.info("Starting enhanced pipeline cycle")
+            
+            # Run the multi-stage pipeline
+            pipeline_context = await self.enhancement_pipeline.run_enhancement_pipeline(
+                target_files=self.target_files,
+                enhancement_goals=enhancement_goals or ['improve_performance', 'improve_maintainability', 'improve_security'],
+                constraints=constraints or {
+                    'min_impact_score': 0.3,
+                    'max_effort_estimate': 0.8,
+                    'max_risk_level': 'medium',
+                    'excluded_files': []
+                }
+            )
+            
+            # Process pipeline results
+            if pipeline_context.discovered_opportunities:
+                logging.info(f"Pipeline discovered {len(pipeline_context.discovered_opportunities)} opportunities")
+                
+                # Implement high-priority enhancements from the pipeline
+                await self._implement_pipeline_enhancements(pipeline_context)
+                
+            return pipeline_context
+            
+        except Exception as e:
+            logging.error(f"Enhanced pipeline error: {e}")
+            return None
+
+    async def _implement_pipeline_enhancements(self, pipeline_context):
+        """Implement enhancements from pipeline results"""
+        
+        # Get implementation plan
+        implementation_plan = pipeline_context.enhancement_plan.get('implementation_plan', {})
+        enhancement_sequence = implementation_plan.get('enhancement_sequence', [])
+        
+        # Process enhancements in priority order
+        for enhancement_item in enhancement_sequence[:5]:  # Limit to top 5
+            if self.stop_requested:
+                break
+                
+            opportunity = enhancement_item['opportunity']
+            pattern = enhancement_item.get('pattern')
+            
+            try:
+                # Create enhancement from opportunity and pattern
+                enhancement = self._opportunity_to_enhancement(opportunity, pattern)
+                
+                if enhancement:
+                    # Measure impact before and after
+                    impact = await self.metrics_tracker.measure_enhancement_impact(
+                        enhancement.enhancement_id,
+                        enhancement.target_file,
+                        enhancement.enhancement_type,
+                        pre_enhancement_callback=None,
+                        post_enhancement_callback=None
+                    )
+                    
+                    # Apply enhancement
+                    result = self.modifier.apply_enhancement(enhancement)
+                    self.enhancement_history.append(result)
+                    
+                    # Store metrics
+                    pipeline_context.metrics_data.append(impact)
+                    
+                    if result.success:
+                        logging.info(f"Successfully applied pipeline enhancement: {enhancement.enhancement_id}")
+                        
+                        # Create GitHub PR if enabled
+                        if (self.github_integration and self.github_manager and 
+                            self.autonomous_pr_enabled and 
+                            self.github_manager.is_file_allowed(enhancement.target_file)):
+                            
+                            self._create_autonomous_pr(enhancement, [result])
+                            
+                    else:
+                        logging.warning(f"Pipeline enhancement failed: {enhancement.enhancement_id}")
+                        
+            except Exception as e:
+                logging.error(f"Failed to implement enhancement for {opportunity.opportunity_id}: {e}")
+                
+    def _opportunity_to_enhancement(self, opportunity, pattern) -> Optional[Enhancement]:
+        """Convert opportunity and pattern to enhancement"""
+        try:
+            enhancement_id = f"pipeline_{int(time.time() * 1000000)}"
+            
+            # Create code changes based on opportunity and pattern
+            code_changes = []
+            
+            if pattern and pattern.code_example:
+                # Use pattern's code example
+                code_changes.append({
+                    "type": "pattern_implementation",
+                    "description": f"Implement {pattern.name}",
+                    "code_example": pattern.code_example,
+                    "line_range": opportunity.code_context.get('line_range', (1, 1))
+                })
+            else:
+                # Use opportunity's suggestions
+                for suggestion in opportunity.improvement_suggestions[:3]:  # Limit to 3
+                    code_changes.append({
+                        "type": "improvement",
+                        "description": suggestion,
+                        "line_range": opportunity.code_context.get('line_range', (1, 1))
+                    })
+                    
+            return Enhancement(
+                enhancement_id=enhancement_id,
+                target_file=opportunity.file_path,
+                enhancement_type=opportunity.opportunity_type,
+                description=f"Pipeline enhancement: {opportunity.title}",
+                code_changes=code_changes,
+                expected_improvement=opportunity.impact_score,
+                risk_level=opportunity.risk_level,
+                validation_method="syntax_check",
+                timestamp=time.time()
+            )
+            
+        except Exception as e:
+            logging.error(f"Failed to convert opportunity to enhancement: {e}")
+            return None
+
     def _enhancement_loop(self, interval: float):
         """Main enhancement loop"""
         while not self.stop_requested and self.enhancement_enabled:
             try:
-                logging.info("Starting enhancement cycle")
-                
-                # Perform analysis
-                analyses = self.analyzer.perform_comprehensive_analysis()
-                
-                if analyses:
-                    # Generate enhancements
-                    enhancements = self._generate_enhancements(analyses)
+                if self.pipeline_mode:
+                    # Use enhanced pipeline
+                    asyncio.run(self.run_enhanced_pipeline())
+                else:
+                    # Use legacy enhancement cycle
+                    asyncio.run(self._legacy_enhancement_cycle())
                     
-                    # Apply high-priority, low-risk enhancements
-                    for enhancement in enhancements:
-                        if (enhancement.risk_level == "low" and 
-                            enhancement.expected_improvement > 0.1 and
-                            not self.stop_requested):
-                            
-                            result = self.modifier.apply_enhancement(enhancement)
-                            self.enhancement_history.append(result)
-                            
-                            if result.success:
-                                logging.info(f"Successfully applied enhancement: {enhancement.enhancement_id}")
-                                
-                                # Create GitHub PR if enabled and configured
-                                if (self.github_integration and self.github_manager and 
-                                    self.autonomous_pr_enabled and 
-                                    self.github_manager.is_file_allowed(enhancement.target_file)):
-                                    
-                                    self._create_autonomous_pr(enhancement, [result])
-                                    
-                            else:
-                                logging.warning(f"Enhancement failed: {enhancement.enhancement_id}")
-                                
                 # Wait for next cycle
                 time.sleep(interval)
                 
             except Exception as e:
                 logging.error(f"Enhancement loop error: {e}")
                 time.sleep(60)  # Wait before retrying
+    
+    async def _legacy_enhancement_cycle(self):
+        """Legacy enhancement cycle for backward compatibility"""
+        logging.info("Starting legacy enhancement cycle")
+        
+        # Perform analysis
+        analyses = self.analyzer.perform_comprehensive_analysis()
+        
+        if analyses:
+            # Generate enhancements
+            enhancements = self._generate_enhancements(analyses)
+            
+            # Apply high-priority, low-risk enhancements
+            for enhancement in enhancements:
+                if (enhancement.risk_level == "low" and 
+                    enhancement.expected_improvement > 0.1 and
+                    not self.stop_requested):
+                    
+                    result = self.modifier.apply_enhancement(enhancement)
+                    self.enhancement_history.append(result)
+                    
+                    if result.success:
+                        logging.info(f"Successfully applied enhancement: {enhancement.enhancement_id}")
+                        
+                        # Create GitHub PR if enabled and configured
+                        if (self.github_integration and self.github_manager and 
+                            self.autonomous_pr_enabled and 
+                            self.github_manager.is_file_allowed(enhancement.target_file)):
+                            
+                            self._create_autonomous_pr(enhancement, [result])
+                            
+                    else:
+                        logging.warning(f"Enhancement failed: {enhancement.enhancement_id}")
                 
     def _generate_enhancements(self, analyses: List[CodeAnalysis]) -> List[Enhancement]:
         """Generate enhancement suggestions from analyses"""
@@ -1252,18 +1417,103 @@ class AutonomousEnhancementLoop:
         logging.info("Enhancement loop stop requested")
         
     def get_enhancement_summary(self) -> Dict[str, Any]:
-        """Get summary of enhancement activities"""
+        """Get comprehensive summary of enhancement activities"""
         successful_enhancements = [e for e in self.enhancement_history if e.success]
         
-        return {
+        base_summary = {
             "total_enhancements": len(self.enhancement_history),
             "successful_enhancements": len(successful_enhancements),
             "success_rate": len(successful_enhancements) / max(len(self.enhancement_history), 1),
             "avg_improvement": sum(e.performance_impact.get("execution_time_change", 0) 
                                  for e in successful_enhancements) / max(len(successful_enhancements), 1),
             "enhancement_enabled": self.enhancement_enabled,
-            "stop_requested": self.stop_requested
+            "stop_requested": self.stop_requested,
+            "pipeline_mode": self.pipeline_mode
         }
+        
+        # Add enhanced metrics if available
+        if hasattr(self, 'metrics_tracker'):
+            try:
+                metrics_summary = self.metrics_tracker.get_metrics_summary()
+                base_summary.update({
+                    "advanced_metrics": metrics_summary,
+                    "metrics_tracking_active": self.metrics_tracker.monitoring_active
+                })
+            except Exception as e:
+                logging.warning(f"Failed to get metrics summary: {e}")
+                
+        # Add research engine statistics
+        if hasattr(self, 'research_engine'):
+            try:
+                research_stats = self.research_engine.get_research_statistics()
+                base_summary.update({
+                    "research_statistics": research_stats
+                })
+            except Exception as e:
+                logging.warning(f"Failed to get research statistics: {e}")
+                
+        # Add discovery engine statistics  
+        if hasattr(self, 'discovery_engine'):
+            try:
+                discovery_stats = self.discovery_engine.get_discovery_statistics()
+                base_summary.update({
+                    "discovery_statistics": discovery_stats
+                })
+            except Exception as e:
+                logging.warning(f"Failed to get discovery statistics: {e}")
+                
+        # Add pipeline status
+        if hasattr(self, 'enhancement_pipeline'):
+            try:
+                active_sessions = self.enhancement_pipeline.get_all_active_sessions()
+                base_summary.update({
+                    "active_pipeline_sessions": len(active_sessions),
+                    "pipeline_sessions": active_sessions
+                })
+            except Exception as e:
+                logging.warning(f"Failed to get pipeline status: {e}")
+                
+        return base_summary
+        
+    def enable_pipeline_mode(self, enabled: bool = True):
+        """Enable or disable advanced pipeline mode"""
+        self.pipeline_mode = enabled
+        status = "enabled" if enabled else "disabled"
+        logging.info(f"Advanced pipeline mode {status}")
+        
+    def start_metrics_monitoring(self):
+        """Start real-time metrics monitoring"""
+        if hasattr(self, 'metrics_tracker'):
+            self.metrics_tracker.start_real_time_monitoring()
+            logging.info("Metrics monitoring started")
+        else:
+            logging.warning("Metrics tracker not available")
+            
+    def stop_metrics_monitoring(self):
+        """Stop real-time metrics monitoring"""
+        if hasattr(self, 'metrics_tracker'):
+            self.metrics_tracker.stop_real_time_monitoring()
+            logging.info("Metrics monitoring stopped")
+        else:
+            logging.warning("Metrics tracker not available")
+            
+    async def generate_enhancement_report(self, days: int = 7) -> Optional[str]:
+        """Generate comprehensive enhancement report"""
+        if hasattr(self, 'metrics_tracker'):
+            try:
+                report_path = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    self.metrics_tracker.generate_comprehensive_report,
+                    days
+                )
+                logging.info(f"Enhancement report generated: {report_path}")
+                return report_path
+            except Exception as e:
+                logging.error(f"Failed to generate enhancement report: {e}")
+                return None
+        else:
+            logging.warning("Metrics tracker not available for report generation")
+            return None
 
 # AST Visitor classes for analysis
 class PerformanceAnalysisVisitor(ast.NodeVisitor):

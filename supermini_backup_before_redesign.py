@@ -16,11 +16,7 @@ import re
 import shutil
 import base64
 import random
-import math
 from pathlib import Path
-
-# Disable HuggingFace tokenizers parallelism warning early
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
@@ -69,10 +65,10 @@ try:
         QHBoxLayout, QGridLayout, QWidget, QLabel, QFileDialog, QMessageBox, QCheckBox,
         QProgressBar, QDialog, QTextBrowser, QFormLayout, QComboBox, QTextEdit,
         QSplitter, QTabWidget, QSlider, QSpinBox, QGroupBox, QScrollArea, QSizePolicy,
-        QTreeWidget, QTreeWidgetItem, QFrame, QStackedWidget
+        QTreeWidget, QTreeWidgetItem
     )
     from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer, QSettings, QPropertyAnimation, QEasingCurve, QPointF
-    from PyQt6.QtGui import QPixmap, QFont, QIcon, QPainter, QPen, QBrush, QLinearGradient, QRadialGradient, QColor
+    from PyQt6.QtGui import QPixmap, QFont, QIcon, QPainter, QPen, QBrush, QLinearGradient, QColor
 except ImportError:
     print("Error: 'PyQt6' is required. Install it with 'pip install PyQt6'")
     sys.exit(1)
@@ -2314,20 +2310,9 @@ class MemoryManager:
         try:
             task_id = f"task_{int(time.time() * 1000000)}"
             task_text = f"Prompt: {task_data.get('prompt', '')}\nType: {task_data.get('task_type', '')}\nResult: {task_data.get('result', '')}"
-            
-            # Convert any list values to strings for ChromaDB compatibility
-            clean_metadata = {}
-            for key, value in task_data.items():
-                if isinstance(value, list):
-                    clean_metadata[key] = str(value)  # Convert list to string
-                elif isinstance(value, dict):
-                    clean_metadata[key] = str(value)  # Convert dict to string
-                else:
-                    clean_metadata[key] = value
-            
             self.collection.add(
                 documents=[task_text],
-                metadatas=[clean_metadata],
+                metadatas=[task_data],
                 ids=[task_id]
             )
             logging.info(f"Saved task to memory: {task_id}")
@@ -2391,47 +2376,6 @@ Solution: {solution[:500]}"""
             
         except Exception as e:
             logging.error(f"Failed to store enhancement success: {e}")
-            return False
-    
-    def store_context(self, context_id: str, data: dict, metadata: dict = None):
-        """Store context data in memory with metadata"""
-        if not self.collection:
-            return False
-        
-        try:
-            # Create a text representation of the data
-            data_text = str(data) if isinstance(data, dict) else str(data)
-            
-            # Prepare metadata
-            if metadata is None:
-                metadata = {}
-            
-            # Add context type and timestamp
-            metadata.update({
-                'context_id': context_id,
-                'timestamp': datetime.now().isoformat(),
-                'data_type': type(data).__name__
-            })
-            
-            # Clean metadata for ChromaDB compatibility
-            clean_metadata = {}
-            for key, value in metadata.items():
-                if isinstance(value, (list, dict)):
-                    clean_metadata[key] = str(value)
-                else:
-                    clean_metadata[key] = value
-            
-            self.collection.add(
-                documents=[data_text],
-                metadatas=[clean_metadata],
-                ids=[context_id]
-            )
-            
-            logging.debug(f"Stored context: {context_id}")
-            return True
-            
-        except Exception as e:
-            logging.error(f"Failed to store context {context_id}: {e}")
             return False
     
     def retrieve_enhancement_patterns(self, opportunity_type: str = None, n_results: int = 5) -> List[dict]:
@@ -5078,7 +5022,6 @@ Please provide:
         """Main task processing method with auto-continue support"""
         start_time = time.time()
         task_id = f"task_{int(time.time() * 1000000)}"
-        continue_count = 0  # Initialize continue_count at method start
         
         # Log task start
         log_activity(
@@ -5175,6 +5118,7 @@ Please provide:
         
         # Autonomous continuation logic with intelligent enhancement
         if auto_continue and result.success and not self.stop_requested:
+            continue_count = 0
             accumulated_result = result.result
             accumulated_files = result.generated_files.copy()
             accumulated_steps = result.task_steps.copy()
@@ -5198,8 +5142,6 @@ Please provide:
                         execution_time=time.time() - start_time,
                         quality_scores={'overall': result.score if hasattr(result, 'score') else 0.5},
                         previous_enhancements=[],
-                        quality_history=[result.score if hasattr(result, 'score') else 0.5],
-                        success_history=[result.success],
                         user_preferences={},
                         model_type="claude" if hasattr(self, 'claude') else "ollama"
                     )
@@ -5290,8 +5232,6 @@ Please provide:
                             execution_time=time.time() - start_time,
                             quality_scores={'overall': new_result.score if hasattr(new_result, 'score') else 0.5},
                             previous_enhancements=[],
-                            quality_history=context.quality_history + [new_result.score if hasattr(new_result, 'score') else 0.5],
-                            success_history=context.success_history + [new_result.success],
                             user_preferences={},
                             model_type="claude" if hasattr(self, 'claude') else "ollama"
                         )
@@ -5360,18 +5300,14 @@ Please provide:
             # Calculate execution time
             result.execution_time = time.time() - start_time
         
-        # Update task completion stats
-        if hasattr(self, 'monitor') and self.monitor:
-            if result.success:
-                self.monitor.update_stats('files_generated', len(result.generated_files))
-                self.monitor.update_stats('successful_tasks')
-                
-                # Log task completion metrics for dashboard
-                if hasattr(self.monitor, 'log_task_completed'):
-                    self.monitor.log_task_completed(total_execution_time, task_type)
-            else:
-                # Track failed tasks
-                self.monitor.update_stats('failed_tasks')
+        # Update files generated stats
+        if result.success and hasattr(self, 'monitor') and self.monitor:
+            self.monitor.update_stats('files_generated', len(result.generated_files))
+            self.monitor.update_stats('tasks_completed')
+            
+            # Log task completion metrics for dashboard
+            if hasattr(self.monitor, 'log_task_completed'):
+                self.monitor.log_task_completed(total_execution_time, task_type)
 
         # Log task completion with enhanced details
         total_execution_time = time.time() - start_time
@@ -7318,106 +7254,57 @@ Generate a sophisticated meta-enhancement that will make future enhancements mor
                 time.sleep(1)
 
 class SettingsDialog(QDialog):
-    """Modern settings configuration dialog with updated design"""
+    """Modern settings configuration dialog with tabbed interface"""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("⚙️ SuperMini Settings")
-        self.setObjectName("modern_dialog")
         
-        # Dynamic sizing based on screen size and DPI with modern proportions
+        # Dynamic sizing based on screen size and DPI
         app = QApplication.instance()
         if app:
             screen = app.primaryScreen()
             available_geometry = screen.availableGeometry()
             
-            # Calculate dialog size using modern proportions
-            width = min(ModernTheme.scale_value(600), int(available_geometry.width() * 0.5))
-            height = min(ModernTheme.scale_value(700), int(available_geometry.height() * 0.8))
+            # Calculate dialog size as percentage of available screen space
+            width = min(ModernTheme.scale_value(200), int(available_geometry.width() * 0.4))
+            height = min(ModernTheme.scale_value(300), int(available_geometry.height() * 0.7))
             
-            self.setMinimumSize(ModernTheme.scale_value(500), ModernTheme.scale_value(600))
-            self.setMaximumSize(int(available_geometry.width() * 0.9), int(available_geometry.height() * 0.95))
+            self.setMinimumSize(ModernTheme.scale_value(200), ModernTheme.scale_value(300))
+            self.setMaximumSize(int(available_geometry.width() * 0.8), int(available_geometry.height() * 0.9))
             self.resize(width, height)
         else:
             # Fallback for older screens
-            self.setMinimumSize(500, 600)
-            self.resize(600, 700)
+            self.setMinimumSize(400, 500)
+            self.resize(500, 600)
             
         self.setup_ui()
         self.load_settings()
         
-        # Apply modern theme styling
-        if parent and hasattr(parent, 'apply_modern_theme'):
-            parent.apply_modern_theme()
+        # Apply modern styling
         self.setStyleSheet(parent.styleSheet() if parent else "")
     
     def setup_ui(self):
-        """Setup the modern settings UI with updated design"""
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                     ModernTheme.scale_value(16), 
-                                     ModernTheme.scale_value(16), 
-                                     ModernTheme.scale_value(16))
-        main_layout.setSpacing(ModernTheme.scale_value(16))
+        """Setup the modern settings UI with tabs"""
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
         
-        # Modern header with consistent styling
-        header_frame = QFrame()
-        header_frame.setObjectName("settings_header")
-        header_layout = QHBoxLayout(header_frame)
-        header_layout.setContentsMargins(ModernTheme.scale_value(8), 
-                                       ModernTheme.scale_value(8), 
-                                       ModernTheme.scale_value(8), 
-                                       ModernTheme.scale_value(8))
-        
+        # Header
+        header_layout = QHBoxLayout()
         header_label = QLabel("🤖 SuperMini Configuration")
-        header_label.setObjectName("settings_title")
-        header_label.setStyleSheet(f"""
-            QLabel#settings_title {{
-                font-size: {ModernTheme.scale_value(18)}px;
-                font-weight: 600;
-                color: #FFFFFF;
-                padding: {ModernTheme.scale_value(4)}px;
-            }}
-        """)
+        header_label.setProperty("role", "heading")
         header_layout.addWidget(header_label)
         header_layout.addStretch()
         
-        # Version info with modern styling
+        # Version info
         version_label = QLabel(f"Version {APP_VERSION}")
-        version_label.setObjectName("version_label")
-        version_label.setStyleSheet(f"""
-            QLabel#version_label {{
-                font-size: {ModernTheme.scale_value(12)}px;
-                color: #CCCCCC;
-                padding: {ModernTheme.scale_value(4)}px;
-            }}
-        """)
+        version_label.setProperty("role", "caption")
         header_layout.addWidget(version_label)
         
-        main_layout.addWidget(header_frame)
+        main_layout.addLayout(header_layout)
         
-        # Tabbed settings with modern styling
+        # Tabbed settings
         settings_tabs = QTabWidget()
-        settings_tabs.setObjectName("settings_tabs")
-        settings_tabs.setStyleSheet(f"""
-            QTabWidget#settings_tabs::pane {{
-                border: 1px solid #555555;
-                background-color: #2C2C2C;
-                border-radius: {ModernTheme.scale_value(8)}px;
-            }}
-            QTabBar::tab {{
-                background-color: #1E1E1E;
-                color: #CCCCCC;
-                padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
-                margin-right: {ModernTheme.scale_value(2)}px;
-                border-top-left-radius: {ModernTheme.scale_value(6)}px;
-                border-top-right-radius: {ModernTheme.scale_value(6)}px;
-            }}
-            QTabBar::tab:selected {{
-                background-color: #2C2C2C;
-                color: #FFFFFF;
-                border-bottom: 2px solid #4CAF50;
-            }}
-        """)
         
         # AI Models Tab
         ai_tab = self.create_ai_models_tab()
@@ -7433,109 +7320,59 @@ class SettingsDialog(QDialog):
         
         main_layout.addWidget(settings_tabs)
         
-        # Modern action buttons
-        button_frame = QFrame()
-        button_frame.setObjectName("button_frame")
-        button_layout = QHBoxLayout(button_frame)
-        button_layout.setContentsMargins(0, ModernTheme.scale_value(8), 0, 0)
-        button_layout.setSpacing(ModernTheme.scale_value(12))
+        # Action buttons
+        button_layout = QHBoxLayout()
         button_layout.addStretch()
         
-        # Create modern buttons using parent's button creation method
-        reset_btn = self.create_modern_dialog_button("🔄 Reset", "Reset all settings to default values", self.reset_settings)
-        cancel_btn = self.create_modern_dialog_button("❌ Cancel", "Cancel without saving changes", self.reject)
-        save_btn = self.create_modern_dialog_button("💾 Save", "Save all configuration changes", self.save_settings)
+        reset_btn = self.parent().create_button(
+            "Reset to Defaults",
+            "🔄",
+            "secondary",
+            "Reset all settings to default values",
+            120,
+            self.reset_settings
+        )
         
-        # Make save button primary
-        save_btn.setObjectName("primary_button")
+        cancel_btn = self.parent().create_button(
+            "Cancel",
+            "❌",
+            "secondary",
+            "Cancel without saving changes",
+            100,
+            self.reject
+        )
+        
+        save_btn = self.parent().create_button(
+            "Save Settings",
+            "💾",
+            "primary",
+            "Save current settings",
+            140,
+            self.save_settings
+        )
         save_btn.setDefault(True)
+        save_btn.setProperty("variant", "primary")
+        save_btn.setToolTip("Save all configuration changes")
         
         button_layout.addWidget(reset_btn)
         button_layout.addWidget(cancel_btn)
         button_layout.addWidget(save_btn)
         
-        main_layout.addWidget(button_frame)
-    
-    def create_modern_dialog_button(self, text, tooltip, callback):
-        """Create a modern dialog button with consistent styling"""
-        btn = QPushButton(text)
-        btn.setObjectName("dialog_button")
-        btn.setToolTip(tooltip)
-        btn.setMinimumHeight(ModernTheme.scale_value(36))
-        btn.setMinimumWidth(ModernTheme.scale_value(100))
-        btn.clicked.connect(callback)
-        
-        # Apply modern button styling
-        btn.setStyleSheet(f"""
-            QPushButton#dialog_button {{
-                background-color: #2C2C2C;
-                color: #FFFFFF;
-                border: 1px solid #555555;
-                border-radius: {ModernTheme.scale_value(6)}px;
-                padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
-                font-size: {ModernTheme.scale_value(13)}px;
-            }}
-            QPushButton#dialog_button:hover {{
-                background-color: #3C3C3C;
-                border-color: #4CAF50;
-            }}
-            QPushButton#dialog_button:pressed {{
-                background-color: #4CAF50;
-                color: #FFFFFF;
-            }}
-            QPushButton#primary_button {{
-                background-color: #4CAF50;
-                color: #FFFFFF;
-                border: 1px solid #4CAF50;
-            }}
-            QPushButton#primary_button:hover {{
-                background-color: #45A049;
-            }}
-        """)
-        
-        return btn
-    
-    def on_theme_toggle(self, state):
-        """Handle theme toggle from settings"""
-        if self.parent():
-            self.parent().toggle_theme()
+        main_layout.addLayout(button_layout)
+        self.setLayout(main_layout)
     
     def create_ai_models_tab(self) -> QWidget:
-        """Create AI models configuration tab with modern styling"""
+        """Create AI models configuration tab with Claude as primary and Ollama as backup"""
         tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        layout.setSpacing(ModernTheme.scale_value(20))
+        layout = QVBoxLayout()
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(20)
         
-        # AI Model Selection Section with modern styling
+        # AI Model Selection Section
         model_selection_group = QGroupBox("🤖 AI Model Selection")
-        model_selection_group.setObjectName("modern_group")
-        model_selection_group.setStyleSheet(f"""
-            QGroupBox#modern_group {{
-                font-size: {ModernTheme.scale_value(14)}px;
-                font-weight: 600;
-                color: #FFFFFF;
-                border: 2px solid #555555;
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding-top: {ModernTheme.scale_value(12)}px;
-                margin-top: {ModernTheme.scale_value(6)}px;
-            }}
-            QGroupBox#modern_group::title {{
-                subcontrol-origin: margin;
-                left: {ModernTheme.scale_value(10)}px;
-                padding: 0 {ModernTheme.scale_value(8)}px 0 {ModernTheme.scale_value(8)}px;
-            }}
-        """)
-        
-        model_selection_layout = QVBoxLayout(model_selection_group)
-        model_selection_layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                                ModernTheme.scale_value(20), 
-                                                ModernTheme.scale_value(16), 
-                                                ModernTheme.scale_value(16))
-        model_selection_layout.setSpacing(ModernTheme.scale_value(16))
+        model_selection_layout = QVBoxLayout()
+        model_selection_layout.setContentsMargins(16, 20, 16, 16)
+        model_selection_layout.setSpacing(16)
         
         # Primary model selection
         primary_layout = QVBoxLayout()
@@ -7854,10 +7691,9 @@ class SettingsDialog(QDialog):
         self.auto_save.setChecked(True)
         self.auto_save.setToolTip("Automatically save generated files to output directory")
         
-        self.dark_mode = QCheckBox("🌓 Dark Mode Interface")
+        self.dark_mode = QCheckBox("Dark Mode Interface")
         self.dark_mode.setChecked(True)
-        self.dark_mode.setToolTip("Toggle between dark and light theme")
-        self.dark_mode.stateChanged.connect(self.on_theme_toggle)
+        self.dark_mode.setToolTip("Use dark theme (requires restart)")
         
         self.show_notifications = QCheckBox("Show System Notifications")
         self.show_notifications.setChecked(True)
@@ -8575,40 +8411,6 @@ class SystemMonitor(QThread):
                 logging.error(f"System monitoring error: {e}")
                 time.sleep(5)
     
-    def get_current_metrics(self) -> Dict[str, Any]:
-        """Get current system metrics synchronously"""
-        try:
-            # System metrics
-            cpu_percent = psutil.cpu_percent(interval=0.1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            # Basic metrics for dashboard
-            metrics = {
-                'cpu_percent': cpu_percent,
-                'memory_percent': memory.percent,
-                'disk_percent': disk.percent,
-                'active_tasks': 0,  # Can be updated by main app
-                'uptime': time.time() - self.start_time,
-                'total_prompts': self.stats['total_prompts'],
-                'successful_tasks': self.stats['successful_tasks'],
-                'failed_tasks': self.stats['failed_tasks']
-            }
-            
-            return metrics
-        except Exception as e:
-            logging.error(f"Error getting current metrics: {e}")
-            return {
-                'cpu_percent': 0,
-                'memory_percent': 0,
-                'disk_percent': 0,
-                'active_tasks': 0,
-                'uptime': 0,
-                'total_prompts': 0,
-                'successful_tasks': 0,
-                'failed_tasks': 0
-            }
-    
     def stop(self):
         self.running = False
     
@@ -9120,14 +8922,8 @@ class SuperMiniMainWindow(QMainWindow):
             logging.info("Loading config")
             self.load_config()
             
-            logging.info("Setting up monitoring")
-            self.setup_monitoring()
-            
             logging.info("Setting up processors")
             self.setup_processors()
-            
-            logging.info("Setting up avatar system")
-            self.setup_avatar_system()
             
             logging.info("Setting up UI")
             self.apply_modern_theme()
@@ -9135,6 +8931,9 @@ class SuperMiniMainWindow(QMainWindow):
             
             logging.info("Setting up accessibility")
             self.setup_accessibility()
+            
+            logging.info("Setting up monitoring")
+            self.setup_monitoring()
             
             logging.info("Showing welcome dialog if needed")
             self.show_welcome_if_needed()
@@ -9242,60 +9041,10 @@ class SuperMiniMainWindow(QMainWindow):
         logging.info(f"Applied modern theme with scale factor: {ModernTheme._scale_factor:.2f}")
     
     def setup_processors(self):
-        # Initialize AI metrics tracking
-        self.ai_metrics = {
-            'timestamps': [],
-            'response_times': [],
-            'token_usage': [],
-            'task_types': {},
-            'tasks_completed': 0,
-            'total_tokens': 0,
-            'avg_response_time': 0.0,
-            'errors': 0,
-            'task_count': 0,
-            'avg_task_time': 0.0,
-            'task_execution_times': []
-        }
-        
         self.memory = MemoryManager(self.data_dir)
         # Pass monitor to TaskProcessor so AI managers can log metrics
         monitor = getattr(self, 'monitor', None)
         self.processor = TaskProcessor(self.config, self.memory, self.data_dir, monitor, self.update_ai_metrics)
-        
-        # Initialize enhancement processor for self-improvement mode
-        self.enhancement_processor = self.processor  # Use same processor for enhancement tasks
-        
-        # Create aliases for backward compatibility
-        self.task_processor = self.processor
-    
-    def setup_avatar_system(self):
-        """Initialize the autonomous AI avatar generation system"""
-        try:
-            # Import the AI avatar generation system
-            from src.ai_avatar_generator import AvatarManager
-            
-            # Initialize AI avatar generator
-            self.avatar_manager = AvatarManager(cache_size=100)
-            
-            # Get available emotions from generator
-            self.avatar_emotions = self.avatar_manager.get_available_emotions()
-            logging.info(f"AI Avatar system initialized with emotions: {self.avatar_emotions}")
-            
-            # State tracking
-            self.current_avatar_emotion = 'idle'
-            self.avatar_message = "Ready to work!"
-            self.last_activity_time = time.time()
-            
-            # Generate initial avatar
-            self.load_avatar_image()
-            
-            # Start monitoring
-            self.start_simple_avatar_updates()
-            
-        except ImportError as e:
-            logging.error(f"AI Avatar generation not available: {e}")
-            # Fallback to simple system
-            self.setup_fallback_avatar_system()
         
         # Initialize release automation system
         try:
@@ -9315,2133 +9064,58 @@ class SuperMiniMainWindow(QMainWindow):
             logging.error(f"Error initializing release automation: {e}")
             self.release_integration = None
     
-    def setup_fallback_avatar_system(self):
-        """Fallback to simple static avatar system if AI generation fails"""
-        logging.info("Setting up fallback avatar system")
-        self.avatar_emotions = ['idle', 'thinking', 'happy', 'working', 'error', 'sleeping']
-        self.avatar_manager = None
-        self.current_avatar_emotion = 'idle'
-        self.avatar_message = "Ready to work!"
-        self.last_activity_time = time.time()
-        
-        # Create simple placeholder avatar
-        self.create_placeholder_avatar()
-    
     def setup_ui(self):
-        """Setup the completely redesigned modern UI with professional architecture"""
-        try:
-            # Create main central widget with error handling
-            central_widget = QWidget()
-            self.setCentralWidget(central_widget)
-            
-            # Initialize core UI components using MVVM pattern
-            self.ui_components = {}
-            
-            # Create main application layout with modern design
-            main_layout = QVBoxLayout(central_widget)
-            main_layout.setContentsMargins(0, 0, 0, 0)
-            main_layout.setSpacing(0)
-            
-            # Header component (navigation, controls, theme toggle)
-            header_component = self.create_header_component()
-            main_layout.addWidget(header_component)
-            
-            # Main content area with horizontal split
-            content_splitter = QSplitter(Qt.Orientation.Horizontal)
-            content_splitter.setChildrenCollapsible(False)
-            content_splitter.setHandleWidth(ModernTheme.scale_value(2))
-            
-            # Left panel: Mode selector and input controls
-            left_panel = self.create_main_control_panel()
-            
-            # Right panel: Output and file management
-            right_panel = self.create_output_management_panel()
-            
-            content_splitter.addWidget(left_panel)
-            content_splitter.addWidget(right_panel)
-            
-            # Responsive sizing based on screen category
-            self.configure_responsive_layout(content_splitter)
-            
-            main_layout.addWidget(content_splitter)
-            
-            # Modern footer/status bar
-            footer_component = self.create_footer_component()
-            main_layout.addWidget(footer_component)
-            
-            # Initialize all UI states and connections
-            self.setup_ui_connections()
-            self.setup_keyboard_navigation()
-            
-            # Apply professional theme
-            self.apply_component_styles()
-            
-            # Initial responsive sizing
-            QTimer.singleShot(100, self.initial_responsive_setup)
-            
-            logging.info("Modern UI setup completed successfully")
-            
-        except Exception as e:
-            logging.error(f"Failed to setup UI: {e}", exc_info=True)
-            self.show_error_dialog("UI Setup Error", f"Failed to initialize user interface: {str(e)}")
-    
-    def create_header_component(self):
-        """Create modern application header with navigation and controls"""
-        header_frame = QFrame()
-        header_frame.setObjectName("header_frame")
-        header_frame.setFixedHeight(ModernTheme.scale_value(80))
-        
-        header_layout = QHBoxLayout(header_frame)
-        header_layout.setContentsMargins(ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(12), 
-                                       ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(12))
-        
-        # App title and logo
-        title_section = self.create_title_section()
-        header_layout.addWidget(title_section)
-        
-        # Navigation tabs for modes (now includes control buttons)
-        navigation_section = self.create_navigation_section()
-        header_layout.addWidget(navigation_section)
-        
-        self.ui_components['header'] = header_frame
-        return header_frame
-    
-    def create_title_section(self):
-        """Create application title with modern typography"""
-        title_widget = QWidget()
-        title_layout = QHBoxLayout(title_widget)
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # App icon/logo
-        icon_label = QLabel("🤖")
-        icon_label.setObjectName("app_icon")
-        icon_label.setFixedSize(ModernTheme.scale_value(32), ModernTheme.scale_value(32))
-        
-        # App title
-        title_label = QLabel("SuperMini AI")
-        title_label.setObjectName("app_title")
-        
-        # Version badge
-        version_label = QLabel(f"v{APP_VERSION}")
-        version_label.setObjectName("version_badge")
-        
-        title_layout.addWidget(icon_label)
-        title_layout.addWidget(title_label)
-        title_layout.addWidget(version_label)
-        title_layout.addStretch()
-        
-        return title_widget
-    
-    def create_navigation_section(self):
-        """Create modern tab navigation for different modes"""
-        nav_widget = QWidget()
-        nav_layout = QHBoxLayout(nav_widget)
-        nav_layout.setContentsMargins(0, 0, 0, 0)
-        nav_layout.setSpacing(ModernTheme.scale_value(8))
-        
-        # Mode navigation buttons
-        self.mode_buttons = {}
-        modes = [
-            ("task", "🚀 Task", "Process tasks with AI assistance"),
-            ("explore", "🧭 Explore", "Autonomous exploration mode"),
-            ("enhance", "⚡ Enhance", "Self-improvement mode"),
-            ("settings", "⚙️ Settings", "Application settings")
-        ]
-        
-        for mode_key, mode_text, tooltip in modes:
-            # Fix the lambda closure issue by using partial or a proper closure
-            def make_callback(mode):
-                if mode == "settings":
-                    return self.show_settings
-                else:
-                    return lambda: self.switch_mode(mode)
-            
-            btn = self.create_nav_button(mode_text, tooltip, make_callback(mode_key))
-            self.mode_buttons[mode_key] = btn
-            nav_layout.addWidget(btn)
-        
-        # Set initial active mode
-        self.current_mode = "task"
-        self.mode_buttons["task"].setProperty("active", True)
-        
-        # Force style update for initial active button
-        self.mode_buttons["task"].style().unpolish(self.mode_buttons["task"])
-        self.mode_buttons["task"].style().polish(self.mode_buttons["task"])
-        
-        return nav_widget
-    
-    def create_header_controls(self):
-        """Create header control buttons with standardized sizing"""
-        controls_widget = QWidget()
-        controls_layout = QHBoxLayout(controls_widget)
-        controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(ModernTheme.scale_value(8))
-        
-        # Create buttons EXACTLY like create_nav_button does
-        settings_btn = QPushButton("⚙️")
-        settings_btn.setObjectName("nav_button")
-        settings_btn.setToolTip("Settings")
-        settings_btn.setFixedHeight(ModernTheme.scale_value(14))
-        settings_btn.setMinimumWidth(ModernTheme.scale_value(60))
-        settings_btn.clicked.connect(self.show_settings)
-        settings_btn.setProperty("active", False)
-        controls_layout.addWidget(settings_btn)
-        
-        return controls_widget
-    
-    def create_nav_button(self, text, tooltip, callback):
-        """Create navigation button with modern styling (consistent with control buttons)"""
-        btn = QPushButton(text)
-        btn.setObjectName("nav_button")
-        btn.setToolTip(tooltip)
-        btn.setFixedHeight(ModernTheme.scale_value(14))  # Match header height better
-        btn.setMinimumWidth(ModernTheme.scale_value(60))  # Wider for text
-        btn.clicked.connect(callback)
-        btn.setProperty("active", False)
-        return btn
-    
-    def create_icon_button(self, icon, tooltip, callback):
-        """Create icon button for header controls (consistent with nav buttons)"""
-        btn = QPushButton(icon)
-        btn.setObjectName("icon_button")
-        btn.setToolTip(tooltip)
-        btn.setFixedSize(ModernTheme.scale_value(14), ModernTheme.scale_value(14))  # Match nav button height
-        btn.clicked.connect(callback)
-        return btn
-    
-    def create_main_control_panel(self):
-        """Create the main control panel with mode-specific content and adaptive spacing"""
-        control_frame = QFrame()
-        control_frame.setObjectName("control_panel")
-        
-        control_layout = QVBoxLayout(control_frame)
-        control_layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                        ModernTheme.scale_value(12), 
-                                        ModernTheme.scale_value(16), 
-                                        ModernTheme.scale_value(12))
-        control_layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Mode-specific content area - takes most space
-        self.mode_content_stack = QStackedWidget()
-        self.mode_content_stack.setObjectName("mode_content")
-        self.mode_content_stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
-        # Create content for each mode
-        self.create_task_mode_content()
-        self.create_explore_mode_content()
-        self.create_enhance_mode_content()
-        
-        control_layout.addWidget(self.mode_content_stack, 1)  # Give it stretch factor
-        
-        # Common action buttons at bottom - fixed size
-        action_buttons = self.create_action_buttons()
-        control_layout.addWidget(action_buttons, 0)  # No stretch - fixed size
-        
-        self.ui_components['control_panel'] = control_frame
-        return control_frame
-    
-    def create_task_mode_content(self):
-        """Create task mode interface with adaptive vertical layout"""
-        task_widget = QWidget()
-        task_layout = QVBoxLayout(task_widget)
-        task_layout.setContentsMargins(0, 0, 0, 0)
-        task_layout.setSpacing(ModernTheme.scale_value(10))
-        
-        # Task input section - primary focus, gets more space
-        input_section = self.create_task_input_section()
-        task_layout.addWidget(input_section, 2)  # Higher stretch factor
-        
-        # File attachment section - compact
-        file_section = self.create_file_attachment_section()
-        task_layout.addWidget(file_section, 0)  # Fixed size
-        
-        # Task type and options - compact
-        options_section = self.create_task_options_section()
-        task_layout.addWidget(options_section, 0)  # Fixed size
-        
-        # Add small stretch at bottom
-        task_layout.addStretch(1)
-        
-        self.mode_content_stack.addWidget(task_widget)
-        self.task_mode_widget = task_widget
-    
-    def create_explore_mode_content(self):
-        """Create exploration mode interface"""
-        explore_widget = QWidget()
-        explore_layout = QVBoxLayout(explore_widget)
-        explore_layout.setContentsMargins(0, 0, 0, 0)
-        explore_layout.setSpacing(ModernTheme.scale_value(16))
-        
-        # Exploration settings
-        settings_section = self.create_exploration_settings()
-        explore_layout.addWidget(settings_section)
-        
-        # Status and progress
-        status_section = self.create_exploration_status()
-        explore_layout.addWidget(status_section)
-        
-        explore_layout.addStretch()
-        
-        self.mode_content_stack.addWidget(explore_widget)
-        self.explore_mode_widget = explore_widget
-    
-    def create_enhance_mode_content(self):
-        """Create enhancement mode interface"""
-        enhance_widget = QWidget()
-        enhance_layout = QVBoxLayout(enhance_widget)
-        enhance_layout.setContentsMargins(0, 0, 0, 0)
-        enhance_layout.setSpacing(ModernTheme.scale_value(16))
-        
-        # Enhancement settings
-        settings_section = self.create_enhancement_settings()
-        enhance_layout.addWidget(settings_section)
-        
-        # Progress and metrics  
-        progress_section = self.create_enhancement_progress()
-        enhance_layout.addWidget(progress_section)
-        
-        enhance_layout.addStretch()
-        
-        self.mode_content_stack.addWidget(enhance_widget)
-        self.enhance_mode_widget = enhance_widget
-    
-    def create_task_input_section(self):
-        """Create modern task input interface with adaptive height"""
-        section = QGroupBox("Task Description")
-        section.setObjectName("input_section")
-        
-        layout = QVBoxLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(12), 
-                                ModernTheme.scale_value(12),
-                                ModernTheme.scale_value(12), 
-                                ModernTheme.scale_value(12))
-        
-        # Task input with placeholder and modern styling
-        self.task_input = QTextEdit()
-        self.task_input.setObjectName("task_input")
-        self.task_input.setPlaceholderText("Describe your task in detail. The AI will analyze and process your request...")
-        
-        # Set initial adaptive height (will be updated by resize event)
-        initial_height = ModernTheme.scale_value(100)
-        self.task_input.setMaximumHeight(initial_height)
-        self.task_input.setMinimumHeight(ModernTheme.scale_value(60))
-        
-        # Allow vertical expansion within limits
-        self.task_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        
-        # Create alias for backward compatibility
-        self.prompt_input = self.task_input
-        
-        layout.addWidget(self.task_input)
-        return section
-    
-    def create_file_attachment_section(self):
-        """Create file attachment interface"""
-        section = QGroupBox("File Attachments")
-        section.setObjectName("file_section")
-        
-        layout = QVBoxLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16),
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        
-        # File status and controls
-        file_controls = QHBoxLayout()
-        
-        self.attach_btn = self.create_modern_button("📎", "Attach Files", self.attach_files)
-        self.clear_files_btn = self.create_modern_button("🗑️", "Clear All", self.clear_files)
-        self.clear_files_btn.setEnabled(False)
-        
-        file_controls.addWidget(self.attach_btn)
-        file_controls.addWidget(self.clear_files_btn)
-        file_controls.addStretch()
-        
-        # File list display
-        self.files_label = QLabel("No files attached")
-        self.files_label.setObjectName("files_status")
-        self.files_label.setStyleSheet("color: #888; font-style: italic;")
-        
-        layout.addLayout(file_controls)
-        layout.addWidget(self.files_label)
-        
-        return section
-    
-    def create_task_options_section(self):
-        """Create task options and settings"""
-        section = QGroupBox("Options")
-        section.setObjectName("options_section")
-        
-        layout = QFormLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16),
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        
-        # Task type selector
-        self.task_type_combo = QComboBox()
-        self.task_type_combo.setObjectName("task_type_combo")
-        self.task_type_combo.addItems(["Auto-detect", "Code", "Multimedia", "RAG", "Automation", "Analytics"])
-        layout.addRow("Task Type:", self.task_type_combo)
-        
-        # Memory context checkbox
-        self.use_memory_cb = QCheckBox("Use memory context")
-        self.use_memory_cb.setChecked(True)
-        self.use_memory_cb.setToolTip("Use previous task context for better results")
-        layout.addRow("", self.use_memory_cb)
-        
-        # Auto-continue checkbox
-        self.auto_continue_cb = QCheckBox("Auto-continue responses")
-        self.auto_continue_cb.setChecked(False)
-        self.auto_continue_cb.setToolTip("Automatically continue multi-part responses")
-        layout.addRow("", self.auto_continue_cb)
-        
-        return section
-    
-    def create_exploration_settings(self):
-        """Create exploration mode settings"""
-        section = QGroupBox("Exploration Settings")
-        section.setObjectName("explore_settings")
-        
-        layout = QFormLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16),
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        
-        # Exploration interval
-        self.explore_interval_spinbox = QSpinBox()
-        self.explore_interval_spinbox.setRange(1, 60)
-        self.explore_interval_spinbox.setValue(5)
-        self.explore_interval_spinbox.setSuffix(" minutes")
-        layout.addRow("Interval:", self.explore_interval_spinbox)
-        
-        # Exploration depth
-        self.explore_depth_combo = QComboBox()
-        self.explore_depth_combo.addItems(["Light", "Moderate", "Deep", "Comprehensive"])
-        self.explore_depth_combo.setCurrentText("Moderate")
-        layout.addRow("Depth:", self.explore_depth_combo)
-        
-        return section
-    
-    def create_exploration_status(self):
-        """Create exploration status display"""
-        section = QGroupBox("Status")
-        section.setObjectName("explore_status")
-        
-        layout = QVBoxLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16),
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        
-        self.exploration_status = QLabel("Ready to explore")
-        self.exploration_status.setObjectName("status_label")
-        layout.addWidget(self.exploration_status)
-        
-        return section
-    
-    def create_enhancement_settings(self):
-        """Create enhancement mode settings"""
-        section = QGroupBox("Enhancement Settings")
-        section.setObjectName("enhance_settings")
-        
-        layout = QFormLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16),
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        
-        # Enhancement interval
-        self.enhance_interval_spinbox = QSpinBox()
-        self.enhance_interval_spinbox.setRange(5, 120)
-        self.enhance_interval_spinbox.setValue(10)
-        self.enhance_interval_spinbox.setSuffix(" minutes")
-        layout.addRow("Interval:", self.enhance_interval_spinbox)
-        
-        # Enhancement focus
-        self.enhance_focus_combo = QComboBox()
-        self.enhance_focus_combo.addItems(["Performance", "Features", "UI/UX", "Code Quality", "All Areas"])
-        self.enhance_focus_combo.setCurrentText("All Areas")
-        layout.addRow("Focus:", self.enhance_focus_combo)
-        
-        return section
-    
-    def create_enhancement_progress(self):
-        """Create enhancement progress display"""
-        section = QGroupBox("Progress")
-        section.setObjectName("enhance_progress")
-        
-        layout = QVBoxLayout(section)
-        layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16),
-                                ModernTheme.scale_value(16), 
-                                ModernTheme.scale_value(16))
-        
-        self.enhancement_status = QLabel("Ready to enhance")
-        self.enhancement_status.setObjectName("status_label")
-        layout.addWidget(self.enhancement_status)
-        
-        # Create alias for backward compatibility
-        self.enhancement_status_label = self.enhancement_status
-        
-        return section
-    
-    def create_action_buttons(self):
-        """Create common action buttons for all modes"""
-        button_frame = QFrame()
-        button_frame.setObjectName("action_buttons")
-        
-        layout = QHBoxLayout(button_frame)
-        layout.setContentsMargins(0, ModernTheme.scale_value(16), 0, 0)
-        layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Primary action button (changes based on mode)
-        self.primary_action_btn = self.create_modern_button("🚀", "Execute Task", self.execute_primary_action)
-        self.primary_action_btn.setObjectName("primary_button")
-        
-        # Stop button
-        self.stop_action_btn = self.create_modern_button("⏹️", "Stop", self.stop_current_action)
-        self.stop_action_btn.setEnabled(False)
-        self.stop_action_btn.setObjectName("stop_button")
-        
-        layout.addWidget(self.primary_action_btn)
-        layout.addWidget(self.stop_action_btn)
-        layout.addStretch()
-        
-        # Create button aliases for backward compatibility
-        self.process_btn = self.primary_action_btn  # Task mode
-        self.start_explore_btn = self.primary_action_btn  # Explore mode
-        self.start_enhance_btn = self.primary_action_btn  # Enhance mode
-        self.stop_task_btn = self.stop_action_btn  # Task mode stop
-        self.stop_explore_btn = self.stop_action_btn  # Explore mode stop
-        self.stop_enhance_btn = self.stop_action_btn  # Enhance mode stop
-        
-        return button_frame
-    
-    def create_modern_button(self, icon, text, callback):
-        """Create a modern styled button"""
-        btn = QPushButton(f"{icon} {text}")
-        btn.setObjectName("modern_button")
-        btn.setMinimumHeight(ModernTheme.scale_value(44))
-        btn.clicked.connect(callback)
-        return btn
-    
-    def create_output_management_panel(self):
-        """Create the output and file management panel"""
-        output_frame = QFrame()
-        output_frame.setObjectName("output_panel")
-        
-        output_layout = QVBoxLayout(output_frame)
-        output_layout.setContentsMargins(ModernTheme.scale_value(12), 
-                                       ModernTheme.scale_value(16), 
-                                       ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(16))
-        output_layout.setSpacing(ModernTheme.scale_value(16))
-        
-        # Output tabs
-        self.output_tabs = QTabWidget()
-        self.output_tabs.setObjectName("output_tabs")
-        
-        # Make tab buttons 50% smaller
-        self.output_tabs.setStyleSheet(f"""
-            QTabWidget#output_tabs::pane {{
-                border: 1px solid #555555;
-                background-color: #2C2C2C;
-                border-radius: {ModernTheme.scale_value(4)}px;
-            }}
-            QTabWidget#output_tabs QTabBar::tab {{
-                background-color: #1E1E1E;
-                color: #CCCCCC;
-                padding: {ModernTheme.scale_value(4)}px {ModernTheme.scale_value(8)}px;
-                margin-right: {ModernTheme.scale_value(1)}px;
-                border-top-left-radius: {ModernTheme.scale_value(3)}px;
-                border-top-right-radius: {ModernTheme.scale_value(3)}px;
-                font-size: {ModernTheme.scale_value(10)}px;
-                min-height: {ModernTheme.scale_value(16)}px;
-            }}
-            QTabWidget#output_tabs QTabBar::tab:selected {{
-                background-color: #2C2C2C;
-                color: #FFFFFF;
-                border-bottom: 2px solid #4CAF50;
-            }}
-            QTabWidget#output_tabs QTabBar::tab:hover {{
-                background-color: #3C3C3C;
-            }}
-        """)
-        
-        # Results tab
-        results_tab = self.create_results_output_tab()
-        self.output_tabs.addTab(results_tab, "📋 Results")
-        
-        # System tab (formerly Dashboard)
-        system_tab = self.create_dashboard_tab()
-        self.output_tabs.addTab(system_tab, "💻 System")
-        
-        # Files tab
-        files_tab = self.create_files_management_tab()
-        self.output_tabs.addTab(files_tab, "📁 Files")
-        
-        # Status tab with avatar emotions
-        status_tab = self.create_status_tab()
-        self.output_tabs.addTab(status_tab, "🤖 Status")
-        
-        output_layout.addWidget(self.output_tabs)
-        
-        self.ui_components['output_panel'] = output_frame
-        return output_frame
-    
-    def create_results_output_tab(self):
-        """Create results output display with adaptive sizing"""
-        results_widget = QWidget()
-        results_layout = QVBoxLayout(results_widget)
-        results_layout.setContentsMargins(ModernTheme.scale_value(8), 
-                                        ModernTheme.scale_value(8), 
-                                        ModernTheme.scale_value(8), 
-                                        ModernTheme.scale_value(8))
-        results_layout.setSpacing(ModernTheme.scale_value(8))
-        
-        # Output display - takes most of the vertical space
-        self.output_display = QTextBrowser()
-        self.output_display.setObjectName("output_display")
-        self.output_display.setPlaceholderText("Task results will appear here...")
-        
-        # Alias for backward compatibility with exploration/enhancement code
-        self.results_text = self.output_display
-        
-        # Set flexible sizing policy to use available vertical space
-        self.output_display.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.output_display.setMinimumHeight(ModernTheme.scale_value(200))
-        
-        results_layout.addWidget(self.output_display)
-        
-        # Compact output controls at bottom
-        controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(ModernTheme.scale_value(8))
-        
-        clear_btn = self.create_modern_button("🗑️", "Clear", self.clear_output)
-        export_btn = self.create_modern_button("📥", "Export", self.export_results)
-        
-        # Make buttons more compact for vertical space saving
-        clear_btn.setMaximumHeight(ModernTheme.scale_value(36))
-        export_btn.setMaximumHeight(ModernTheme.scale_value(36))
-        
-        controls_layout.addWidget(clear_btn)
-        controls_layout.addWidget(export_btn)
-        controls_layout.addStretch()
-        
-        results_layout.addLayout(controls_layout)
-        
-        return results_widget
-    
-    def create_dashboard_tab(self):
-        """Create clean system dashboard with metrics, graphs, and monitoring"""
-        dashboard_widget = QWidget()
-        dashboard_layout = QVBoxLayout(dashboard_widget)
-        dashboard_layout.setContentsMargins(ModernTheme.scale_value(16), 
-                                          ModernTheme.scale_value(16), 
-                                          ModernTheme.scale_value(16), 
-                                          ModernTheme.scale_value(16))
-        dashboard_layout.setSpacing(ModernTheme.scale_value(16))
-        
-        # Top section: Live metric cards in a clean grid
-        metrics_frame = QFrame()
-        metrics_frame.setObjectName("metrics_frame")
-        metrics_frame.setStyleSheet(f"""
-            QFrame#metrics_frame {{
-                background: rgba(255, 255, 255, 0.03);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                padding: {ModernTheme.scale_value(16)}px;
-            }}
-        """)
-        metrics_layout = QGridLayout(metrics_frame)
-        metrics_layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Create metric cards
-        self.metric_cards = {}
-        metrics_data = [
-            ("Tasks Completed", "0", "📊", 0, 0),
-            ("Response Time", "0ms", "⚡", 0, 1),
-            ("CPU Usage", "0%", "💻", 0, 2),
-            ("Memory", "0MB", "🧠", 0, 3),
-            ("AI Models", "0 Active", "🤖", 1, 0),
-            ("Files Processed", "0", "📁", 1, 1),
-            ("Uptime", "0m", "⏱️", 1, 2),
-            ("Status", "Ready", "✅", 1, 3)
-        ]
-        
-        for metric_name, default_value, icon, row, col in metrics_data:
-            card = self.create_metric_card(metric_name, default_value, icon)
-            self.metric_cards[metric_name] = card
-            metrics_layout.addWidget(card, row, col)
-            
-            # Debug: Verify card has value_label
-            if hasattr(card, 'value_label'):
-                logging.debug(f"Metric card {metric_name} created successfully with value_label")
-            else:
-                logging.error(f"Metric card {metric_name} missing value_label attribute!")
-        
-        dashboard_layout.addWidget(metrics_frame)
-        
-        # Middle section: Clean graphs
-        graphs_frame = QFrame()
-        graphs_frame.setObjectName("graphs_frame")
-        graphs_frame.setStyleSheet(f"""
-            QFrame#graphs_frame {{
-                background: rgba(255, 255, 255, 0.02);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                padding: {ModernTheme.scale_value(16)}px;
-            }}
-        """)
-        graphs_layout = QVBoxLayout(graphs_frame)
-        
-        # Create cleaner graphs widget
-        self.graphs_widget = self.create_clean_dashboard_graphs()
-        graphs_layout.addWidget(self.graphs_widget)
-        
-        dashboard_layout.addWidget(graphs_frame, 1)  # Give graphs more space
-        
-        # Bottom section: System info and activity log in tabs
-        info_tabs = QTabWidget()
-        info_tabs.setObjectName("info_tabs")
-        info_tabs.setMaximumHeight(ModernTheme.scale_value(200))
-        
-        # System info tab
-        self.system_info_display = QTextBrowser()
-        self.system_info_display.setObjectName("system_info")
-        info_tabs.addTab(self.system_info_display, "System Info")
-        
-        # Activity log tab
-        self.activity_log_display = QTextBrowser()
-        self.activity_log_display.setObjectName("activity_log")
-        info_tabs.addTab(self.activity_log_display, "Activity Log")
-        
-        dashboard_layout.addWidget(info_tabs)
-        
-        # Initial updates
-        self.update_dashboard_display()
-        self.update_system_info()
-        self.update_activity_log()
-        
-        # Dashboard controls
-        controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(ModernTheme.scale_value(8))
-        
-        export_dashboard_btn = self.create_modern_button("📥", "Export", self.export_dashboard)
-        settings_dashboard_btn = self.create_modern_button("⚙️", "Settings", self.show_settings)
-        
-        # Make buttons compact
-        for btn in [export_dashboard_btn, settings_dashboard_btn]:
-            btn.setMaximumHeight(ModernTheme.scale_value(36))
-        
-        controls_layout.addWidget(export_dashboard_btn)
-        controls_layout.addWidget(settings_dashboard_btn)
-        controls_layout.addStretch()
-        
-        dashboard_layout.addLayout(controls_layout)
-        
-        # Start periodic updates
-        self.start_dashboard_updates()
-        
-        return dashboard_widget
-    
-    def create_metric_card(self, title, value, icon):
-        """Create a clean metric card widget"""
-        card = QFrame()
-        card.setObjectName("metric_card")
-        card.setStyleSheet(f"""
-            QFrame#metric_card {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.05), 
-                    stop:1 rgba(255, 255, 255, 0.02));
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: {ModernTheme.scale_value(8)}px;
-                padding: {ModernTheme.scale_value(16)}px;
-            }}
-            QFrame#metric_card:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.08), 
-                    stop:1 rgba(255, 255, 255, 0.04));
-                border: 1px solid rgba(76, 175, 80, 0.5);
-            }}
-        """)
-        
-        card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(ModernTheme.scale_value(8))
-        
-        # Icon and title
-        header_layout = QHBoxLayout()
-        icon_label = QLabel(icon)
-        icon_label.setStyleSheet(f"font-size: {ModernTheme.scale_value(20)}px;")
-        title_label = QLabel(title)
-        title_label.setStyleSheet(f"""
-            font-size: {ModernTheme.scale_value(12)}px;
-            color: #AAAAAA;
-            font-weight: 500;
-        """)
-        header_layout.addWidget(icon_label)
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
-        
-        # Value
-        value_label = QLabel(value)
-        value_label.setObjectName(f"{title}_value")
-        value_label.setStyleSheet(f"""
-            font-size: {ModernTheme.scale_value(18)}px;
-            color: #FFFFFF;
-            font-weight: bold;
-        """)
-        
-        card_layout.addLayout(header_layout)
-        card_layout.addWidget(value_label)
-        card_layout.addStretch()
-        
-        # Store value label for updates
-        card.value_label = value_label
-        
-        return card
-    
-    def create_clean_dashboard_graphs(self):
-        """Create cleaner, simpler dashboard graphs"""
-        if not MATPLOTLIB_AVAILABLE:
-            placeholder = QLabel("📊 Graphs require matplotlib")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet(f"""
-                color: #666666;
-                font-size: {ModernTheme.scale_value(14)}px;
-                padding: {ModernTheme.scale_value(40)}px;
-            """)
-            return placeholder
-        
-        # Create figure with dark theme
-        self.dashboard_figure = Figure(figsize=(10, 4), facecolor='#1E1E1E')
-        self.dashboard_canvas = FigureCanvas(self.dashboard_figure)
-        self.dashboard_canvas.setStyleSheet("background-color: transparent;")
-        
-        # Initialize with clean layout
-        self.update_clean_dashboard_graphs()
-        
-        return self.dashboard_canvas
-    
-    def update_clean_dashboard_graphs(self):
-        """Update dashboard graphs with clean, minimal design"""
-        if not hasattr(self, 'dashboard_figure'):
-            return
-            
-        self.dashboard_figure.clear()
-        
-        # Create two clean subplots
-        ax1 = self.dashboard_figure.add_subplot(121)
-        ax2 = self.dashboard_figure.add_subplot(122)
-        
-        # Get recent metrics
-        now = datetime.now()
-        time_points = [now - timedelta(minutes=x) for x in range(10, -1, -1)]
-        
-        # Task completion rate (smooth line)
-        task_rates = [random.randint(60, 95) for _ in time_points]
-        ax1.plot(time_points, task_rates, color='#4CAF50', linewidth=2)
-        ax1.fill_between(time_points, task_rates, alpha=0.3, color='#4CAF50')
-        ax1.set_title('Task Success Rate', color='white', fontsize=12, pad=10)
-        ax1.set_ylabel('Success %', color='#AAAAAA', fontsize=10)
-        ax1.set_ylim(0, 100)
-        ax1.grid(True, alpha=0.1, color='white')
-        
-        # Response time (bar chart)
-        response_times = [random.randint(50, 200) for _ in range(5)]
-        labels = ['Code', 'Analysis', 'RAG', 'Auto', 'Media']
-        x_pos = range(len(labels))
-        bars = ax2.bar(x_pos, response_times, color='#FF9800', alpha=0.8)
-        ax2.set_title('Response Time by Task', color='white', fontsize=12, pad=10)
-        ax2.set_ylabel('Time (ms)', color='#AAAAAA', fontsize=10)
-        ax2.set_xticks(x_pos)
-        ax2.set_xticklabels(labels, rotation=45, ha='right')
-        ax2.grid(True, axis='y', alpha=0.1, color='white')
-        
-        # Style both axes
-        for ax in [ax1, ax2]:
-            ax.set_facecolor('#1E1E1E')
-            ax.spines['bottom'].set_color('#333333')
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_color('#333333')
-            ax.tick_params(colors='#AAAAAA', labelsize=9)
-            
-        self.dashboard_figure.tight_layout()
-        self.dashboard_canvas.draw()
-    
-    def start_dashboard_updates(self):
-        """Start periodic dashboard updates"""
-        if not hasattr(self, 'dashboard_timer'):
-            self.dashboard_timer = QTimer()
-            self.dashboard_timer.timeout.connect(self.update_dashboard_metrics)
-            self.dashboard_timer.start(2000)  # Update every 2 seconds
-    
-    def update_dashboard_metrics(self):
-        """Update all dashboard metrics"""
-        try:
-            # Debug logging
-            logging.debug("Dashboard metrics update started")
-            
-            # Update metric cards
-            if hasattr(self, 'metric_cards'):
-                logging.debug(f"Found {len(self.metric_cards)} metric cards")
-                metrics = self.monitor.get_current_metrics() if hasattr(self, 'monitor') else {}
-                logging.debug(f"Got {len(metrics)} metrics from monitor: {metrics}")
-                
-                # Calculate derived values
-                uptime_seconds = metrics.get('uptime', 0)
-                uptime_minutes = uptime_seconds / 60
-                try:
-                    import psutil
-                    memory_gb = psutil.virtual_memory().used / (1024**3)
-                except ImportError:
-                    memory_gb = 0
-                    
-                logging.debug(f"Calculated: uptime_minutes={uptime_minutes:.1f}, memory_gb={memory_gb:.1f}")
-                
-                # Update each metric card with error handling and proper mapping
-                for metric_name, value in [
-                    ("Tasks Completed", str(metrics.get('successful_tasks', 0))),
-                    ("Response Time", f"{metrics.get('avg_response_time', 0):.0f}ms"),
-                    ("CPU Usage", f"{metrics.get('cpu_percent', 0):.1f}%"),
-                    ("Memory", f"{memory_gb:.1f}GB"),
-                    ("AI Models", f"{len(getattr(self.processor, 'active_models', []))} Active"),
-                    ("Files Processed", str(len(getattr(self, 'attached_files', [])))),
-                    ("Uptime", f"{uptime_minutes:.0f}m" if uptime_minutes < 60 else f"{uptime_minutes/60:.1f}h"),
-                    ("Status", "Active" if any([
-                        hasattr(self, 'task_thread') and self.task_thread and self.task_thread.isRunning(),
-                        hasattr(self, 'enhance_thread') and self.enhance_thread and self.enhance_thread.isRunning(),
-                        hasattr(self, 'explore_thread') and self.explore_thread and self.explore_thread.isRunning()
-                    ]) else "Ready")
-                ]:
-                    try:
-                        logging.debug(f"Updating metric {metric_name} with value '{value}'")
-                        if metric_name in self.metric_cards:
-                            card = self.metric_cards[metric_name]
-                            if hasattr(card, 'value_label'):
-                                card.value_label.setText(value)
-                                logging.debug(f"Successfully updated {metric_name} value_label to '{value}'")
-                            elif hasattr(card, 'setText'):
-                                # If the stored object is directly a label, use setText
-                                card.setText(value)
-                                logging.debug(f"Successfully updated {metric_name} setText to '{value}'")
-                            else:
-                                # Skip update with debug log instead of error
-                                logging.debug(f"Metric card {metric_name} has no compatible text update method")
-                        else:
-                            logging.debug(f"Metric card {metric_name} not found in metric_cards dictionary")
-                    except Exception as e:
-                        logging.warning(f"Error updating metric card {metric_name}: {e}")
-            
-            # Update system info display
-            if hasattr(self, 'system_info_display'):
-                self.update_system_info()
-            
-            # Update activity log
-            if hasattr(self, 'activity_log_display'):
-                self.update_activity_log()
-                
-        except Exception as e:
-            logging.error(f"Error updating dashboard metrics: {e}")
-    
-    def update_system_info(self):
-        """Update system information display"""
-        try:
-            import platform
-            import psutil
-            
-            info = f"""
-<h3>System Information</h3>
-<p><b>OS:</b> {platform.system()} {platform.release()}</p>
-<p><b>Python:</b> {platform.python_version()}</p>
-<p><b>CPU Cores:</b> {psutil.cpu_count()}</p>
-<p><b>Memory:</b> {psutil.virtual_memory().total / (1024**3):.1f} GB</p>
-<p><b>Disk:</b> {psutil.disk_usage('/').percent:.1f}% used</p>
-"""
-            self.system_info_display.setHtml(info)
-        except:
-            self.system_info_display.setHtml("<p>System info unavailable</p>")
-    
-    def update_activity_log(self):
-        """Update activity log display"""
-        try:
-            # Show recent activity using the activity logger system
-            if ACTIVITY_MONITORING_AVAILABLE:
-                activity_logger = get_activity_logger()
-                if activity_logger:
-                    # Get last 15 recent events for better activity history
-                    recent_events = activity_logger.get_recent_events(count=15)
-                    
-                    log_html = "<h3>Recent Activity (Latest First)</h3>"
-                    log_html += "<div style='font-family: monospace; font-size: 12px;'>"
-                    
-                    if recent_events:
-                        # Sort by timestamp to ensure newest first (already done by reversed())
-                        sorted_events = sorted(recent_events, key=lambda x: x.timestamp, reverse=True)
-                        for event in sorted_events:  # Show newest first
-                            # Format timestamp
-                            event_time = datetime.fromtimestamp(event.timestamp).strftime("%H:%M:%S")
-                            
-                            # Color based on level
-                            level_colors = {
-                                "INFO": "#4CAF50",
-                                "WARNING": "#FF9800", 
-                                "ERROR": "#F44336",
-                                "DEBUG": "#2196F3",
-                                "TRACE": "#9E9E9E"
-                            }
-                            color = level_colors.get(event.level.value, "#FFFFFF")
-                            
-                            log_html += f"""
-                            <div style='margin-bottom: 8px; padding: 6px; border-left: 3px solid {color}; background: rgba(255,255,255,0.02);'>
-                                <span style='color: #888;'>[{event_time}]</span>
-                                <span style='color: {color}; font-weight: bold;'>{event.level.value}</span>
-                                <span style='color: #FFF;'>{event.title}</span>
-                                {f"<br><span style='color: #CCC; font-size: 11px;'>{event.description}</span>" if event.description and event.description != event.title else ""}
-                                <br><span style='color: #AAA; font-size: 10px;'>{event.activity_type.value}</span>
-                            </div>
-                            """
-                    else:
-                        log_html += "<p style='color: #888;'>No recent activity</p>"
-                    
-                    log_html += "</div>"
-                    self.activity_log_display.setHtml(log_html)
-                    
-                    # Auto-scroll to top to show latest messages (since newest are first)
-                    from PyQt6.QtGui import QTextCursor
-                    cursor = self.activity_log_display.textCursor()
-                    cursor.movePosition(QTextCursor.MoveOperation.Start)
-                    self.activity_log_display.setTextCursor(cursor)
-                    self.activity_log_display.ensureCursorVisible()
-                    return
-            
-            # Fallback: use monitor activity log if available
-            if hasattr(self, 'monitor') and hasattr(self.monitor, 'activity_log'):
-                recent = self.monitor.activity_log[-10:]  # Last 10 activities
-                log_html = "<h3>Recent Activity</h3>"
-                for activity in reversed(recent):
-                    log_html += f"<p>{activity}</p>"
-                self.activity_log_display.setHtml(log_html)
-            else:
-                self.activity_log_display.setHtml("<p>No recent activity</p>")
-                
-        except Exception as e:
-            logging.debug(f"Error updating activity log: {e}")
-            self.activity_log_display.setHtml("<p>Error loading activity log</p>")
-    
-    def update_dashboard_display(self):
-        """Update dashboard with current system metrics and activity"""
-        try:
-            if hasattr(self, 'dashboard_display'):
-                # Get system metrics from monitor or fallback to direct system calls
-                metrics = {}
-                if hasattr(self, 'monitor') and self.monitor:
-                    metrics = self.monitor.get_current_metrics()
-                
-                # If no metrics from monitor, get them directly using psutil
-                if not metrics or all(v == 0 for v in metrics.values()):
-                    try:
-                        import psutil
-                        metrics = {
-                            'cpu_percent': psutil.cpu_percent(interval=0.1),
-                            'memory_percent': psutil.virtual_memory().percent,
-                            'disk_percent': psutil.disk_usage('/').percent,
-                            'total_prompts': getattr(self.processor, 'total_prompts', 0) if hasattr(self, 'processor') else 0,
-                            'uptime': time.time() - getattr(self, 'start_time', time.time())
-                        }
-                    except Exception as e:
-                        logging.warning(f"Failed to get system metrics directly: {e}")
-                        metrics = {
-                            'cpu_percent': 0,
-                            'memory_percent': 0, 
-                            'disk_percent': 0,
-                            'total_prompts': 0,
-                            'uptime': 0
-                        }
-                
-                # Get theme colors
-                colors = ModernTheme.get_colors()
-                
-                # Create dashboard HTML with modern theme
-                dashboard_html = f"""
-                <style>
-                    body {{ 
-                        font-family: {ModernTheme.FONTS['ui']}; 
-                        color: {colors['text_primary']};
-                        background: {colors['bg_primary']};
-                        margin: 0;
-                        padding: 16px;
-                    }}
-                    .metric-card {{ 
-                        background: {colors['bg_secondary']}; 
-                        border: 1px solid {colors['border']};
-                        border-radius: 12px; 
-                        padding: 16px; 
-                        margin: 12px 0; 
-                        border-left: 4px solid {colors['accent']};
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    }}
-                    .metric-value {{ 
-                        font-size: 28px; 
-                        font-weight: 700; 
-                        color: {colors['accent']}; 
-                        margin-bottom: 4px;
-                    }}
-                    .metric-label {{ 
-                        font-size: 14px; 
-                        color: {colors['text_secondary']}; 
-                        font-weight: 500;
-                    }}
-                    .dashboard-header {{
-                        color: {colors['text_primary']};
-                        font-size: 24px;
-                        font-weight: 700;
-                        margin-bottom: 20px;
-                        border-bottom: 2px solid {colors['accent']};
-                        padding-bottom: 8px;
-                    }}
-                    .activity-summary {{
-                        background: {colors['bg_secondary']};
-                        border: 1px solid {colors['border']};
-                        border-radius: 12px;
-                        padding: 16px;
-                        margin-top: 20px;
-                    }}
-                    .activity-summary h3 {{
-                        color: {colors['text_primary']};
-                        margin-top: 0;
-                        font-size: 18px;
-                        font-weight: 600;
-                    }}
-                    .activity-summary p {{
-                        color: {colors['text_secondary']};
-                        margin: 8px 0;
-                        font-size: 14px;
-                    }}
-                </style>
-                
-                <div class="dashboard-header">🖥️ SuperMini Dashboard</div>
-                
-                <div class="metric-card">
-                    <div class="metric-value">{metrics.get('cpu_percent', 0):.1f}%</div>
-                    <div class="metric-label">CPU Usage</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value">{metrics.get('memory_percent', 0):.1f}%</div>
-                    <div class="metric-label">Memory Usage</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value">{metrics.get('disk_percent', 0):.1f}%</div>
-                    <div class="metric-label">Disk Usage</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value">{metrics.get('total_prompts', 0)}</div>
-                    <div class="metric-label">Total Prompts</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value">{getattr(self, 'current_mode', 'Task').title()}</div>
-                    <div class="metric-label">Current Mode</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value">{datetime.now().strftime('%H:%M:%S')}</div>
-                    <div class="metric-label">Last Updated</div>
-                </div>
-                
-                <div class="activity-summary">
-                    <h3>📈 Activity Summary</h3>
-                    <p><strong>Theme:</strong> {ModernTheme.get_current_theme().title()}</p>
-                    <p><strong>Window Size:</strong> {self.width()}×{self.height()}</p>
-                    <p><strong>Attached Files:</strong> {len(getattr(self, 'attached_files', []))}</p>
-                    <p><strong>Successful Tasks:</strong> {metrics.get('successful_tasks', 0)}</p>
-                    <p><strong>Failed Tasks:</strong> {metrics.get('failed_tasks', 0)}</p>
-                    <p><strong>Uptime:</strong> {int(metrics.get('uptime', 0) / 60)} minutes</p>
-                </div>
-                """
-                
-                self.dashboard_display.setHtml(dashboard_html)
-                
-        except Exception as e:
-            logging.debug(f"Error updating dashboard: {e}")
-    
-    def export_dashboard(self):
-        """Export dashboard data"""
-        try:
-            # Simple export functionality
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.information(self, "Export", "Dashboard export functionality coming soon!")
-        except Exception as e:
-            logging.error(f"Error exporting dashboard: {e}")
-    
-    def create_files_management_tab(self):
-        """Create file management interface"""
-        files_widget = QWidget()
-        files_layout = QVBoxLayout(files_widget)
-        files_layout.setContentsMargins(ModernTheme.scale_value(12), 
-                                      ModernTheme.scale_value(12), 
-                                      ModernTheme.scale_value(12), 
-                                      ModernTheme.scale_value(12))
-        
-        # File list
-        self.files_list = QTreeWidget()
-        self.files_list.setObjectName("files_list")
-        self.files_list.setHeaderLabels(["File", "Type", "Size", "Modified"])
-        
-        files_layout.addWidget(self.files_list)
-        
-        # File controls
-        file_controls = QHBoxLayout()
-        
-        refresh_btn = self.create_modern_button("🔄", "Refresh", self.refresh_files_display)
-        open_folder_btn = self.create_modern_button("📂", "Open Folder", self.open_output_folder)
-        
-        file_controls.addWidget(refresh_btn)
-        file_controls.addWidget(open_folder_btn)
-        file_controls.addStretch()
-        
-        files_layout.addLayout(file_controls)
-        
-        return files_widget
-    
-    def create_system_monitor_tab(self):
-        """Create system monitoring interface"""
-        system_widget = QWidget()
-        system_layout = QVBoxLayout(system_widget)
-        system_layout.setContentsMargins(ModernTheme.scale_value(12), 
-                                       ModernTheme.scale_value(12), 
-                                       ModernTheme.scale_value(12), 
-                                       ModernTheme.scale_value(12))
-        
-        # System metrics display
-        self.system_metrics = QTextBrowser()
-        self.system_metrics.setObjectName("system_metrics")
-        self.system_metrics.setMaximumHeight(ModernTheme.scale_value(200))
-        
-        system_layout.addWidget(self.system_metrics)
-        system_layout.addStretch()
-        
-        return system_widget
-    
-    def create_status_tab(self):
-        """Create avatar status display with emotion-based animations"""
-        status_widget = QWidget()
-        status_layout = QVBoxLayout(status_widget)
-        status_layout.setContentsMargins(ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(20))
-        status_layout.setSpacing(ModernTheme.scale_value(16))
-        
-        # Avatar display area (removed title for more space)
-        avatar_frame = QFrame()
-        avatar_frame.setObjectName("avatar_frame")
-        avatar_frame.setStyleSheet(f"""
-            QFrame#avatar_frame {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #2C2C2C, stop:1 #1E1E1E);
-                border: 2px solid #4CAF50;
-                border-radius: {ModernTheme.scale_value(16)}px;
-                padding: {ModernTheme.scale_value(20)}px;
-            }}
-        """)
-        avatar_layout = QVBoxLayout(avatar_frame)
-        avatar_layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Avatar image display - much larger now that we have more space
-        self.avatar_display = QLabel()
-        self.avatar_display.setObjectName("avatar_display")
-        self.avatar_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.avatar_display.setMinimumSize(ModernTheme.scale_value(500), ModernTheme.scale_value(500))
-        self.avatar_display.setStyleSheet(f"""
-            QLabel#avatar_display {{
-                background: #1A1A1A;
-                border: 1px solid #555555;
-                border-radius: {ModernTheme.scale_value(12)}px;
-                padding: {ModernTheme.scale_value(10)}px;
-            }}
-        """)
-        avatar_layout.addWidget(self.avatar_display)
-        
-        # Avatar status message
-        self.avatar_status_label = QLabel("Ready to assist you!")
-        self.avatar_status_label.setObjectName("avatar_status")
-        self.avatar_status_label.setStyleSheet(f"""
-            QLabel#avatar_status {{
-                font-size: {ModernTheme.scale_value(14)}px;
-                color: #CCCCCC;
-                padding: {ModernTheme.scale_value(8)}px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernTheme.scale_value(6)}px;
-                text-align: center;
-            }}
-        """)
-        self.avatar_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.avatar_status_label.setWordWrap(True)
-        avatar_layout.addWidget(self.avatar_status_label)
-        
-        # Current emotion display
-        emotion_frame = QFrame()
-        emotion_layout = QHBoxLayout(emotion_frame)
-        emotion_layout.setContentsMargins(ModernTheme.scale_value(8), 
-                                        ModernTheme.scale_value(8), 
-                                        ModernTheme.scale_value(8), 
-                                        ModernTheme.scale_value(8))
-        
-        emotion_label = QLabel("Current Emotion:")
-        emotion_label.setStyleSheet(f"""
-            color: #AAAAAA;
-            font-size: {ModernTheme.scale_value(12)}px;
-        """)
-        
-        self.current_emotion_label = QLabel("idle")
-        self.current_emotion_label.setStyleSheet(f"""
-            color: #4CAF50;
-            font-weight: bold;
-            font-size: {ModernTheme.scale_value(12)}px;
-        """)
-        
-        emotion_layout.addWidget(emotion_label)
-        emotion_layout.addWidget(self.current_emotion_label)
-        emotion_layout.addStretch()
-        
-        avatar_layout.addWidget(emotion_frame)
-        status_layout.addWidget(avatar_frame)
-        
-        # Load and display initial avatar
-        self.load_avatar_image()
-        
-        status_layout.addStretch()
-        return status_widget
-    
-    def load_avatar_image(self):
-        """Initialize AI-generated avatars"""
-        try:
-            if hasattr(self, 'avatar_manager') and self.avatar_manager:
-                # Use AI avatar generation system
-                self.avatar_pixmaps = {}
-                
-                # Generate initial avatars for all emotions
-                for emotion in self.avatar_emotions:
-                    self.generate_avatar_for_emotion(emotion)
-                
-                # Set initial avatar to idle
-                self.simple_update_avatar('idle')
-                logging.info("AI avatar system loaded successfully")
-                
-            else:
-                # Fallback to placeholder system
-                self.create_placeholder_avatar()
-                logging.info("Using placeholder avatar system")
-                
-        except Exception as e:
-            logging.error(f"Error initializing avatar system: {e}")
-            self.create_placeholder_avatar()
-    
-    def generate_avatar_for_emotion(self, emotion):
-        """Generate avatar for specific emotion using AI system"""
-        try:
-            if hasattr(self, 'avatar_manager') and self.avatar_manager:
-                # Generate avatar synchronously for initial load (larger size)
-                pil_avatar = self.avatar_manager.generate_avatar_sync(
-                    emotion=emotion, 
-                    size=500, 
-                    style='modern'
-                )
-                
-                # Convert to QPixmap
-                pixmap = self.avatar_manager.pil_to_qpixmap(pil_avatar)
-                self.avatar_pixmaps[emotion] = pixmap
-                
-                logging.debug(f"Generated avatar for emotion: {emotion}")
-                
-        except Exception as e:
-            logging.error(f"Error generating avatar for {emotion}: {e}")
-            # Create a simple placeholder for this emotion
-            self.create_emotion_placeholder(emotion)
-    
-    def create_placeholder_avatar(self):
-        """Create simple placeholder avatars when AI generation is not available"""
-        self.avatar_pixmaps = {}
-        
-        for emotion in self.avatar_emotions:
-            self.create_emotion_placeholder(emotion)
-            
-        self.simple_update_avatar('idle')
-    
-    def create_emotion_placeholder(self, emotion):
-        """Create a simple colored placeholder for an emotion"""
-        try:
-            # Create a simple colored circle as placeholder (larger size)
-            size = 500
-            pixmap = QPixmap(size, size)
-            pixmap.fill(Qt.GlobalColor.transparent)
-            
-            painter = QPainter(pixmap)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            
-            # Define colors for emotions
-            emotion_colors = {
-                'idle': QColor(100, 150, 255),      # Calm blue
-                'thinking': QColor(255, 200, 50),   # Warm yellow  
-                'happy': QColor(50, 255, 100),      # Bright green
-                'working': QColor(255, 100, 50),    # Focused orange
-                'error': QColor(255, 50, 50),       # Alert red
-                'sleeping': QColor(150, 150, 200),  # Sleepy purple
-                'excited': QColor(255, 150, 255),   # Energetic magenta
-                'confused': QColor(200, 200, 100)   # Uncertain yellow
-            }
-            
-            color = emotion_colors.get(emotion, QColor(128, 128, 128))
-            
-            # Draw simple robot head
-            painter.setBrush(QBrush(color))
-            painter.setPen(QPen(QColor(100, 100, 100), 3))
-            
-            head_rect = QRect(50, 50, size-100, size-100)
-            painter.drawRoundedRect(head_rect, 20, 20)
-            
-            # Draw simple eyes
-            eye_color = QColor(255, 255, 255)
-            painter.setBrush(QBrush(eye_color))
-            painter.setPen(QPen(QColor(50, 50, 50), 2))
-            
-            eye_size = 30
-            left_eye = QRect(120, 120, eye_size, eye_size)
-            right_eye = QRect(200, 120, eye_size, eye_size)
-            painter.drawEllipse(left_eye)
-            painter.drawEllipse(right_eye)
-            
-            # Draw simple mouth based on emotion
-            painter.setPen(QPen(QColor(50, 50, 50), 4))
-            mouth_y = 200
-            if emotion in ['happy', 'excited']:
-                # Smile
-                painter.drawArc(QRect(140, mouth_y-10, 70, 20), 0, 180*16)
-            elif emotion in ['error', 'confused']:
-                # Frown  
-                painter.drawArc(QRect(140, mouth_y-10, 70, 20), 180*16, 180*16)
-            else:
-                # Neutral line
-                painter.drawLine(150, mouth_y, 200, mouth_y)
-            
-            painter.end()
-            self.avatar_pixmaps[emotion] = pixmap
-            
-        except Exception as e:
-            logging.error(f"Error creating placeholder for {emotion}: {e}")
-    
-    def simple_update_avatar(self, emotion):
-        """Update avatar display - clean and simple"""
-        try:
-            if not hasattr(self, 'avatar_display') or emotion not in self.avatar_pixmaps:
-                return
-                
-            # Just set the avatar - no fancy effects
-            self.avatar_display.setPixmap(self.avatar_pixmaps[emotion])
-            self.current_avatar_emotion = emotion
-            
-            # Update the emotion label and message
-            if hasattr(self, 'current_emotion_label'):
-                self.current_emotion_label.setText(emotion.title())
-                
-            if hasattr(self, 'avatar_status_label'):
-                message = self.get_simple_message(emotion)
-                self.avatar_status_label.setText(message)
-                
-        except Exception as e:
-            logging.error(f"Error updating avatar: {e}")
-    
-    def get_simple_message(self, emotion):
-        """Get simple, clear message for each emotion"""
-        messages = {
-            'idle': "Ready to work!",
-            'thinking': "Processing your request...", 
-            'happy': "Task completed successfully!",
-            'working': "Hard at work...",
-            'error': "Something went wrong",
-            'sleeping': "Waiting for tasks...",
-            'excited': "Great! Let's do this!",
-            'confused': "Hmm, let me think about this..."
-        }
-        return messages.get(emotion, f"Currently {emotion}")
-    
-    def start_simple_avatar_updates(self):
-        """Start simple avatar updates - no overcomplicated timers"""
-        # Just one simple timer for basic updates
-        self.avatar_timer = QTimer()
-        self.avatar_timer.timeout.connect(self.check_avatar_state)
-        self.avatar_timer.start(2000)  # Check every 2 seconds
-    
-    def check_avatar_state(self):
-        """Simple check for what avatar should be showing"""
-        try:
-            current_time = time.time()
-            time_since_activity = current_time - self.last_activity_time
-            
-            # Simple logic - no overengineering
-            if hasattr(self, 'task_thread') and self.task_thread and self.task_thread.isRunning():
-                self.simple_update_avatar('working')
-            elif hasattr(self, 'enhance_thread') and self.enhance_thread and self.enhance_thread.isRunning():
-                self.simple_update_avatar('thinking')  
-            elif hasattr(self, 'explore_thread') and self.explore_thread and self.explore_thread.isRunning():
-                self.simple_update_avatar('thinking')
-            elif time_since_activity > 60:
-                self.simple_update_avatar('sleeping')
-            else:
-                self.simple_update_avatar('idle')
-                
-        except Exception as e:
-            logging.error(f"Error checking avatar state: {e}")
-    
-    def setup_context_analyzer(self):
-        """Simple context analyzer"""
-        return {'last_update': time.time()}
-    
-    def setup_activity_monitor(self):
-        """Simple activity monitor"""
-        return {'last_update': time.time()}
-    
-    def update_avatar_on_task_start(self, task_type):
-        """Update avatar when tasks start"""
-        self.last_activity_time = time.time()
-        if task_type in ['code', 'automation', 'analytics']:
-            self.simple_update_avatar('working')
-        else:
-            self.simple_update_avatar('thinking')
-    
-    def update_avatar_on_task_complete(self, success):
-        """Update avatar when tasks complete"""
-        self.last_activity_time = time.time()
-        if success:
-            self.simple_update_avatar('happy')
-            # Return to idle after 3 seconds
-            QTimer.singleShot(3000, lambda: self.simple_update_avatar('idle'))
-        else:
-            self.simple_update_avatar('error')
-            # Return to idle after 5 seconds  
-            QTimer.singleShot(5000, lambda: self.simple_update_avatar('idle'))
-    
-    
-    def create_footer_component(self):
-        """Create modern footer/status bar"""
-        footer_frame = QFrame()
-        footer_frame.setObjectName("footer_frame")
-        footer_frame.setFixedHeight(ModernTheme.scale_value(32))
-        
-        footer_layout = QHBoxLayout(footer_frame)
-        footer_layout.setContentsMargins(ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(8), 
-                                       ModernTheme.scale_value(20), 
-                                       ModernTheme.scale_value(8))
-        
-        # Status message
-        self.status_label = QLabel("Ready")
-        self.status_label.setObjectName("status_label")
-        
-        # Progress indicator
-        self.progress_indicator = QProgressBar()
-        self.progress_indicator.setObjectName("progress_indicator")
-        self.progress_indicator.setVisible(False)
-        self.progress_indicator.setMaximumWidth(ModernTheme.scale_value(200))
-        self.progress_indicator.setMaximumHeight(ModernTheme.scale_value(6))
-        
-        footer_layout.addWidget(self.status_label)
-        footer_layout.addStretch()
-        footer_layout.addWidget(self.progress_indicator)
-        
-        self.ui_components['footer'] = footer_frame
-        return footer_frame
-    
-    def configure_responsive_layout(self, splitter):
-        """Configure responsive layout based on screen size with proper vertical adaptation"""
-        try:
-            app = QApplication.instance()
-            if app:
-                screen = app.primaryScreen()
-                screen_geometry = screen.availableGeometry()
-                screen_width = screen_geometry.width()
-                screen_height = screen_geometry.height()
-                screen_category = ModernTheme.get_screen_category(screen_width)
-                
-                # Get current window size
-                current_width = self.width() if self.width() > 0 else screen_width
-                current_height = self.height() if self.height() > 0 else screen_height
-                
-                # Calculate responsive splitter sizes based on both width and height
-                if screen_category == ModernTheme.SCREEN_MOBILE or current_height < 600:
-                    # Mobile or very short windows: More compact layout
-                    control_ratio = 0.45
-                elif screen_category == ModernTheme.SCREEN_TABLET or current_height < 800:
-                    # Tablet or medium height: Balanced split
-                    control_ratio = 0.42
-                else:
-                    # Desktop with good height: Control-focused split
-                    control_ratio = 0.38
-                
-                # Apply the ratios to current window width
-                control_width = int(current_width * control_ratio)
-                output_width = current_width - control_width
-                
-                splitter.setSizes([control_width, output_width])
-                splitter.setStretchFactor(0, 0)  # Control panel fixed ratio
-                splitter.setStretchFactor(1, 1)  # Output panel flexible
-                
-                # Store current configuration for resize events
-                self._current_splitter = splitter
-                self._control_ratio = control_ratio
-                
-                logging.debug(f"Responsive layout: {screen_category}, {current_width}x{current_height}, control_ratio={control_ratio}")
-                
-        except Exception as e:
-            logging.warning(f"Failed to configure responsive layout: {e}")
-            # Fallback to default sizing
-            splitter.setSizes([400, 600])
-    
-    def resizeEvent(self, event):
-        """Handle window resize events with proper vertical adaptation"""
-        super().resizeEvent(event)
-        try:
-            # Update responsive layout on resize
-            if hasattr(self, '_current_splitter') and self._current_splitter:
-                QTimer.singleShot(50, self.update_layout_on_resize)
-                
-        except Exception as e:
-            logging.debug(f"Error in resizeEvent: {e}")
-    
-    def update_layout_on_resize(self):
-        """Update layout proportions when window is resized"""
-        try:
-            if not hasattr(self, '_current_splitter') or not self._current_splitter:
-                return
-                
-            new_width = self.width()
-            new_height = self.height()
-            
-            # Adjust control ratio based on new dimensions
-            if new_height < 500:
-                # Very short window: minimize control panel
-                control_ratio = 0.35
-            elif new_height < 700:
-                # Medium height: balanced
-                control_ratio = 0.40
-            else:
-                # Tall window: can afford more control space
-                control_ratio = getattr(self, '_control_ratio', 0.42)
-            
-            # Apply new proportions
-            control_width = int(new_width * control_ratio)
-            output_width = new_width - control_width
-            
-            self._current_splitter.setSizes([control_width, output_width])
-            
-            # Update component heights based on available vertical space
-            self.update_component_heights(new_height)
-            
-        except Exception as e:
-            logging.debug(f"Error updating layout on resize: {e}")
-    
-    def update_component_heights(self, window_height):
-        """Update component heights based on available vertical space"""
-        try:
-            # Calculate available content height (minus header and footer)
-            header_height = ModernTheme.scale_value(60)
-            footer_height = ModernTheme.scale_value(32)
-            available_height = window_height - header_height - footer_height - 40  # 40px for margins
-            
-            # Update task input height based on available space
-            if hasattr(self, 'task_input'):
-                if available_height < 400:
-                    # Very short: minimal input
-                    input_height = ModernTheme.scale_value(60)
-                elif available_height < 600:
-                    # Medium: balanced input
-                    input_height = ModernTheme.scale_value(80)
-                else:
-                    # Tall: comfortable input
-                    input_height = ModernTheme.scale_value(120)
-                
-                self.task_input.setMaximumHeight(input_height)
-                self.task_input.setMinimumHeight(min(input_height, ModernTheme.scale_value(60)))
-            
-            # Update button heights based on available vertical space
-            self.update_button_sizes(available_height)
-            
-            # Update system metrics display height
-            if hasattr(self, 'system_metrics'):
-                if available_height < 500:
-                    metrics_height = ModernTheme.scale_value(120)
-                elif available_height < 700:
-                    metrics_height = ModernTheme.scale_value(160)
-                else:
-                    metrics_height = ModernTheme.scale_value(200)
-                
-                self.system_metrics.setMaximumHeight(metrics_height)
-            
-            # Update output display to use remaining space efficiently
-            if hasattr(self, 'output_display'):
-                # Let output display use all available space
-                self.output_display.setMinimumHeight(ModernTheme.scale_value(200))
-            
-        except Exception as e:
-            logging.debug(f"Error updating component heights: {e}")
-    
-    def update_button_sizes(self, available_height):
-        """Update button sizes based on available vertical space"""
-        try:
-            # Determine button size based on available height
-            if available_height < 400:
-                # Very compact: small buttons
-                button_height = ModernTheme.scale_value(32)
-                button_padding = ModernTheme.scale_value(8)
-                font_size = ModernTheme.scale_value(12)
-            elif available_height < 600:
-                # Medium: standard buttons
-                button_height = ModernTheme.scale_value(38)
-                button_padding = ModernTheme.scale_value(10)
-                font_size = ModernTheme.scale_value(13)
-            else:
-                # Comfortable: larger buttons
-                button_height = ModernTheme.scale_value(44)
-                button_padding = ModernTheme.scale_value(12)
-                font_size = ModernTheme.scale_value(14)
-            
-            # Update all buttons with the new sizes
-            buttons_to_update = []
-            
-            # Find all buttons in the UI
-            if hasattr(self, 'primary_action_btn'):
-                buttons_to_update.append(self.primary_action_btn)
-            if hasattr(self, 'stop_action_btn'):
-                buttons_to_update.append(self.stop_action_btn)
-            if hasattr(self, 'attach_btn'):
-                buttons_to_update.append(self.attach_btn)
-            if hasattr(self, 'clear_files_btn'):
-                buttons_to_update.append(self.clear_files_btn)
-            
-            # Find buttons in output panel
-            for tab_index in range(getattr(self.output_tabs, 'count', lambda: 0)()):
-                tab_widget = self.output_tabs.widget(tab_index)
-                if tab_widget:
-                    buttons_to_update.extend(tab_widget.findChildren(QPushButton))
-            
-            # Update button styles
-            for button in buttons_to_update:
-                if button and hasattr(button, 'setMinimumHeight'):
-                    button.setMinimumHeight(button_height)
-                    button.setMaximumHeight(button_height + ModernTheme.scale_value(8))
-                    
-                    # Update button stylesheet for responsive sizing
-                    current_style = button.styleSheet()
-                    responsive_style = f"""
-                    QPushButton {{
-                        min-height: {button_height}px;
-                        max-height: {button_height + ModernTheme.scale_value(8)}px;
-                        padding: {button_padding}px {button_padding * 2}px;
-                        font-size: {font_size}px;
-                    }}
-                    """
-                    button.setStyleSheet(current_style + responsive_style)
-            
-            # Update navigation buttons in header
-            if hasattr(self, 'mode_buttons'):
-                # Keep consistent 24px height for navigation buttons
-                nav_button_height = ModernTheme.scale_value(24)
-                for nav_btn in self.mode_buttons.values():
-                    if nav_btn:
-                        nav_btn.setFixedHeight(nav_button_height)
-                        nav_style = f"""
-                        QPushButton#nav_button {{
-                            min-height: {nav_button_height}px;
-                            max-height: {nav_button_height}px;
-                            font-size: {ModernTheme.scale_value(11)}px;
-                        }}
-                        """
-                        current_nav_style = nav_btn.styleSheet()
-                        nav_btn.setStyleSheet(current_nav_style + nav_style)
-            
-            logging.debug(f"Updated button sizes for height {available_height}: button_height={button_height}")
-            
-        except Exception as e:
-            logging.debug(f"Error updating button sizes: {e}")
-    
-    def initial_responsive_setup(self):
-        """Initial responsive setup after UI is fully created"""
-        try:
-            # Force an initial layout update based on current window size
-            current_height = self.height()
-            if current_height > 0:
-                self.update_component_heights(current_height)
-                logging.debug(f"Initial responsive setup completed for height: {current_height}")
-            
-        except Exception as e:
-            logging.debug(f"Error in initial responsive setup: {e}")
-    
-    def setup_ui_connections(self):
-        """Setup all UI connections and signals"""
-        try:
-            # Connect task input changes
-            if hasattr(self, 'task_input'):
-                self.task_input.textChanged.connect(self.validate_input)
-            
-            # Connect file attachment updates
-            if hasattr(self, 'files_list'):
-                self.files_list.itemSelectionChanged.connect(self.on_file_selection_changed)
-            
-            # Setup timer for system updates
-            self.ui_update_timer = QTimer()
-            self.ui_update_timer.timeout.connect(self.update_system_display)
-            self.ui_update_timer.start(5000)  # 5-second updates
-            
-            logging.info("UI connections established successfully")
-            
-        except Exception as e:
-            logging.error(f"Failed to setup UI connections: {e}")
-    
-    def setup_keyboard_navigation(self):
-        """Setup keyboard navigation and accessibility"""
-        try:
-            # Set focus policies
-            if hasattr(self, 'task_input'):
-                self.task_input.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-            
-            # Setup tab order
-            widgets_tab_order = []
-            if hasattr(self, 'task_input'):
-                widgets_tab_order.append(self.task_input)
-            if hasattr(self, 'attach_btn'):
-                widgets_tab_order.append(self.attach_btn)
-            if hasattr(self, 'primary_action_btn'):
-                widgets_tab_order.append(self.primary_action_btn)
-            
-            # Set tab order
-            for i in range(len(widgets_tab_order) - 1):
-                self.setTabOrder(widgets_tab_order[i], widgets_tab_order[i + 1])
-            
-            # Add keyboard shortcuts
-            self.setup_keyboard_shortcuts()
-            
-            logging.info("Keyboard navigation setup completed")
-            
-        except Exception as e:
-            logging.error(f"Failed to setup keyboard navigation: {e}")
-    
-    def setup_keyboard_shortcuts(self):
-        """Setup keyboard shortcuts for better accessibility"""
-        try:
-            from PyQt6.QtGui import QShortcut, QKeySequence
-            
-            # Mode switching shortcuts
-            QShortcut(QKeySequence("Ctrl+1"), self, lambda: self.switch_mode("task"))
-            QShortcut(QKeySequence("Ctrl+2"), self, lambda: self.switch_mode("explore"))
-            QShortcut(QKeySequence("Ctrl+3"), self, lambda: self.switch_mode("enhance"))
-            
-            # Theme toggle
-            QShortcut(QKeySequence("Ctrl+T"), self, self.toggle_theme)
-            
-            # Execute action
-            QShortcut(QKeySequence("Ctrl+Return"), self, self.execute_primary_action)
-            QShortcut(QKeySequence("Ctrl+Enter"), self, self.execute_primary_action)
-            
-            # Stop action
-            QShortcut(QKeySequence("Escape"), self, self.stop_current_action)
-            
-            # Settings
-            QShortcut(QKeySequence("Ctrl+,"), self, self.show_settings)
-            
-            
-            logging.info("Keyboard shortcuts setup completed")
-            
-        except Exception as e:
-            logging.error(f"Failed to setup keyboard shortcuts: {e}")
-    
-    def apply_component_styles(self):
-        """Apply modern styling to all components"""
-        try:
-            # Enhanced modern theme with component-specific styles
-            enhanced_styles = f"""
-            /* Header Styles */
-            QFrame#header_frame {{
-                background: {ModernTheme.get_colors()['bg_primary']};
-                border-bottom: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-            
-            QLabel#app_title {{
-                font-size: {ModernTheme.scale_value(18)}px;
-                font-weight: 600;
-                color: {ModernTheme.get_colors()['text_primary']};
-            }}
-            
-            QLabel#version_badge {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: white;
-                padding: 2px 8px;
-                border-radius: 10px;
-                font-size: {ModernTheme.scale_value(10)}px;
-                font-weight: 500;
-            }}
-            
-            /* Navigation Styles */
-            QPushButton#nav_button {{
-                background: transparent;
-                border: 1px solid transparent;
-                color: {ModernTheme.get_colors()['text_secondary']};
-                padding: {ModernTheme.scale_value(8)}px {ModernTheme.scale_value(16)}px;
-                border-radius: {ModernTheme.scale_value(20)}px;
-                font-weight: 500;
-            }}
-            
-            QPushButton#nav_button:hover {{
-                background: {ModernTheme.get_colors()['bg_hover']};
-                color: {ModernTheme.get_colors()['text_primary']};
-            }}
-            
-            QPushButton#nav_button[active="true"] {{
-                background: {ModernTheme.get_colors()['primary']};
-                color: white;
-                border: 1px solid {ModernTheme.get_colors()['primary']};
-            }}
-            
-            QPushButton#icon_button {{
-                background: transparent;
-                border: 1px solid transparent;
-                border-radius: {ModernTheme.scale_value(18)}px;
-                font-size: {ModernTheme.scale_value(16)}px;
-            }}
-            
-            QPushButton#icon_button:hover {{
-                background: {ModernTheme.get_colors()['bg_hover']};
-            }}
-            
-            QPushButton#header_control_button {{
-                background: transparent;
-                border: 1px solid transparent;
-                border-radius: {ModernTheme.scale_value(12)}px;
-                font-size: {ModernTheme.scale_value(14)}px;
-                color: {ModernTheme.get_colors()['text_primary']};
-            }}
-            
-            QPushButton#header_control_button:hover {{
-                background: {ModernTheme.get_colors()['bg_hover']};
-                border: 1px solid {ModernTheme.get_colors()['accent']};
-            }}
-            
-            QPushButton#header_control_button:pressed {{
-                background: {ModernTheme.get_colors()['accent']};
-                color: #FFFFFF;
-            }}
-            
-            /* Panel Styles */
-            QFrame#control_panel {{
-                background: {ModernTheme.get_colors()['bg_secondary']};
-                border-right: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-            
-            QFrame#output_panel {{
-                background: {ModernTheme.get_colors()['bg_primary']};
-            }}
-            
-            /* Modern Button Styles */
-            QPushButton#modern_button {{
-                background: {ModernTheme.get_colors()['bg_tertiary']};
-                border: 1px solid {ModernTheme.get_colors()['border']};
-                color: {ModernTheme.get_colors()['text_primary']};
-                padding: {ModernTheme.scale_value(12)}px {ModernTheme.scale_value(20)}px;
-                border-radius: {ModernTheme.scale_value(6)}px;
-                font-weight: 500;
-            }}
-            
-            QPushButton#modern_button:hover {{
-                background: {ModernTheme.get_colors()['bg_hover']};
-                border-color: {ModernTheme.get_colors()['border_focus']};
-            }}
-            
-            QPushButton#primary_button {{
-                background: {ModernTheme.get_colors()['primary']};
-                border: 1px solid {ModernTheme.get_colors()['primary']};
-                color: white;
-            }}
-            
-            QPushButton#primary_button:hover {{
-                background: {ModernTheme.get_colors()['primary_hover']};
-            }}
-            
-            QPushButton#stop_button {{
-                background: {ModernTheme.get_colors()['error']};
-                border: 1px solid {ModernTheme.get_colors()['error']};
-                color: white;
-            }}
-            
-            /* Footer Styles */
-            QFrame#footer_frame {{
-                background: {ModernTheme.get_colors()['bg_secondary']};
-                border-top: 1px solid {ModernTheme.get_colors()['border']};
-            }}
-            
-            QProgressBar#progress_indicator {{
-                background: {ModernTheme.get_colors()['bg_tertiary']};
-                border: none;
-                border-radius: {ModernTheme.scale_value(3)}px;
-            }}
-            
-            QProgressBar#progress_indicator::chunk {{
-                background: {ModernTheme.get_colors()['primary']};
-                border-radius: {ModernTheme.scale_value(3)}px;
-            }}
-            """
-            
-            # Apply the enhanced styles
-            current_style = self.styleSheet()
-            self.setStyleSheet(current_style + enhanced_styles)
-            
-            logging.info("Component styles applied successfully")
-            
-        except Exception as e:
-            logging.error(f"Failed to apply component styles: {e}")
-    
-    # Core UI functionality methods
-    def switch_mode(self, mode):
-        """Switch between different application modes"""
-        try:
-            # Update navigation button states
-            for mode_key, btn in self.mode_buttons.items():
-                btn.setProperty("active", mode_key == mode)
-                btn.style().unpolish(btn)
-                btn.style().polish(btn)
-            
-            # Switch content stack
-            mode_indices = {"task": 0, "explore": 1, "enhance": 2}
-            if mode in mode_indices:
-                self.mode_content_stack.setCurrentIndex(mode_indices[mode])
-                self.current_mode = mode
-                
-                # Update primary action button
-                self.update_primary_action_button()
-                
-                # Update status
-                mode_names = {"task": "Task Processing", "explore": "Autonomous Exploration", "enhance": "Self-Enhancement"}
-                self.status_label.setText(f"{mode_names[mode]} Mode Active")
-                
-                logging.info(f"Switched to {mode} mode")
-            
-        except Exception as e:
-            logging.error(f"Failed to switch mode: {e}")
-            self.show_error_dialog("Mode Switch Error", f"Failed to switch to {mode} mode: {str(e)}")
-    
-    def update_primary_action_button(self):
-        """Update primary action button based on current mode"""
-        try:
-            mode_configs = {
-                "task": ("🚀", "Execute Task"),
-                "explore": ("🧭", "Start Exploration"),
-                "enhance": ("⚡", "Start Enhancement")
-            }
-            
-            if self.current_mode in mode_configs:
-                icon, text = mode_configs[self.current_mode]
-                self.primary_action_btn.setText(f"{icon} {text}")
-                
-        except Exception as e:
-            logging.error(f"Failed to update primary action button: {e}")
-    
-    def execute_primary_action(self):
-        """Execute the primary action based on current mode"""
-        try:
-            if self.current_mode == "task":
-                self.process_task()
-            elif self.current_mode == "explore":
-                self.start_exploration()
-            elif self.current_mode == "enhance":
-                self.start_enhancement()
-                
-        except Exception as e:
-            logging.error(f"Failed to execute primary action: {e}")
-            self.show_error_dialog("Action Error", f"Failed to execute action: {str(e)}")
-    
-    def stop_current_action(self):
-        """Stop the currently running action"""
-        try:
-            if self.current_mode == "task":
-                self.stop_task()
-            elif self.current_mode == "explore":
-                self.stop_exploration()
-            elif self.current_mode == "enhance":
-                self.stop_enhancement()
-                
-        except Exception as e:
-            logging.error(f"Failed to stop current action: {e}")
-    
-    def validate_input(self):
-        """Validate user input and provide feedback"""
-        try:
-            if hasattr(self, 'task_input'):
-                text = self.task_input.toPlainText().strip()
-                self.primary_action_btn.setEnabled(len(text) > 0)
-                
-        except Exception as e:
-            logging.error(f"Failed to validate input: {e}")
-    
-    def on_file_selection_changed(self):
-        """Handle file selection changes"""
-        try:
-            if hasattr(self, 'files_list'):
-                selected_items = self.files_list.selectedItems()
-                # Enable/disable context actions based on selection
-                
-        except Exception as e:
-            logging.error(f"Failed to handle file selection: {e}")
-    
-    def update_system_display(self):
-        """Update system monitoring display"""
-        try:
-            if hasattr(self, 'system_metrics') and hasattr(self, 'monitor'):
-                # Get system metrics
-                metrics = self.monitor.get_current_metrics()
-                
-                # Format metrics display
-                metrics_text = f"""
-                <h3>System Status</h3>
-                <p><b>CPU:</b> {metrics.get('cpu_percent', 0):.1f}%</p>
-                <p><b>Memory:</b> {metrics.get('memory_percent', 0):.1f}%</p>
-                <p><b>Active Tasks:</b> {metrics.get('active_tasks', 0)}</p>
-                <p><b>Last Update:</b> {datetime.now().strftime('%H:%M:%S')}</p>
-                """
-                
-                self.system_metrics.setHtml(metrics_text)
-                
-        except Exception as e:
-            logging.debug(f"Failed to update system display: {e}")
-    
-    def show_error_dialog(self, title, message):
-        """Show error dialog with modern styling"""
-        try:
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle(title)
-            msg_box.setText(message)
-            msg_box.setIcon(QMessageBox.Icon.Critical)
-            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-            msg_box.exec()
-            
-        except Exception as e:
-            logging.error(f"Failed to show error dialog: {e}")
-    
-    def show_settings(self):
-        """Show settings dialog"""
-        try:
-            # Find and use the existing settings dialog
-            dialog = SettingsDialog(self)
-            dialog.exec()
-            
-        except Exception as e:
-            logging.error(f"Failed to show settings: {e}")
-            self.show_error_dialog("Settings Error", "Failed to open settings dialog")
-    
+        """Setup the main UI with modern layout and professional styling"""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.setChildrenCollapsible(False)
+        
+        left_panel = self.create_control_panel()
+        right_panel = self.create_output_panel()
+        
+        self.main_splitter.addWidget(left_panel)
+        self.main_splitter.addWidget(right_panel)
+        
+        window_width = self.width() if self.width() > 0 else 1000
+        control_width = int(window_width * 0.50)
+        output_width = window_width - control_width - 10
+        self.main_splitter.setSizes([control_width, output_width])
+        self.main_splitter.setStretchFactor(0, 0)
+        self.main_splitter.setStretchFactor(1, 1)
+        self.main_splitter.setHandleWidth(ModernTheme.scale_value(8))
+        self.main_splitter.setStyleSheet(ModernTheme.get_splitter_style())
+        logging.info(f"setup_ui: control_width={control_width}, output_width={output_width}")
+        self.main_splitter.update()
+        self.updateGeometry()
+        
+        main_layout.addWidget(self.main_splitter)
+        central_widget.setLayout(main_layout)
+        
+        QTimer.singleShot(1000, self.refresh_files_display)
+        QTimer.singleShot(0, self.adjust_splitter_sizes)  # Force resize after UI is shown
+        
+        status_icon = ModernIcons.STATUS['active']
+        self.statusBar().showMessage(f"{status_icon} SuperMini AI Assistant Ready - Neural Processing Active")
+        self.statusBar().setProperty("role", "status")
+        
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setMaximumWidth(200)
+        self.progress_bar.setStyleSheet(ModernTheme.get_progress_bar_style())
+        self.statusBar().addPermanentWidget(self.progress_bar)
+        
+        self.setAccessibleName("SuperMini AI Agent")
+        self.setAccessibleDescription("Autonomous Mac Mini AI agent for task automation and processing")
+        
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
     def adjust_splitter_sizes(self):
         """Force splitter size adjustment after UI initialization"""
         window_width = self.width() if self.width() > 0 else 1000
@@ -11896,9 +9570,6 @@ class SuperMiniMainWindow(QMainWindow):
         )
         self.stop_task_btn.setEnabled(False)
         self.stop_task_btn.setMinimumHeight(ModernTheme.scale_value(48))  # Match execute button height
-        self.stop_task_btn.setVisible(True)  # Ensure visibility
-        
-        # Initial state - disabled until task starts
         
         # Create properly spaced button group
         primary_buttons, _ = self.create_button_group(
@@ -12826,9 +10497,7 @@ class SuperMiniMainWindow(QMainWindow):
     
     def stop_task(self):
         """Stop the current task execution"""
-        logging.info("Stop task called!")
         if self.task_thread and self.task_thread.isRunning():
-            logging.info("Stopping task thread...")
             self.task_thread.stop()
             if not self.task_thread.wait(2000):
                 self.task_thread.terminate()
@@ -12837,7 +10506,6 @@ class SuperMiniMainWindow(QMainWindow):
             self.process_btn.setEnabled(True)
             self.stop_task_btn.setEnabled(False)
             self.progress_bar.setVisible(False)
-            logging.info("Task stopped, buttons updated")
             self.statusBar().showMessage("Task stopped")
     
     def start_exploration(self):
@@ -12852,27 +10520,13 @@ class SuperMiniMainWindow(QMainWindow):
             QMessageBox.warning(self, "Invalid Interval", "Please set a valid exploration interval.")
             return
         
-        # Update buttons if they exist (only when explore mode UI is active)
-        if hasattr(self, 'start_explore_btn'):
-            self.start_explore_btn.setEnabled(False)
-        if hasattr(self, 'stop_explore_btn'):
-            self.stop_explore_btn.setEnabled(True)
-        if hasattr(self, 'exploration_status'):
-            self.exploration_status.setText("🔍 Exploring...")
+        self.start_explore_btn.setEnabled(False)
+        self.stop_explore_btn.setEnabled(True)
+        self.exploration_status.setText("🔍 Exploring...")
         self.statusBar().showMessage("Starting autonomous exploration...")
         
         # Create and start exploration thread
-        # Parse interval to hours and minutes
-        total_minutes = interval
-        hours = total_minutes // 60
-        minutes = total_minutes % 60
-        
-        # Get current files from UI or use empty list for autonomous exploration
-        current_files = []
-        if hasattr(self, 'selected_files'):
-            current_files = self.selected_files
-        
-        self.explore_thread = ExploreThread(self.processor, current_files, hours, minutes)
+        self.explore_thread = ExploreThread(self.processor, interval)
         self.explore_thread.progress_signal.connect(self.update_progress)
         self.explore_thread.result_signal.connect(self.display_explore_result)
         self.explore_thread.error_signal.connect(self.handle_explore_error)
@@ -12887,13 +10541,9 @@ class SuperMiniMainWindow(QMainWindow):
                 self.explore_thread.terminate()
                 self.explore_thread.wait()
         
-        # Update buttons if they exist (only when explore mode UI is active)
-        if hasattr(self, 'start_explore_btn'):
-            self.start_explore_btn.setEnabled(True)
-        if hasattr(self, 'stop_explore_btn'):
-            self.stop_explore_btn.setEnabled(False)
-        if hasattr(self, 'exploration_status'):
-            self.exploration_status.setText("⏹️ Exploration stopped")
+        self.start_explore_btn.setEnabled(True)
+        self.stop_explore_btn.setEnabled(False)
+        self.exploration_status.setText("⏹️ Exploration stopped")
         self.statusBar().showMessage("Exploration stopped")
     
     
@@ -12924,10 +10574,6 @@ class SuperMiniMainWindow(QMainWindow):
         self.stop_task_btn.setEnabled(True)
         self.statusBar().showMessage("Processing task...")
         
-        # Debug logging
-        logging.info(f"Process button enabled: {self.process_btn.isEnabled()}")
-        logging.info(f"Stop button enabled: {self.stop_task_btn.isEnabled()}")
-        
         # Update neural visualization for AI activity
         if hasattr(self, 'neural_network_widget'):
             self.neural_network_widget.set_activity_level(0.8)
@@ -12942,10 +10588,6 @@ class SuperMiniMainWindow(QMainWindow):
         self.results_text.clear()
         
         files = getattr(self, 'attached_files', [])
-        
-        # Update avatar to show thinking state when starting task
-        self.simple_update_avatar('thinking')
-        self.avatar_message = f"Processing {task_type} task..."
         
         # Create thread with auto-continue and autonomous settings
         self.task_thread = TaskThread(
@@ -12963,17 +10605,6 @@ class SuperMiniMainWindow(QMainWindow):
         self.task_thread.result_signal.connect(self.display_task_result)
         self.task_thread.finished.connect(self.task_finished)
         self.task_thread.start()
-        
-        # Ensure UI updates after thread starts
-        QTimer.singleShot(100, lambda: self.ensure_stop_button_enabled())
-    
-    def ensure_stop_button_enabled(self):
-        """Ensure stop button is enabled when task is running"""
-        if hasattr(self, 'task_thread') and self.task_thread and self.task_thread.isRunning():
-            self.stop_task_btn.setEnabled(True)
-            logging.info("Stop button force-enabled after thread start")
-        else:
-            logging.warning("Task thread not running when trying to enable stop button")
     
     def show_settings(self):
         dialog = SettingsDialog(self)
@@ -13013,21 +10644,17 @@ class SuperMiniMainWindow(QMainWindow):
         
         # Apply theme changes
         ModernTheme.set_theme(new_theme)
-        self.apply_modern_theme()  # Use the existing method instead
+        self.setStyleSheet(ModernTheme.get_application_style())
         
         # Update theme toggle button text
         if hasattr(self, 'theme_toggle_btn'):
             self.theme_toggle_btn.setText("🌙 Dark" if new_theme == 'light' else "☀️ Light")
     
     def update_progress(self, value):
-        if hasattr(self, 'progress_indicator'):
-            self.progress_indicator.setValue(value)
-        elif hasattr(self, 'progress_bar'):
-            self.progress_bar.setValue(value)
+        self.progress_bar.setValue(value)
     
     def display_task_result(self, result):
         """Display task result in the results panel"""
-        logging.info("display_task_result called!")
         if result.success:
             result_text = f"✅ Task Completed Successfully\n\n{result.result}"
         else:
@@ -13035,18 +10662,13 @@ class SuperMiniMainWindow(QMainWindow):
         
         if hasattr(self, 'results_text'):
             self.results_text.setPlainText(result_text)
-        else:
-            logging.error("results_text widget not found!")
     
     def task_finished(self):
         """Handle task thread completion"""
-        logging.info("Task finished called!")
         self.process_btn.setEnabled(True)
         self.stop_task_btn.setEnabled(False)
         self.progress_bar.setVisible(False)
         self.statusBar().showMessage("Task completed")
-        logging.info(f"After task_finished - Process button enabled: {self.process_btn.isEnabled()}")
-        logging.info(f"After task_finished - Stop button enabled: {self.stop_task_btn.isEnabled()}")
     
     def export_results(self):
         """Export current results to file"""
@@ -13101,10 +10723,8 @@ class SuperMiniMainWindow(QMainWindow):
     
     def exploration_finished(self):
         """Handle exploration completion"""
-        if hasattr(self, 'start_explore_btn'):
-            self.start_explore_btn.setEnabled(True)
-        if hasattr(self, 'stop_explore_btn'):
-            self.stop_explore_btn.setEnabled(False)
+        self.start_explore_btn.setEnabled(True)
+        self.stop_explore_btn.setEnabled(False)
         self.statusBar().showMessage("Exploration completed")
     
     def display_enhance_result(self, result, files, iteration, version):
@@ -14951,10 +12571,10 @@ class SuperMiniMainWindow(QMainWindow):
 
         layout.addStretch()
         
-        # Setup AI dashboard refresh timer (use different name to avoid conflicts)
-        self.ai_dashboard_timer = QTimer()
-        self.ai_dashboard_timer.timeout.connect(self.refresh_dashboard_display)
-        self.ai_dashboard_timer.start(1000)  # Refresh every second
+        # Setup dashboard refresh timer
+        self.dashboard_timer = QTimer()
+        self.dashboard_timer.timeout.connect(self.refresh_dashboard_display)
+        self.dashboard_timer.start(1000)  # Refresh every second
         
         return widget
     
@@ -15005,495 +12625,88 @@ class SuperMiniMainWindow(QMainWindow):
         return card
     
     def create_dashboard_graphs(self) -> QWidget:
-        """Create clean, simplified dashboard with metrics cards and simple charts"""
+        """Create real-time dashboard graphs using matplotlib"""
         graphs_widget = QWidget()
         graphs_layout = QVBoxLayout(graphs_widget)
-        graphs_layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(16), 
-                                       ModernTheme.scale_value(16), ModernTheme.scale_value(16))
-        graphs_layout.setSpacing(ModernTheme.scale_value(16))
+        graphs_layout.setContentsMargins(0, 0, 0, 0)
+        graphs_layout.setSpacing(16)
         
-        # Metrics Cards Row
-        metrics_frame = self.create_metrics_cards()
-        graphs_layout.addWidget(metrics_frame)
+        # Create matplotlib figure with dark theme
+        self.dashboard_figure = Figure(figsize=(12, 8), facecolor='#1a1a1a')
+        self.dashboard_canvas = FigureCanvas(self.dashboard_figure)
+        self.dashboard_canvas.setStyleSheet(f"""
+            QWidget {{
+                background: {ModernTheme.get_colors()['bg_primary']};
+                border-radius: {ModernTheme.scale_value(12)}px;
+                border: 1px solid {ModernTheme.get_colors()['border']};
+            }}
+        """)
         
-        # Simple Charts Section
-        charts_frame = self.create_simple_charts()
-        graphs_layout.addWidget(charts_frame)
+        # Create subplots for different metrics
+        self.response_time_ax = self.dashboard_figure.add_subplot(2, 2, 1)
+        self.token_usage_ax = self.dashboard_figure.add_subplot(2, 2, 2) 
+        self.task_types_ax = self.dashboard_figure.add_subplot(2, 2, 3)
+        self.system_metrics_ax = self.dashboard_figure.add_subplot(2, 2, 4)
         
-        # Initialize data and start timer
-        self.init_simple_dashboard_data()
+        # Configure subplot styles
+        self.configure_graph_styles()
         
-        # Auto-refresh timer for simple dashboard (use different name to avoid conflicts)
-        if not hasattr(self, 'simple_dashboard_timer'):
-            self.simple_dashboard_timer = QTimer()
-            self.simple_dashboard_timer.timeout.connect(self.update_simple_dashboard)
-            self.simple_dashboard_timer.start(2000)  # Update every 2 seconds
+        # Initialize empty data for graphs
+        self.init_graph_data()
         
+        graphs_layout.addWidget(self.dashboard_canvas)
         return graphs_widget
     
-    def create_metrics_cards(self) -> QWidget:
-        """Create clean metrics cards with real-time figures"""
-        metrics_frame = QWidget()
-        metrics_layout = QHBoxLayout(metrics_frame)
-        metrics_layout.setContentsMargins(0, 0, 0, 0)
-        metrics_layout.setSpacing(ModernTheme.scale_value(12))
-        
-        # Initialize metrics cards dictionary
-        self.metric_cards = {}
-        
-        # Define metrics
-        metrics_config = [
-            {
-                'title': 'Tasks Completed',
-                'key': 'tasks_completed',
-                'value': '0',
-                'icon': '✅',
-                'color': '#10b981'
-            },
-            {
-                'title': 'Response Time',
-                'key': 'avg_response_time',
-                'value': '0.0s',
-                'icon': '⚡',
-                'color': '#3b82f6'
-            },
-            {
-                'title': 'CPU Usage',
-                'key': 'cpu_usage',
-                'value': '0%',
-                'icon': '💻',
-                'color': '#f59e0b'
-            },
-            {
-                'title': 'Memory Usage',
-                'key': 'memory_usage',
-                'value': '0MB',
-                'icon': '🧠',
-                'color': '#8b5cf6'
-            }
-        ]
-        
-        for config in metrics_config:
-            card = self.create_old_metric_card(config)
-            metrics_layout.addWidget(card)
-        
-        return metrics_frame
-    
-    def create_old_metric_card(self, config: dict) -> QWidget:
-        """Create a single metric card"""
-        card = QWidget()
-        card.setFixedHeight(ModernTheme.scale_value(120))
-        card.setStyleSheet(f"""
-            QWidget {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.08),
-                    stop:1 rgba(255, 255, 255, 0.03));
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: {ModernTheme.scale_value(12)}px;
-                padding: {ModernTheme.scale_value(16)}px;
-            }}
-        """)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(ModernTheme.scale_value(16), ModernTheme.scale_value(12), 
-                                ModernTheme.scale_value(16), ModernTheme.scale_value(12))
-        layout.setSpacing(ModernTheme.scale_value(4))
-        
-        # Icon and title row
-        header_layout = QHBoxLayout()
-        
-        icon_label = QLabel(config['icon'])
-        icon_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: {ModernTheme.scale_value(24)}px;
-                color: {config['color']};
-            }}
-        """)
-        
-        title_label = QLabel(config['title'])
-        title_label.setStyleSheet(f"""
-            QLabel {{
-                color: #9ca3af;
-                font-size: {ModernTheme.scale_value(14)}px;
-                font-weight: 500;
-            }}
-        """)
-        
-        header_layout.addWidget(icon_label)
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
-        
-        # Value label
-        value_label = QLabel(config['value'])
-        value_label.setStyleSheet(f"""
-            QLabel {{
-                color: #ffffff;
-                font-size: {ModernTheme.scale_value(28)}px;
-                font-weight: 700;
-                margin-top: {ModernTheme.scale_value(12)}px;
-            }}
-        """)
-        
-        layout.addLayout(header_layout)
-        layout.addWidget(value_label)
-        layout.addStretch()
-        
-        # Store reference for updates
-        self.metric_cards[config['key']] = value_label
-        
-        return card
-    
-    def create_simple_charts(self) -> QWidget:
-        """Create simple line/area charts with colored shading"""
-        charts_frame = QWidget()
-        charts_layout = QHBoxLayout(charts_frame)
-        charts_layout.setContentsMargins(0, 0, 0, 0)
-        charts_layout.setSpacing(ModernTheme.scale_value(16))
-        
-        # Create matplotlib figure with clean styling - smaller size
-        colors = ModernTheme.get_colors()
-        bg_color = colors['bg_primary'].lstrip('#')
-        self.simple_figure = Figure(figsize=(10, 4), 
-                                   facecolor=f"#{bg_color}", 
-                                   edgecolor='none')
-        self.simple_canvas = FigureCanvas(self.simple_figure)
-        self.simple_canvas.setMaximumHeight(ModernTheme.scale_value(300))  # Limit chart height
-        self.simple_canvas.setStyleSheet(f"""
-            QWidget {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(255, 255, 255, 0.05),
-                    stop:1 rgba(255, 255, 255, 0.02));
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: {ModernTheme.scale_value(12)}px;
-            }}
-        """)
-        
-        # Create two simple subplots
-        self.simple_figure.clear()
-        gs = self.simple_figure.add_gridspec(1, 2, hspace=0.1, wspace=0.3, 
-                                           left=0.08, right=0.95, top=0.9, bottom=0.15)
-        
-        # Performance chart (left)
-        self.performance_chart = self.simple_figure.add_subplot(gs[0, 0])
-        self.performance_chart.set_title('System Performance', color='#ffffff', fontsize=14, pad=20)
-        
-        # Activity chart (right) 
-        self.activity_chart = self.simple_figure.add_subplot(gs[0, 1])
-        self.activity_chart.set_title('Task Activity', color='#ffffff', fontsize=14, pad=20)
-        
-        # Configure chart styles
-        self.configure_simple_chart_styles()
-        
-        charts_layout.addWidget(self.simple_canvas)
-        return charts_frame
-    
-    def configure_simple_chart_styles(self):
-        """Configure clean, modern chart styles"""
-        for ax in [self.performance_chart, self.activity_chart]:
-            # Set minimal background
-            ax.set_facecolor((0, 0, 0, 0.1))
-            
-            # Configure minimal ticks
-            ax.tick_params(colors='#6b7280', labelsize=8, length=0)  # No tick marks
-            ax.grid(True, alpha=0.15, color='#374151', linewidth=0.3, linestyle='-')
-            
-            # Hide all spines initially
-            for spine in ax.spines.values():
-                spine.set_visible(False)
-            
-            # Only show minimal left and bottom spines
-            ax.spines['left'].set_visible(True)
-            ax.spines['bottom'].set_visible(True)
-            ax.spines['left'].set_color('#4b5563')
-            ax.spines['bottom'].set_color('#4b5563')
-            ax.spines['left'].set_linewidth(0.3)
-            ax.spines['bottom'].set_linewidth(0.3)
-    
-    def init_simple_dashboard_data(self):
-        """Initialize simple dashboard data"""
-        # Initialize time-series data
-        current_time = time.time()
-        self.simple_data = {
-            'timestamps': [current_time - i * 2 for i in range(20, 0, -1)],
-            'cpu_usage': [random.uniform(10, 30) for _ in range(20)],
-            'memory_usage': [random.uniform(200, 500) for _ in range(20)],
-            'task_count': [0] * 20,
-            'response_times': [0] * 20
-        }
-        
-        # Initial chart draw
-        self.update_simple_dashboard()
-    
-    def update_simple_dashboard(self):
-        """Update simple dashboard with real-time data"""
-        try:
-            # Update metrics cards
-            self.update_metrics_cards()
-            
-            # Update charts
-            self.update_simple_charts()
-            
-        except Exception as e:
-            logging.error(f"Error updating simple dashboard: {e}")
-    
-    def update_metrics_cards(self):
-        """Update metrics cards with current data"""
-        try:
-            # Get current system metrics
-            cpu_percent = psutil.cpu_percent()
-            memory_info = psutil.virtual_memory()
-            memory_mb = memory_info.used // (1024 * 1024)
-            
-            # Update task metrics from ai_metrics
-            tasks_completed = getattr(self, 'ai_metrics', {}).get('tasks_completed', 0)
-            avg_response_time = getattr(self, 'ai_metrics', {}).get('avg_response_time', 0.0)
-            
-            # Update card values
-            updates = {
-                'tasks_completed': str(tasks_completed),
-                'avg_response_time': f"{avg_response_time:.1f}s",
-                'cpu_usage': f"{cpu_percent:.1f}%",
-                'memory_usage': f"{memory_mb}MB"
-            }
-            
-            for key, value in updates.items():
-                if key in self.metric_cards:
-                    try:
-                        card = self.metric_cards[key]
-                        if hasattr(card, 'setText'):
-                            card.setText(value)
-                        elif hasattr(card, 'value_label'):
-                            card.value_label.setText(value)
-                        else:
-                            logging.debug(f"Metric card {key} has no compatible text update method")
-                    except Exception as e:
-                        logging.debug(f"Skipping metric card {key} update: {e}")
-                    
-        except Exception as e:
-            logging.debug(f"Error updating metrics cards: {e}")
-    
-    def update_simple_charts(self):
-        """Update simple line/area charts"""
-        try:
-            # Update data arrays
-            current_time = time.time()
-            cpu_percent = psutil.cpu_percent()
-            memory_info = psutil.virtual_memory()
-            memory_mb = memory_info.used // (1024 * 1024)
-            
-            # Shift data and add new points
-            self.simple_data['timestamps'].append(current_time)
-            self.simple_data['timestamps'] = self.simple_data['timestamps'][-20:]
-            
-            self.simple_data['cpu_usage'].append(cpu_percent)
-            self.simple_data['cpu_usage'] = self.simple_data['cpu_usage'][-20:]
-            
-            self.simple_data['memory_usage'].append(memory_mb)
-            self.simple_data['memory_usage'] = self.simple_data['memory_usage'][-20:]
-            
-            # Convert timestamps to relative seconds
-            base_time = self.simple_data['timestamps'][0]
-            relative_times = [(t - base_time) for t in self.simple_data['timestamps']]
-            
-            # Update performance chart (CPU and Memory)
-            self.performance_chart.clear()
-            self.performance_chart.set_title('System Performance', color='#ffffff', fontsize=14, pad=20)
-            
-            # CPU line with area fill
-            self.performance_chart.plot(relative_times, self.simple_data['cpu_usage'], 
-                                      color='#3b82f6', linewidth=2, label='CPU %')
-            self.performance_chart.fill_between(relative_times, self.simple_data['cpu_usage'], 
-                                              alpha=0.3, color='#3b82f6')
-            
-            # Memory line (secondary y-axis)
-            ax2 = self.performance_chart.twinx()
-            memory_line = ax2.plot(relative_times, self.simple_data['memory_usage'], 
-                                 color='#8b5cf6', linewidth=2, label='Memory MB')
-            ax2.fill_between(relative_times, self.simple_data['memory_usage'], 
-                           alpha=0.2, color='#8b5cf6')
-            
-            # Style the charts with cleaner labels
-            self.performance_chart.set_xlabel('Time', color='#6b7280', fontsize=9, alpha=0.8)
-            self.performance_chart.set_ylabel('CPU %', color='#6b7280', fontsize=9, alpha=0.8)
-            ax2.set_ylabel('Memory MB', color='#6b7280', fontsize=9, alpha=0.8)
-            
-            # Configure styles
-            for ax in [self.performance_chart, ax2]:
-                ax.set_facecolor((0, 0, 0, 0.1))
-                ax.tick_params(colors='#6b7280', labelsize=8, length=0)  # Remove tick marks
-                ax.grid(True, alpha=0.15, color='#374151', linewidth=0.3, linestyle='-')
-                
-                # Minimal spines
-                for spine in ax.spines.values():
-                    spine.set_visible(False)  # Hide all spines for ultra-clean look
-                
-                # Only show left and bottom spines with minimal styling
-                ax.spines['left'].set_visible(True)
-                ax.spines['bottom'].set_visible(True)
-                ax.spines['left'].set_color('#4b5563')
-                ax.spines['bottom'].set_color('#4b5563')
-                ax.spines['left'].set_linewidth(0.3)
-                ax.spines['bottom'].set_linewidth(0.3)
-            
-            # Update activity chart (Task activity over time)
-            self.activity_chart.clear()
-            self.activity_chart.set_title('Task Activity', color='#ffffff', fontsize=14, pad=20)
-            
-            # Get task activity data
-            task_times = getattr(self, 'ai_metrics', {}).get('timestamps', [])
-            if task_times:
-                # Create activity histogram
-                recent_tasks = [t for t in task_times if current_time - t < 300]  # Last 5 minutes
-                if recent_tasks:
-                    # Simple activity indicator
-                    activity_level = len(recent_tasks)
-                    activity_data = [activity_level] * len(relative_times)
-                    
-                    self.activity_chart.plot(relative_times, activity_data, 
-                                           color='#10b981', linewidth=2)
-                    self.activity_chart.fill_between(relative_times, activity_data, 
-                                                   alpha=0.4, color='#10b981')
-            
-            self.activity_chart.set_xlabel('Time', color='#6b7280', fontsize=9, alpha=0.8)
-            self.activity_chart.set_ylabel('Tasks', color='#6b7280', fontsize=9, alpha=0.8)
-            
-            # Apply clean styling to activity chart
-            self.activity_chart.set_facecolor((0, 0, 0, 0.1))
-            self.activity_chart.tick_params(colors='#6b7280', labelsize=8, length=0)
-            self.activity_chart.grid(True, alpha=0.15, color='#374151', linewidth=0.3, linestyle='-')
-            
-            # Hide all spines and show only minimal ones
-            for spine in self.activity_chart.spines.values():
-                spine.set_visible(False)
-            self.activity_chart.spines['left'].set_visible(True)
-            self.activity_chart.spines['bottom'].set_visible(True)
-            self.activity_chart.spines['left'].set_color('#4b5563')
-            self.activity_chart.spines['bottom'].set_color('#4b5563')
-            self.activity_chart.spines['left'].set_linewidth(0.3)
-            self.activity_chart.spines['bottom'].set_linewidth(0.3)
-            
-            # Redraw canvas
-            self.simple_canvas.draw()
-            
-        except Exception as e:
-            logging.error(f"Error updating simple charts: {e}")
-    
-    def configure_innovative_graph_styles(self):
-        """Configure innovative graph styles with modern design"""
-        colors = ModernTheme.get_colors()
-        bg_color = colors['bg_secondary'].lstrip('#')
-        text_color = colors['text_primary'].lstrip('#')
-        accent_color = colors['accent'].lstrip('#')
-        grid_color = colors['border'].lstrip('#')
-        
-        # Modern color palette for visualizations
-        self.viz_colors = {
-            'primary': f"#{accent_color}",
-            'success': '#10b981',
-            'warning': '#f59e0b', 
-            'danger': '#ef4444',
-            'info': '#06b6d4',
-            'purple': '#8b5cf6',
-            'gradient': ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe']
-        }
-        
-        # Configure all axes
-        all_axes = [
-            self.performance_ax, self.health_gauge_ax, self.ai_timeline_ax,
-            self.task_distribution_ax, self.resource_heatmap_ax, 
-            self.activity_pulse_ax, self.token_velocity_ax
-        ]
-        
-        for ax in all_axes:
-            ax.set_facecolor(f"#{bg_color}")
-            ax.tick_params(colors=f"#{text_color}", labelsize=8)
-            ax.grid(True, color=f"#{grid_color}", alpha=0.2, linewidth=0.5)
-            
-            # Modern spine styling
-            for spine in ax.spines.values():
-                spine.set_color(f"#{grid_color}")
-                spine.set_linewidth(0.5)
-        
-        # Set innovative titles with icons
-        titles = [
-            ('⚡ Performance Metrics', self.performance_ax),
-            ('🎯 Health Score', self.health_gauge_ax), 
-            ('🧠 AI Timeline', self.ai_timeline_ax),
-            ('📊 Task Mix', self.task_distribution_ax),
-            ('🔥 Resource Heat', self.resource_heatmap_ax),
-            ('💓 Activity Pulse', self.activity_pulse_ax),
-            ('🚀 Token Velocity', self.token_velocity_ax)
-        ]
-        
-        for title, ax in titles:
-            ax.set_title(title, color=f"#{text_color}", fontsize=10, 
-                        fontweight='bold', pad=8)
-    
     def configure_graph_styles(self):
-        """Legacy method - redirects to innovative styling"""
-        self.configure_innovative_graph_styles()
-    
-    def init_innovative_graph_data(self):
-        """Initialize comprehensive data structures for innovative dashboard"""
-        self.innovative_graph_data = {
-            'timestamps': [],
-            'performance_metrics': {
-                'cpu': [],
-                'memory': [],
-                'disk': [],
-                'network_up': [],
-                'network_down': []
-            },
-            'ai_metrics': {
-                'response_times': [],
-                'token_usage': [],
-                'task_completion_rate': [],
-                'error_rate': []
-            },
-            'activity_pulse': [],
-            'health_scores': [],
-            'resource_heatmap_data': [],
-            'token_velocity': []
-        }
+        """Configure matplotlib graph styles for dark theme"""
+        # Dark theme colors
+        bg_color = '#1a1a1a'
+        text_color = '#e5e5e5'
+        grid_color = '#333333'
         
-        # Initialize with some sample data for smooth startup
-        current_time = time.time()
-        for i in range(20):
-            self.innovative_graph_data['timestamps'].append(current_time - (20-i) * 2)
+        for ax in [self.response_time_ax, self.token_usage_ax, self.task_types_ax, self.system_metrics_ax]:
+            ax.set_facecolor(bg_color)
+            ax.tick_params(colors=text_color, labelsize=9)
+            ax.grid(True, color=grid_color, alpha=0.3, linewidth=0.5)
+            ax.spines['bottom'].set_color(text_color)
+            ax.spines['top'].set_color(text_color)
+            ax.spines['right'].set_color(text_color)
+            ax.spines['left'].set_color(text_color)
             
-        # Draw initial graphs
-        self.update_innovative_dashboard()
-    
-    def update_innovative_dashboard(self):
-        """Update the innovative dashboard with current data"""
-        try:
-            # Placeholder for dashboard updates - implement as needed
-            pass
-        except Exception as e:
-            logging.error(f"Error updating innovative dashboard: {e}")
+        # Set titles
+        self.response_time_ax.set_title('Response Times', color=text_color, fontsize=12, pad=10)
+        self.token_usage_ax.set_title('Token Usage', color=text_color, fontsize=12, pad=10)
+        self.task_types_ax.set_title('Task Distribution', color=text_color, fontsize=12, pad=10)
+        self.system_metrics_ax.set_title('System Metrics', color=text_color, fontsize=12, pad=10)
+        
+        # Adjust layout
+        self.dashboard_figure.tight_layout(pad=2.0)
     
     def init_graph_data(self):
-        """Legacy method - redirects to innovative initialization"""
-        self.init_innovative_graph_data()
+        """Initialize empty data structures for graphs"""
+        self.graph_data = {
+            'timestamps': [],
+            'response_times': [],
+            'token_counts': [],
+            'task_type_counts': {},
+            'cpu_usage': [],
+            'memory_usage': []
+        }
+        
+        # Draw initial empty graphs
+        self.update_dashboard_graphs()
     
     def update_dashboard_graphs(self):
-        """Update all dashboard graphs with current data - now uses simple dashboard"""
+        """Update all dashboard graphs with current data"""
         try:
-            # Use simple dashboard if available
-            if hasattr(self, 'simple_canvas'):
-                self.update_simple_dashboard()
-                return
+            # Clear all subplots
+            self.response_time_ax.clear()
+            self.token_usage_ax.clear()
+            self.task_types_ax.clear()
+            self.system_metrics_ax.clear()
             
-            # Legacy dashboard code (fallback)
-            if hasattr(self, 'response_time_ax'):
-                # Clear all subplots
-                self.response_time_ax.clear()
-                self.token_usage_ax.clear()
-                self.task_types_ax.clear()
-                self.system_metrics_ax.clear()
-                
-                # Reconfigure styles after clearing
-                self.configure_graph_styles()
+            # Reconfigure styles after clearing
+            self.configure_graph_styles()
             
             # Update response times graph
             if self.ai_metrics.get('timestamps') and self.ai_metrics.get('response_times'):
@@ -15575,7 +12788,7 @@ class SuperMiniMainWindow(QMainWindow):
             
             # Update metric cards if they exist
             if hasattr(self, 'metric_cards') and hasattr(self, 'ai_metrics'):
-                for key, card in self.metric_cards.items():
+                for key, label in self.metric_cards.items():
                     try:
                         value = self.ai_metrics.get(key, 0)
                         
@@ -15593,15 +12806,9 @@ class SuperMiniMainWindow(QMainWindow):
                         else:
                             formatted_value = str(int(value))
                         
-                        # Handle different card types
-                        if hasattr(card, 'setText'):
-                            card.setText(formatted_value)
-                        elif hasattr(card, 'value_label'):
-                            card.value_label.setText(formatted_value)
-                        else:
-                            logging.debug(f"Metric card {key} has no compatible text update method")
+                        label.setText(formatted_value)
                     except Exception as e:
-                        logging.debug(f"Skipping metric card {key} update: {e}")
+                        logging.error(f"Error updating metric card {key}: {e}")
             
             # Update status indicator
             if hasattr(self, 'ai_status_label') and hasattr(self, 'ai_metrics'):
@@ -15674,7 +12881,7 @@ class SuperMiniMainWindow(QMainWindow):
             
             # Update metric cards if they exist
             if hasattr(self, 'metric_cards'):
-                for key, card in self.metric_cards.items():
+                for key, label in self.metric_cards.items():
                     try:
                         value = self.ai_metrics.get(key, 0)
                         
@@ -15692,15 +12899,9 @@ class SuperMiniMainWindow(QMainWindow):
                         else:
                             formatted_value = str(int(value))
                         
-                        # Handle different card types
-                        if hasattr(card, 'setText'):
-                            card.setText(formatted_value)
-                        elif hasattr(card, 'value_label'):
-                            card.value_label.setText(formatted_value)
-                        else:
-                            logging.debug(f"Metric card {key} has no compatible text update method")
+                        label.setText(formatted_value)
                     except Exception as e:
-                        logging.debug(f"Skipping metric card {key} update: {e}")
+                        logging.error(f"Error updating metric card {key}: {e}")
             
             # Update status indicator
             if hasattr(self, 'ai_status_label'):
@@ -15811,7 +13012,7 @@ class SuperMiniMainWindow(QMainWindow):
             settings.setValue("welcome_shown", True)
     
 
-    def process_task_duplicate(self):
+    def process_task(self):
         task_text = self.task_input.toPlainText().strip()
         if not task_text:
             QMessageBox.warning(self, "Warning", "Please enter a task description!")
@@ -15863,7 +13064,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.task_thread.start()
     
 
-    def stop_task_duplicate(self):
+    def stop_task(self):
         """Stop the current task execution"""
         if self.task_thread and self.task_thread.isRunning():
             self.task_thread.stop()
@@ -15887,7 +13088,7 @@ class SuperMiniMainWindow(QMainWindow):
             )
     
 
-    def task_finished_duplicate(self):
+    def task_finished(self):
         """Handle task thread completion"""
         self.process_btn.setEnabled(True)
         self.stop_task_btn.setEnabled(False)
@@ -16028,10 +13229,7 @@ class SuperMiniMainWindow(QMainWindow):
     
 
     def update_progress(self, value):
-        if hasattr(self, 'progress_indicator'):
-            self.progress_indicator.setValue(value)
-        elif hasattr(self, 'progress_bar'):
-            self.progress_bar.setValue(value)
+        self.progress_bar.setValue(value)
     
 
     def display_task_result(self, result: TaskResult):
@@ -16039,38 +13237,38 @@ class SuperMiniMainWindow(QMainWindow):
         # Update results tab with enhanced HTML formatting
         if result.success:
             result_text = f"""
-            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.COLORS['text_primary']};'>
-                <div style='background: linear-gradient(135deg, {ModernTheme.COLORS['success']} 0%, #059669 100%); 
+            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.get_colors()['text_primary']};'>
+                <div style='background: linear-gradient(135deg, {ModernTheme.get_colors()['success']} 0%, #059669 100%); 
                             color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;'>
                     <h2 style='margin: 0; font-size: 24px; font-weight: 600;'>✅ Task Completed Successfully</h2>
                     <p style='margin: 8px 0 0 0; opacity: 0.9;'>Execution time: {result.execution_time:.2f} seconds</p>
                 </div>
                 
-                <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                            border-left: 4px solid {ModernTheme.COLORS['success']}; margin-bottom: 20px;'>
-                    <h3 style='color: {ModernTheme.COLORS['success']}; margin-top: 0;'>🎯 AI Response</h3>
-                    <div style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 16px; border-radius: 6px; 
+                <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                            border-left: 4px solid {ModernTheme.get_colors()['success']}; margin-bottom: 20px;'>
+                    <h3 style='color: {ModernTheme.get_colors()['success']}; margin-top: 0;'>🎯 AI Response</h3>
+                    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
                                 font-family: {ModernTheme.FONTS['mono']}; font-size: 13px; line-height: 1.5;
-                                border: 1px solid {ModernTheme.COLORS['border']};'>
+                                border: 1px solid {ModernTheme.get_colors()['border']};'>
                         {result.result.replace(chr(10), '<br>').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')}
                     </div>
                 </div>
             """
         else:
             result_text = f"""
-            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.COLORS['text_primary']};'>
-                <div style='background: linear-gradient(135deg, {ModernTheme.COLORS['error']} 0%, #dc2626 100%); 
+            <div style='font-family: {ModernTheme.FONTS['ui']}; line-height: 1.6; color: {ModernTheme.get_colors()['text_primary']};'>
+                <div style='background: linear-gradient(135deg, {ModernTheme.get_colors()['error']} 0%, #dc2626 100%); 
                             color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;'>
                     <h2 style='margin: 0; font-size: 24px; font-weight: 600;'>❌ Task Failed</h2>
                     <p style='margin: 8px 0 0 0; opacity: 0.9;'>Execution time: {result.execution_time:.2f} seconds</p>
                 </div>
                 
-                <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                            border-left: 4px solid {ModernTheme.COLORS['error']}; margin-bottom: 20px;'>
-                    <h3 style='color: {ModernTheme.COLORS['error']}; margin-top: 0;'>⚠️ Error Details</h3>
-                    <div style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 16px; border-radius: 6px; 
+                <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                            border-left: 4px solid {ModernTheme.get_colors()['error']}; margin-bottom: 20px;'>
+                    <h3 style='color: {ModernTheme.get_colors()['error']}; margin-top: 0;'>⚠️ Error Details</h3>
+                    <div style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 16px; border-radius: 6px; 
                                 font-family: {ModernTheme.FONTS['mono']}; font-size: 13px; line-height: 1.5;
-                                border: 1px solid {ModernTheme.COLORS['border']};'>
+                                border: 1px solid {ModernTheme.get_colors()['border']};'>
                         {result.result.replace(chr(10), '<br>').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')}
                     </div>
                 </div>
@@ -16078,61 +13276,110 @@ class SuperMiniMainWindow(QMainWindow):
         
         if result.generated_files:
             result_text += f"""
-            <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                        border-left: 4px solid {ModernTheme.COLORS['info']}; margin-bottom: 20px;'>
-                <h3 style='color: {ModernTheme.COLORS['info']}; margin-top: 0;'>📁 Generated Files ({len(result.generated_files)})</h3>
+            <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                        border-left: 4px solid {ModernTheme.get_colors()['info']}; margin-bottom: 20px;'>
+                <h3 style='color: {ModernTheme.get_colors()['info']}; margin-top: 0;'>📁 Generated Files ({len(result.generated_files)})</h3>
                 <ul style='list-style: none; padding: 0;'>
             """
             
             for file_path in result.generated_files:
                 file_name = Path(file_path).name if file_path else "Unknown file"
-                result_text += f"""
-                <li style='background-color: {ModernTheme.COLORS['bg_primary']}; padding: 12px; margin: 8px 0; 
-                           border-radius: 6px; border: 1px solid {ModernTheme.COLORS['border']};'>
-                    <div style='display: flex; align-items: center;'>
-                        <span style='margin-right: 8px;'>📄</span>
-                        <div>
-                            <div style='color: {ModernTheme.COLORS['text_primary']}; font-weight: 500;'>{file_name}</div>
-                            <div style='color: {ModernTheme.COLORS['text_muted']}; font-size: 11px; font-family: {ModernTheme.FONTS['mono']};'>{file_path}</div>
+                
+                # Check for metadata to enhance display
+                metadata = None
+                if hasattr(result, 'file_metadata') and result.file_metadata and file_path in result.file_metadata:
+                    metadata = result.file_metadata[file_path]
+                
+                if metadata:
+                    # Enhanced display with metadata
+                    result_text += f"""
+                    <li style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 14px; margin: 10px 0; 
+                               border-radius: 8px; border: 1px solid {ModernTheme.get_colors()['primary']}; border-left: 4px solid {ModernTheme.get_colors()['primary']};'>
+                        <div style='display: flex; align-items: flex-start;'>
+                            <div style='margin-right: 12px; font-size: 18px;'>{self._get_metadata_icon(metadata.file_type)}</div>
+                            <div style='flex: 1;'>
+                                <div style='color: {ModernTheme.get_colors()['text_primary']}; font-weight: 600; font-size: 14px; margin-bottom: 4px;'>{metadata.display_name}</div>
+                                <div style='color: {ModernTheme.get_colors()['text_secondary']}; font-size: 12px; margin-bottom: 6px;'>{metadata.description}</div>
+                                <div style='display: flex; gap: 12px; margin-bottom: 6px;'>
+                                    <span style='color: {ModernTheme.get_colors()['primary']}; font-size: 11px; font-weight: 500;'>{metadata.file_type}</span>
+                                    <span style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px;'>{Path(file_path).stat().st_size if Path(file_path).exists() else 0} bytes</span>
+                                </div>
+                                <div style='color: {ModernTheme.get_colors()['info']}; font-size: 11px; background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;'>
+                                    🎯 {metadata.purpose}
+                                </div>
+                                <div style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 10px; font-family: {ModernTheme.FONTS['mono']}; margin-top: 8px; word-break: break-all;'>{file_path}</div>
+                            </div>
                         </div>
-                    </div>
-                </li>
-                """
+                    </li>
+                    """
+                else:
+                    # Fallback display without metadata
+                    result_text += f"""
+                    <li style='background-color: {ModernTheme.get_colors()['bg_primary']}; padding: 12px; margin: 8px 0; 
+                               border-radius: 6px; border: 1px solid {ModernTheme.get_colors()['border']};'>
+                        <div style='display: flex; align-items: center;'>
+                            <span style='margin-right: 8px;'>📄</span>
+                            <div>
+                                <div style='color: {ModernTheme.get_colors()['text_primary']}; font-weight: 500;'>{file_name}</div>
+                                <div style='color: {ModernTheme.get_colors()['text_muted']}; font-size: 11px; font-family: {ModernTheme.FONTS['mono']};'>{file_path}</div>
+                            </div>
+                        </div>
+                    </li>
+                    """
             
             result_text += "</ul></div>"
         
         if result.task_steps and len(result.task_steps) > 0:
             result_text += f"""
-            <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                        border-left: 4px solid {ModernTheme.COLORS['warning']}; margin-bottom: 20px;'>
-                <h3 style='color: {ModernTheme.COLORS['warning']}; margin-top: 0;'>📋 Task Steps ({len(result.task_steps)})</h3>
+            <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                        border-left: 4px solid {ModernTheme.get_colors()['warning']}; margin-bottom: 20px;'>
+                <h3 style='color: {ModernTheme.get_colors()['warning']}; margin-top: 0;'>📋 Task Steps ({len(result.task_steps)})</h3>
                 <ol style='padding-left: 20px; margin: 0;'>
             """
             
             for step in result.task_steps:
-                result_text += f"<li style='margin: 8px 0; color: {ModernTheme.COLORS['text_secondary']};'>{step}</li>"
+                result_text += f"<li style='margin: 8px 0; color: {ModernTheme.get_colors()['text_secondary']};'>{step}</li>"
             
             result_text += "</ol></div>"
         
         if result.audio_path:
             result_text += f"""
-            <div style='background-color: {ModernTheme.COLORS['bg_secondary']}; padding: 20px; border-radius: 8px; 
-                        border-left: 4px solid {ModernTheme.COLORS['primary']}; margin-bottom: 20px;'>
-                <h3 style='color: {ModernTheme.COLORS['primary']}; margin-top: 0;'>🔊 Audio Output</h3>
-                <p style='margin: 0;'><code style='color: {ModernTheme.COLORS['primary_light']};'>{result.audio_path}</code></p>
+            <div style='background-color: {ModernTheme.get_colors()['bg_secondary']}; padding: 20px; border-radius: 8px; 
+                        border-left: 4px solid {ModernTheme.get_colors()['primary']}; margin-bottom: 20px;'>
+                <h3 style='color: {ModernTheme.get_colors()['primary']}; margin-top: 0;'>🔊 Audio Output</h3>
+                <p style='margin: 0;'><code style='color: {ModernTheme.get_colors()['primary_light']};'>{result.audio_path}</code></p>
             </div>
             """
         
         result_text += "</div>"
         self.results_text.setHtml(result_text)
         
+        # Store file metadata for enhanced file display
+        if hasattr(result, 'file_metadata') and result.file_metadata:
+            if not hasattr(self, 'stored_file_metadata'):
+                self.stored_file_metadata = {}
+            self.stored_file_metadata.update(result.file_metadata)
+        
+        # Add task to timeline with enhanced data
+        task_data = {
+            'task_type': getattr(self, 'current_task_type', 'unknown'),
+            'title': self._generate_task_title(result),
+            'prompt': getattr(self, 'current_prompt', ''),
+            'result': result.result,
+            'generated_files': result.generated_files,
+            'response_time': result.execution_time,
+            'tokens_used': getattr(result, 'tokens_used', 0),
+            'timestamp': datetime.now(),
+            'file_metadata': getattr(result, 'file_metadata', {})
+        }
+        self.add_task_to_timeline(task_data)
+        
+        # Refresh file display to show new files with metadata
+        self.refresh_files_display()
+        
         # Update files tab if it exists
         if hasattr(self, 'files_text') and result.generated_files:
             self.update_files_display(result.generated_files)
-        
-        # Show error message for failed tasks
-        if not result.success:
-            QMessageBox.warning(self, "Task Failed", f"Task execution failed. Check the results panel for details.")
     
     def _generate_task_title(self, result: TaskResult) -> str:
         """Generate a descriptive title for the task based on the result"""
@@ -16252,7 +13499,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.files_text.setHtml(files_text)
     
 
-    def task_finished_duplicate2(self):
+    def task_finished(self):
         self.progress_bar.setVisible(False)
         self.process_btn.setEnabled(True)
         self.statusBar().showMessage("Task completed")
@@ -16269,17 +13516,9 @@ class SuperMiniMainWindow(QMainWindow):
         hours = interval_seconds // 3600
         minutes = (interval_seconds % 3600) // 60
         
-        if hasattr(self, 'start_explore_btn'):
-            self.start_explore_btn.setEnabled(False)
-        if hasattr(self, 'stop_explore_btn'):
-            self.stop_explore_btn.setEnabled(True)
-        if hasattr(self, 'exploration_status'):
-            self.exploration_status.setText("🔍 Exploring...")
-        
-        # Update avatar to show curious exploration state
-        self.simple_update_avatar('thinking')
-        self.avatar_message = "Exploring new possibilities and insights..."
-        
+        self.start_explore_btn.setEnabled(False)
+        self.stop_explore_btn.setEnabled(True)
+        self.exploration_status.setText("🔍 Exploring...")
         files = getattr(self, 'attached_files', [])
         self.explore_thread = ExploreThread(
             self.processor, 
@@ -16294,7 +13533,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.explore_thread.start()
     
 
-    def stop_exploration_duplicate(self):
+    def stop_exploration(self):
         """Stop the exploration thread and any ongoing operations"""
         if self.explore_thread and self.explore_thread.isRunning():
             self.explore_thread.stop()
@@ -16304,37 +13543,27 @@ class SuperMiniMainWindow(QMainWindow):
                 self.explore_thread.wait()  # Wait for termination
             
             # Update GUI immediately
-            if hasattr(self, 'start_explore_btn'):
-                self.start_explore_btn.setEnabled(True)
-            if hasattr(self, 'stop_explore_btn'):
-                self.stop_explore_btn.setEnabled(False)
-            if hasattr(self, 'exploration_status'):
-                self.exploration_status.setText("Exploration stopped by user")
-            if hasattr(self, 'progress_bar'):
-                self.progress_bar.setVisible(False)
+            self.start_explore_btn.setEnabled(True)
+            self.stop_explore_btn.setEnabled(False)
+            self.exploration_status.setText("Exploration stopped by user")
+            self.progress_bar.setVisible(False)
             self.statusBar().showMessage("Exploration stopped")
     
 
     def display_explore_result(self, result: str, files: List[str], iteration: int):
-        if hasattr(self, 'results_text'):
-            self.results_text.append(f"\n\n{result}")
+        self.results_text.append(f"\n\n{result}")
         # File generation info now displayed in Activity Monitor
     
     def handle_explore_error(self, error: str):
-        if hasattr(self, 'results_text'):
-            self.results_text.append(f"\nError: {error}")
+        self.results_text.append(f"\nError: {error}")
         QMessageBox.warning(self, "Exploration Error", error)
     
 
     def exploration_finished(self):
-        if hasattr(self, 'start_explore_btn'):
-            self.start_explore_btn.setEnabled(True)
-        if hasattr(self, 'stop_explore_btn'):
-            self.stop_explore_btn.setEnabled(False)
-        if hasattr(self, 'exploration_status'):
-            self.exploration_status.setText("Exploration stopped")
-        if hasattr(self, 'progress_bar'):
-            self.progress_bar.setVisible(False)
+        self.start_explore_btn.setEnabled(True)
+        self.stop_explore_btn.setEnabled(False)
+        self.exploration_status.setText("Exploration stopped")
+        self.progress_bar.setVisible(False)
     
 
     def start_enhancement(self):
@@ -16351,11 +13580,6 @@ class SuperMiniMainWindow(QMainWindow):
         self.start_enhance_btn.setEnabled(False)
         self.stop_enhance_btn.setEnabled(True)
         self.enhancement_status.setText("⚡ Enhancing...")
-        
-        # Update avatar to show focused enhancement state
-        self.simple_update_avatar('working')
-        self.avatar_message = "Analyzing and enhancing capabilities..."
-        
         files = getattr(self, 'attached_files', [])
         app_path = os.path.abspath(__file__)
         self.enhance_thread = EnhanceThread(
@@ -16373,7 +13597,7 @@ class SuperMiniMainWindow(QMainWindow):
         self.enhance_thread.start()
     
 
-    def stop_enhancement_duplicate(self):
+    def stop_enhancement(self):
         """Stop the enhancement thread and any ongoing operations"""
         if self.enhance_thread and self.enhance_thread.isRunning():
             self.enhance_thread.stop()
@@ -16575,7 +13799,6 @@ def main():
     window = SuperMiniMainWindow()
     window.show()
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     main()
